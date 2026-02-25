@@ -182,8 +182,16 @@ async function scrapeEAuditoria({ ncms, uf, atividade, regime, regimeEspecial })
         await page.goto('https://plataforma.e-auditoria.com.br/login', { waitUntil: 'domcontentloaded' });
 
         await page.waitForSelector('#username');
-        await page.type('#username', process.env.EAUDITORIA_EMAIL);
-        await page.type('#password', process.env.EAUDITORIA_PASSWORD);
+
+        const email = process.env.EAUDITORIA_EMAIL;
+        const password = process.env.EAUDITORIA_PASSWORD;
+
+        if (!email || !password) {
+            throw new Error('Credenciais do e-Auditoria não encontradas no arquivo .env (EAUDITORIA_EMAIL/EAUDITORIA_PASSWORD)');
+        }
+
+        await page.type('#username', email);
+        await page.type('#password', password);
         await Promise.all([
             page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
             page.click('#kc-login')

@@ -51,6 +51,17 @@ Você pode baixar o código de duas formas:
     npm install -g serve
     ```
 
+### 2.3 Configurando Credenciais (.env)
+O robô de inteligência precisa de login no e-Auditoria para buscar as regras.
+1. Vá para a pasta `rayo-server`.
+2. Procure o arquivo `.env.example`.
+3. Faça uma cópia dele e renomeie para apenas `.env`.
+4. Abra o novo arquivo `.env` com o Bloco de Notas e preencha:
+   - `EAUDITORIA_EMAIL=seu@email.com`
+   - `EAUDITORIA_PASSWORD=sua_senha`
+   - `PORT=3001` (pode deixar como está)
+5. **Salve o arquivo.** Sem este passo, o robô dará erro de "Credenciais não encontradas".
+
 ---
 
 ## 3. Rodando o Servidor na Rede Local
