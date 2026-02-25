@@ -60,6 +60,7 @@ export default function PisCofinsReviewPage() {
     const { theme, toggle } = useTheme();
     const { parsedData, ncmGroups, ncmList, fileName, loading, error, processFile, reset, updateGroup, applyAutoCorrecoes } = useSpedFile();
     const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'success', 'warning', 'info'
     const [toasts, setToasts] = useState([]);
     const [showOnboarding, setShowOnboarding] = useState(() => {
         return !localStorage.getItem('rayo_onboarding_seen');
@@ -112,6 +113,32 @@ export default function PisCofinsReviewPage() {
     const filteredGroups = useMemo(() => {
         if (!ncmGroups) return [];
 
+        const robotStarted = !!eAuditoriaRules;
+        const rulesNcmSet = new Set();
+        if (robotStarted) {
+            eAuditoriaRules.forEach(r => {
+                const ncmKey = Object.keys(r).find(k => k.toUpperCase().includes('NCM'));
+                if (ncmKey && r[ncmKey]) rulesNcmSet.add(String(r[ncmKey]).replace(/\D/g, ''));
+            });
+        }
+
+        const getStatus = (group, key) => {
+            const isComplementar = group.description?.toUpperCase().includes('COMPLEMENTAR');
+            const cstPis = group.novoCstPis || '';
+            const cstCofins = group.novoCstCofins || '';
+
+            if (isComplementar) return 'info';
+
+            const hasRobotRule = rulesNcmSet.has(group.ncm);
+            if (robotStarted && !hasRobotRule && group.ncm && group.ncm !== 'SEM_NCM' && !key.includes('_')) {
+                return 'danger';
+            }
+
+            if (cstPis !== '' && cstCofins !== '') return 'success';
+            if (group.aliqPis === 0 || group.aliqCofins === 0) return 'warning';
+            return 'neutral';
+        };
+
         // Convert to array and sort by Base de Calculo (highest first)
         const sorted = [...ncmGroups.entries()].sort((a, b) => {
             let valA = 0, valB = 0;
@@ -120,15 +147,21 @@ export default function PisCofinsReviewPage() {
             return valB - valA;
         });
 
-        if (!searchTerm) return sorted;
+        return sorted.filter(([key, group]) => {
+            // Apply Search Filter
+            const term = searchTerm.toLowerCase();
+            const matchesSearch = !searchTerm ||
+                key.toLowerCase().includes(term) ||
+                group.description.toLowerCase().includes(term) ||
+                group.records.some(r => r.description?.toLowerCase().includes(term));
 
-        const term = searchTerm.toLowerCase();
-        return sorted.filter(([key, group]) =>
-            key.toLowerCase().includes(term) ||
-            group.description.toLowerCase().includes(term) ||
-            group.records.some(r => r.description?.toLowerCase().includes(term))
-        );
-    }, [ncmGroups, searchTerm]);
+            // Apply Status Filter
+            const groupStatus = getStatus(group, key);
+            const matchesStatus = statusFilter === 'all' || groupStatus === statusFilter;
+
+            return matchesSearch && matchesStatus;
+        });
+    }, [ncmGroups, searchTerm, statusFilter, eAuditoriaRules]);
 
     // --- Summary ---
     const summary = useMemo(() => {
@@ -526,6 +559,37 @@ export default function PisCofinsReviewPage() {
                             <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>Auditando {ncmList.length} Grupos NCM</h3>
                             <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>Filtre os resultados ou aplique regras em massa abaixo.</p>
                         </div>
+
+                        {/* Status Filter Chips */}
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            {[
+                                { id: 'all', label: 'Todos', color: 'var(--text-secondary)', bg: 'var(--bg-tertiary)' },
+                                { id: 'success', label: 'Regularizados', color: 'var(--success)', bg: 'rgba(34, 197, 94, 0.1)' },
+                                { id: 'warning', label: 'Pendentes', color: 'var(--warning-text)', bg: 'rgba(245, 158, 11, 0.1)' },
+                                { id: 'danger', label: 'Não Encontrados', color: 'var(--danger)', bg: 'rgba(239, 68, 68, 0.1)' },
+                                { id: 'info', label: 'Informativos', color: 'var(--accent)', bg: 'var(--accent-soft)' }
+                            ].map(filter => (
+                                <button
+                                    key={filter.id}
+                                    onClick={() => setStatusFilter(filter.id)}
+                                    style={{
+                                        padding: '6px 14px',
+                                        borderRadius: '20px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 700,
+                                        border: `1px solid ${statusFilter === filter.id ? filter.color : 'transparent'}`,
+                                        background: statusFilter === filter.id ? filter.bg : 'var(--bg-secondary)',
+                                        color: filter.color,
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        boxShadow: statusFilter === filter.id ? 'var(--shadow-sm)' : 'none',
+                                        opacity: statusFilter === filter.id ? 1 : 0.7
+                                    }}
+                                >
+                                    {filter.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Search */}
@@ -558,6 +622,11 @@ export default function PisCofinsReviewPage() {
                                         groupKey={key}
                                         group={group}
                                         onUpdate={updateGroup}
+                                        robotStarted={!!eAuditoriaRules}
+                                        hasRobotRule={eAuditoriaRules ? eAuditoriaRules.some(r => {
+                                            const ncmKey = Object.keys(r).find(k => k.toUpperCase().includes('NCM'));
+                                            return r[ncmKey] && String(r[ncmKey]).replace(/\D/g, '') === group.ncm;
+                                        }) : false}
                                     />
                                 </div>
                             )}
@@ -625,7 +694,8 @@ export default function PisCofinsReviewPage() {
                         </div>
                     </div>
                 </>
-            )}
+            )
+            }
 
             {/* Footer */}
             <footer className="footer">
@@ -633,64 +703,66 @@ export default function PisCofinsReviewPage() {
             </footer>
 
             {/* Onboarding Guide */}
-            {showOnboarding && (
-                <div className="onboarding-overlay" onClick={closeOnboarding}>
-                    <div className="onboarding-modal" onClick={e => e.stopPropagation()}>
-                        <div className="onboarding-header">
-                            <div className="onboarding-logo">
-                                <img src="/logo.png" alt="Rayo Logo" />
-                                <span>Rayo</span>
+            {
+                showOnboarding && (
+                    <div className="onboarding-overlay" onClick={closeOnboarding}>
+                        <div className="onboarding-modal" onClick={e => e.stopPropagation()}>
+                            <div className="onboarding-header">
+                                <div className="onboarding-logo">
+                                    <img src="/logo.png" alt="Rayo Logo" />
+                                    <span>Rayo</span>
+                                </div>
+                                <p>Bem-vindo ao novo revisor em lote de PIS/COFINS.</p>
                             </div>
-                            <p>Bem-vindo ao novo revisor em lote de PIS/COFINS.</p>
-                        </div>
 
-                        <div className="onboarding-steps">
-                            <div className="onboarding-step">
-                                <div className="onboarding-step-icon btn-neutral">
-                                    <IconUpload size={16} />
+                            <div className="onboarding-steps">
+                                <div className="onboarding-step">
+                                    <div className="onboarding-step-icon btn-neutral">
+                                        <IconUpload size={16} />
+                                    </div>
+                                    <div className="onboarding-step-content">
+                                        <h4>1. Upload</h4>
+                                        <p>Arraste seu arquivo TXT do SPED ou clique para selecionar.</p>
+                                    </div>
                                 </div>
-                                <div className="onboarding-step-content">
-                                    <h4>1. Upload</h4>
-                                    <p>Arraste seu arquivo TXT do SPED ou clique para selecionar.</p>
+                                <div className="onboarding-step">
+                                    <div className="onboarding-step-icon">
+                                        <IconBolt size={16} />
+                                    </div>
+                                    <div className="onboarding-step-content">
+                                        <h4>2. Revisar por NCM</h4>
+                                        <p>Os produtos são agrupados por NCM. Altere o CST PIS e COFINS de cada grupo conforme necessário.</p>
+                                    </div>
+                                </div>
+                                <div className="onboarding-step">
+                                    <div className="onboarding-step-icon btn-neutral">
+                                        <IconBot size={16} />
+                                    </div>
+                                    <div className="onboarding-step-content">
+                                        <h4>3. Captura Automática</h4>
+                                        <p>O robô Rayo busca as regras vigentes diretamente no e-Auditoria para você, preenchendo os CSTs automaticamente.</p>
+                                    </div>
+                                </div>
+                                <div className="onboarding-step">
+                                    <div className="onboarding-step-icon btn-neutral">
+                                        <IconExport size={16} />
+                                    </div>
+                                    <div className="onboarding-step-content">
+                                        <h4>4. Exportar</h4>
+                                        <p>Quando terminar, clique em "Exportar TXT Revisado". O arquivo gerado é idêntico ao original, apenas com os campos PIS/COFINS alterados. Valide no PVA antes de transmitir.</p>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="onboarding-step">
-                                <div className="onboarding-step-icon">
-                                    <IconBolt size={16} />
-                                </div>
-                                <div className="onboarding-step-content">
-                                    <h4>2. Revisar por NCM</h4>
-                                    <p>Os produtos são agrupados por NCM. Altere o CST PIS e COFINS de cada grupo conforme necessário.</p>
-                                </div>
-                            </div>
-                            <div className="onboarding-step">
-                                <div className="onboarding-step-icon btn-neutral">
-                                    <IconBot size={16} />
-                                </div>
-                                <div className="onboarding-step-content">
-                                    <h4>3. Captura Automática</h4>
-                                    <p>O robô Rayo busca as regras vigentes diretamente no e-Auditoria para você, preenchendo os CSTs automaticamente.</p>
-                                </div>
-                            </div>
-                            <div className="onboarding-step">
-                                <div className="onboarding-step-icon btn-neutral">
-                                    <IconExport size={16} />
-                                </div>
-                                <div className="onboarding-step-content">
-                                    <h4>4. Exportar</h4>
-                                    <p>Quando terminar, clique em "Exportar TXT Revisado". O arquivo gerado é idêntico ao original, apenas com os campos PIS/COFINS alterados. Valide no PVA antes de transmitir.</p>
-                                </div>
-                            </div>
-                        </div>
 
-                        <div className="onboarding-actions">
-                            <button className="btn btn-primary" onClick={closeOnboarding}>
-                                Entendi, vamos lá!
-                            </button>
+                            <div className="onboarding-actions">
+                                <button className="btn btn-primary" onClick={closeOnboarding}>
+                                    Entendi, vamos lá!
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
 
             {/* Toasts */}
@@ -702,6 +774,6 @@ export default function PisCofinsReviewPage() {
                     </div>
                 ))}
             </div>
-        </div>
+        </div >
     );
 }

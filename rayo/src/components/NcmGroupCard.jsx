@@ -7,7 +7,7 @@ const isNoCreditCST = (cst) => {
     return cst && noCreditCSTs.includes(String(cst).padStart(2, '0'));
 };
 
-export default function NcmGroupCard({ groupKey, group, onUpdate }) {
+export default function NcmGroupCard({ groupKey, group, onUpdate, robotStarted = false, hasRobotRule = false }) {
     const [expanded, setExpanded] = useState(false);
 
     const handleCstChange = useCallback((field, value) => {
@@ -45,18 +45,51 @@ export default function NcmGroupCard({ groupKey, group, onUpdate }) {
     const codItemAtual = firstRec?.codItem;
     const isComplementar = group.description?.toUpperCase().includes('COMPLEMENTAR');
 
+    // --- Lógica de Status (Cores Lúdicas) ---
+    // --- Lógica de Status (Cores Lúdicas) ---
+    const getStatus = () => {
+        if (isComplementar) return 'info';
+
+        // Se o robô rodou e não achou este NCM específico
+        if (robotStarted && !hasRobotRule && group.ncm && group.ncm !== 'SEM_NCM' && !groupKey.includes('_')) {
+            return 'danger';
+        }
+
+        if (cstPis !== '' && cstCofins !== '') return 'success';
+
+        // Se a alíquota for zero mas o CST for de crédito (ou não preenchido), é um ponto de atenção
+        const isPisZero = group.aliqPis === 0;
+        const isCofinsZero = group.aliqCofins === 0;
+        if (isPisZero || isCofinsZero) return 'warning';
+
+        return 'neutral';
+    };
+
+    const status = getStatus();
+
+    const statusStyles = {
+        success: { border: 'var(--success)', bg: 'rgba(34, 197, 94, 0.05)', text: 'var(--success)', label: 'Regularizado' },
+        warning: { border: 'var(--warning)', bg: 'rgba(245, 158, 11, 0.05)', text: 'var(--warning-text)', label: 'Pendente' },
+        danger: { border: 'var(--danger)', bg: 'rgba(239, 68, 68, 0.05)', text: 'var(--danger)', label: 'Não Encontrado' },
+        info: { border: 'var(--border-focus)', bg: 'var(--accent-soft)', text: 'var(--accent)', label: 'Informativo' },
+        neutral: { border: 'var(--border)', bg: 'var(--bg-secondary)', text: 'var(--text-tertiary)', label: 'Padrão' }
+    };
+
+    const currentStyle = statusStyles[status];
+
     return (
         <div style={{
-            borderLeft: `5px solid ${isComplementar ? 'var(--border-focus)' : (isChanged ? 'var(--success)' : 'var(--accent)')}`,
+            borderLeft: `6px solid ${currentStyle.border}`,
             padding: '16px 20px',
-            backgroundColor: isComplementar ? 'var(--accent-soft)' : 'var(--bg-secondary)',
+            backgroundColor: currentStyle.bg,
             borderRadius: 'var(--radius-md)',
-            border: `1px solid ${isComplementar ? 'var(--border-focus)' : 'var(--border)'}`,
-            borderLeftWidth: '5px',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            marginBottom: '8px',
-            boxShadow: isChanged ? 'var(--shadow-md)' : 'var(--shadow-sm)',
-            opacity: isComplementar ? 0.9 : 1
+            border: `1px solid ${status === 'neutral' ? 'var(--border)' : currentStyle.border}`,
+            borderLeftWidth: '6px',
+            transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+            marginBottom: '12px',
+            boxShadow: status === 'success' ? 'var(--shadow-md)' : (status === 'warning' ? '0 4px 12px rgba(245, 158, 11, 0.1)' : 'var(--shadow-sm)'),
+            position: 'relative',
+            overflow: 'hidden'
         }}>
             <div className="ncm-card-header" onClick={() => setExpanded(!expanded)} style={{ padding: 0, gap: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
@@ -72,20 +105,22 @@ export default function NcmGroupCard({ groupKey, group, onUpdate }) {
                         }}>
                             {group.ncm && group.ncm !== 'SEM_NCM' ? `NCM:${group.ncm}` : (groupKey.length === 14 || groupKey.includes('_') ? 'CNPJ' : `NCM: ${groupKey} `)}
                         </span>
-                        <span style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {group.description}
                         </span>
-                        {isComplementar && (
-                            <span style={{
-                                fontSize: '0.65rem',
-                                background: 'var(--border-focus)',
-                                color: '#fff',
-                                padding: '1px 6px',
-                                borderRadius: '4px',
-                                fontWeight: 600,
-                                textTransform: 'uppercase'
-                            }}>Informativo</span>
-                        )}
+                        <span style={{
+                            fontSize: '0.65rem',
+                            background: currentStyle.border,
+                            color: '#fff',
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            fontWeight: 800,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.02em',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                        }}>
+                            {currentStyle.label}
+                        </span>
                     </div>
                     <div style={{ display: 'flex', gap: '12px', fontSize: '0.75rem', color: 'var(--text-secondary)', alignItems: 'center' }}>
                         {codItemAtual && <span style={{ background: 'var(--accent-soft)', color: 'var(--accent-text)', padding: '0 4px', borderRadius: '2px' }}>Cód: {codItemAtual}</span>}
