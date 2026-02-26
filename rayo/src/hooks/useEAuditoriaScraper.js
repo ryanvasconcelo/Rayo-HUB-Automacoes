@@ -13,19 +13,22 @@ import { SERVER_URL } from '../config';
 
 export const SCRAPER_STATUS = {
     IDLE: 'IDLE',
-    VERIFICANDO: 'verificando',   // Testando se o servidor está online
-    EXTRAINDO: 'extracting',      // Extraindo NCMs únicos do Livrão
-    BUSCANDO: 'scraping',         // Robô rodando no e-Auditoria
+    VERIFICANDO: 'verificando',      // Testando se o servidor está online
+    EXTRAINDO: 'extracting',         // Extraindo NCMs únicos do Livrão
+    AGUARDANDO_FILA: 'queued',       // Aguardando vez na fila do servidor
+    BUSCANDO: 'scraping',            // Robô rodando no e-Auditoria
     CONCLUIDO: 'done',
     ERRO: 'error',
-    OFFLINE: 'offline',           // Servidor não disponível — fallback manual
+    OFFLINE: 'offline',              // Servidor não disponível — fallback manual
 };
 
 export function useEAuditoriaScraper() {
     const [status, setStatus] = useState(SCRAPER_STATUS.IDLE);
     const [progresso, setProgresso] = useState('');
     const [serverOnline, setServerOnline] = useState(null); // null = não verificado
+    const [posicaoNaFila, setPosicaoNaFila] = useState(0);
     const abortControllerRef = useRef(null);
+    const queuePollingRef = useRef(null);
 
     /**
      * Verifica se o servidor local está rodando
@@ -91,9 +94,38 @@ export function useEAuditoriaScraper() {
             return null;
         }
 
-        setProgresso(`${ncms.length} NCMs únicos encontrados. Iniciando robô...`);
+        setProgresso(`${ncms.length} NCMs únicos encontrados. Verificando disponibilidade do servidor...`);
 
-        // ETAPA 2: Scraping
+        // ETAPA 2: Verificar fila antes de iniciar
+        try {
+            const queueRes = await fetch(`${SERVER_URL}/api/queue-status`);
+            if (queueRes.ok) {
+                const { totalPending } = await queueRes.json();
+                if (totalPending > 0) {
+                    setStatus(SCRAPER_STATUS.AGUARDANDO_FILA);
+                    setPosicaoNaFila(totalPending + 1);
+                    setProgresso(`Aguardando vaga... você é o ${totalPending + 1}º na fila. O robô processará seu pedido em breve.`);
+
+                    // Polling de fila enquanto espera
+                    queuePollingRef.current = setInterval(async () => {
+                        try {
+                            const pollRes = await fetch(`${SERVER_URL}/api/queue-status`);
+                            if (pollRes.ok) {
+                                const { totalPending: tp } = await pollRes.json();
+                                if (tp === 0) {
+                                    clearInterval(queuePollingRef.current);
+                                } else {
+                                    setPosicaoNaFila(tp);
+                                    setProgresso(`Aguardando... ${tp} ${tp === 1 ? 'pedido' : 'pedidos'} na frente. Fique tranquilo(a)!`);
+                                }
+                            }
+                        } catch { /* silencioso */ }
+                    }, 3000);
+                }
+            }
+        } catch { /* silencioso — não bloqueia */ }
+
+        // ETAPA 3: Scraping
         setStatus(SCRAPER_STATUS.BUSCANDO);
         setProgresso(`Iniciando robô no e-Auditoria...`);
 
@@ -136,6 +168,7 @@ export function useEAuditoriaScraper() {
             });
 
             clearInterval(intervaloUX);
+            clearInterval(queuePollingRef.current);
 
             if (!res.ok) {
                 const err = await res.json();
@@ -151,6 +184,7 @@ export function useEAuditoriaScraper() {
 
         } catch (err) {
             clearInterval(intervaloUX);
+            clearInterval(queuePollingRef.current);
             console.error('[useEAuditoriaScraper] Falha:', err);
 
             if (err.name === 'AbortError') {
@@ -181,6 +215,7 @@ export function useEAuditoriaScraper() {
     return {
         status,
         progresso,
+        posicaoNaFila,
         serverOnline,
         verificarServidor,
         executarScraping,

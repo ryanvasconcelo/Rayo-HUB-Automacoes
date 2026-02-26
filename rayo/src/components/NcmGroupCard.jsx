@@ -126,7 +126,7 @@ export default function NcmGroupCard({ groupKey, group, onUpdate, robotStarted =
                         {codItemAtual && <span style={{ background: 'var(--accent-soft)', color: 'var(--accent-text)', padding: '0 4px', borderRadius: '2px' }}>Cód: {codItemAtual}</span>}
                         <span><strong>{group.records.length}</strong> registros</span>
                         <span>Base: <strong>{formatMoney(group.totalBase)}</strong></span>
-                        <span>Atual: PIS {cstPisAtual} - COF {cstCofinsAtual}</span>
+                        <span>Antigos: PIS {cstPisAtual} - COF {cstCofinsAtual}</span>
                         {totalCredit > 0 && <span style={{ color: 'var(--success)', fontWeight: 800 }}>+ {formatMoney(totalCredit)}</span>}
                     </div>
                 </div>
