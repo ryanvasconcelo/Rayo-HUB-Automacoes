@@ -48,3 +48,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# ──────────────────────────────────────────────────────────
+# ARQUIVOS DE TESTE E DADOS LOCAIS (RAYO)
+# ──────────────────────────────────────────────────────────
+apps/rayo/*.cjs
+apps/rayo/test_*.js
+validacoes-icms/
+razao-contas - arquivos contexto/
+base-conhecimento/*.pdf
+
+# Prevenir vazamento de planilhas de clientes
+*.xlsx

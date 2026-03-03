@@ -2,8 +2,9 @@ import { useState, useMemo, useEffect } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import { useIcmsAuditor } from '../hooks/useIcmsAuditor';
 import { useEAuditoriaScraper, SCRAPER_STATUS } from '../hooks/useEAuditoriaScraper';
-import { IconSun, IconMoon, IconUpload, IconCheck, IconWarning, IconX, IconRefresh, IconBolt, IconDownload, IconBot } from '../components/Icons';
+import { IconSun, IconMoon, IconUpload, IconCheck, IconWarning, IconX, IconRefresh, IconBolt, IconDownload, IconBot, IconFileText } from '../components/Icons';
 import { downloadCorrectedAlterdata } from '../lib/writer/excel-writer';
+import { downloadAuditPdf } from '../lib/writer/pdf-generator';
 import IcmsResultCard from '../components/IcmsResultCard';
 import { Link } from 'react-router-dom';
 import { Virtuoso } from 'react-virtuoso';
@@ -118,6 +119,11 @@ export default function AuditorIcmsPage() {
                 }
             });
         }
+    };
+
+    const handleExportPdf = () => {
+        if (!auditResults || auditResults.length === 0) return;
+        downloadAuditPdf(auditResults, perfilEmpresa);
     };
 
 
@@ -378,6 +384,7 @@ export default function AuditorIcmsPage() {
                                     <button className={`theme-btn ${filterMode === 'errors' ? 'active' : ''}`} onClick={() => setFilterMode('errors')} style={{ width: 'auto', padding: '6px 12px', fontSize: '0.75rem', fontWeight: 700 }}>Pendências</button>
                                     <button className={`theme-btn ${filterMode === 'all' ? 'active' : ''}`} onClick={() => setFilterMode('all')} style={{ width: 'auto', padding: '6px 12px', fontSize: '0.75rem', fontWeight: 700 }}>Tudo</button>
                                 </div>
+                                <button className="btn btn-secondary" onClick={handleExportPdf} style={{ fontSize: '0.8rem', color: '#10b981', borderColor: '#10b981' }}><IconFileText size={14} /> PDF</button>
                                 <button className="btn btn-secondary" onClick={handleFullReset} style={{ fontSize: '0.8rem' }}><IconRefresh size={14} /> Novo Audit</button>
                             </div>
                         </div>

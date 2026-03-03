@@ -56,7 +56,10 @@ export default function IcmsResultCard({ result }) {
                 </div>
 
                 <div style={{ fontSize: '0.8rem', fontFamily: 'monospace', color: 'var(--text-secondary)', background: 'var(--bg)', padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border)' }}>
-                    NCM: <strong style={{ color: 'var(--text)' }}>{result.ncm}</strong> {result.cfop && `| CFOP: `}<strong style={{ color: 'var(--text)' }}>{result.cfop}</strong>
+                    NCM: <strong style={{ color: 'var(--text)' }}>{result.ncm}</strong>
+                    {result.cfop && <> | CFOP: <strong style={{ color: 'var(--text)' }}>{result.cfop}</strong></>}
+                    {result.aliquotaAplicada !== undefined && <> | Alíq: <strong style={{ color: '#2563eb' }}>{(result.aliquotaAplicada * 100).toFixed(0)}%</strong></>}
+                    {result.icmsEsperado !== undefined && <> | ICMS: <strong style={{ color: '#2563eb' }}>R$ {result.icmsEsperado.toFixed(2)}</strong></>}
                 </div>
             </div>
 
