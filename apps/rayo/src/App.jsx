@@ -3,6 +3,7 @@ import HomePage from './pages/HomePage';
 import PisCofinsReviewPage from './pages/PisCofinsReviewPage';
 import AuditorIcmsPage from './pages/AuditorIcmsPage';
 import ContasRazaoPage from './pages/ContasRazaoPage';
+import EstoqueAuditorPage from './pages/EstoqueAuditorPage';
 
 export default function App() {
     return (
@@ -12,6 +13,7 @@ export default function App() {
                 <Route path="/pis-cofins" element={<PisCofinsReviewPage />} />
                 <Route path="/icms" element={<AuditorIcmsPage />} />
                 <Route path="/contas-razao" element={<ContasRazaoPage />} />
+                <Route path="/stock" element={<EstoqueAuditorPage />} />
             </Routes>
         </BrowserRouter>
     );

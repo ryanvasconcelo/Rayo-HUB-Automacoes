@@ -214,6 +214,45 @@ export default function HomePage() {
                         </div>
                     </Link>
 
+                    <Link to="/stock" style={{ textDecoration: 'none' }}>
+                        <div className="glass-card" style={{
+                            padding: '40px 32px', height: '100%', display: 'flex', flexDirection: 'column',
+                            alignItems: 'center', gap: '20px',
+                            transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                            border: '1px solid rgba(249, 115, 22, 0.3)',
+                            background: theme === 'dark' ? 'rgba(249, 115, 22, 0.05)' : 'rgba(249, 115, 22, 0.02)',
+                            position: 'relative', overflow: 'hidden'
+                        }}
+                            onMouseEnter={e => {
+                                e.currentTarget.style.transform = 'translateY(-10px) scale(1.02)';
+                                e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.2), 0 0 30px rgba(249, 115, 22, 0.25)';
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                                e.currentTarget.style.boxShadow = 'var(--glass-shadow)';
+                            }}
+                        >
+                            <div style={{
+                                padding: '18px', background: 'linear-gradient(135deg, #f97316, #fb923c)',
+                                borderRadius: '20px', color: 'white', boxShadow: '0 8px 16px rgba(249, 115, 22, 0.35)'
+                            }}>
+                                <IconSearch size={40} />
+                            </div>
+                            <div>
+                                <h2 style={{ color: 'var(--text-primary)', marginBottom: '12px', fontSize: '1.5rem', fontWeight: 800 }}>
+                                    Auditor de Estoque
+                                    <span style={{ marginLeft: '8px', fontSize: '0.65rem', padding: '2px 8px', border: '1px solid rgba(249,115,22,0.4)', borderRadius: 999, color: '#f97316', fontWeight: 700, verticalAlign: 'middle' }}>NOVO</span>
+                                </h2>
+                                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.5, fontSize: '0.95rem' }}>
+                                    Comparativo Estoque × Razão Contábil. Identifica exatamente qual chassi está causando divergências de valor mês a mês.
+                                </p>
+                            </div>
+                            <div style={{ marginTop: 'auto', color: '#f97316', fontWeight: 600, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                Acessar Módulo <IconSearch size={14} />
+                            </div>
+                        </div>
+                    </Link>
+
                 </div>
             </main>
 
