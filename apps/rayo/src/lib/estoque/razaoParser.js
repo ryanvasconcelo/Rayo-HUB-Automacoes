@@ -27,12 +27,33 @@ import { extrairChave7 } from './parser';
 const CHASSI_REGEX = /[Cc]hassi[:\s]+([A-Z0-9a-z]{3,})/;
 
 /**
- * Converte serial Excel para Date
+ * Tenta parsear datas que chegam como serial numérico (Excel format)
+ * ou como string ("DD/MM/YY" ou "DD/MM/YYYY").
  */
-function excelSerialToDate(serial) {
-    if (typeof serial !== 'number' || isNaN(serial) || serial < 40000) return null;
-    const utcDays = serial - 25569;
-    return new Date(utcDays * 86400 * 1000);
+function parseDataRazao(val) {
+    if (val == null || val === '') return null;
+    
+    // 1. Formato Serial Excel
+    if (typeof val === 'number') {
+        if (val < 30000 || val > 70000) return null; // sanity check
+        const utcDays = val - 25569;
+        return new Date(utcDays * 86400 * 1000);
+    }
+    
+    // 2. Formato String (DD/MM/YY ou DD/MM/YYYY)
+    if (typeof val === 'string') {
+        // Tenta também DD-MM-YYYY
+        const match = val.trim().match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{2,4})/);
+        if (match) {
+            const d = parseInt(match[1], 10);
+            const m = parseInt(match[2], 10) - 1;
+            let y = parseInt(match[3], 10);
+            if (y < 100) y += 2000;
+            return new Date(Date.UTC(y, m, d));
+        }
+    }
+    
+    return null;
 }
 
 /**
@@ -57,10 +78,11 @@ function extrairChassiDoHistorico(historico) {
 }
 
 /**
- * Verifica se uma linha é de lançamento real (col 0 = serial de data)
+ * Verifica se uma linha é de lançamento real (tem Data válida)
  */
-function isLancamento(row) {
-    return typeof row[0] === 'number' && row[0] > 40000;
+function isLancamento(row, cols) {
+    if (!row || row.length < 5) return false;
+    return parseDataRazao(row[cols.data]) !== null;
 }
 
 /**
@@ -83,15 +105,35 @@ export function parseRazaoEstoque(buffer) {
     const ws = wb.Sheets[wb.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
+    // Detecta os índices das colunas dinamicamente
+    let cols = { data: 0, historico: 3, debito: 8, credito: 9, saldo: 11, lote: 6 };
+    for (let i = 0; i < Math.min(rows.length, 25); i++) {
+        const row = rows[i];
+        if (!row) continue;
+        const lineTxt = row.join(' ').toLowerCase();
+        if (lineTxt.includes('data') && lineTxt.includes('histórico') && (lineTxt.includes('débito') || lineTxt.includes('debito'))) {
+            row.forEach((cell, idx) => {
+                const head = String(cell).toLowerCase().trim();
+                if (head === 'data') cols.data = idx;
+                else if (head === 'histórico' || head === 'historico') cols.historico = idx;
+                else if (head === 'débito' || head === 'debito') cols.debito = idx;
+                else if (head === 'crédito' || head === 'credito') cols.credito = idx;
+                else if (head === 'saldo') cols.saldo = idx;
+                else if (head === 'lote') cols.lote = idx;
+            });
+            break;
+        }
+    }
+
     // Extrai nome da conta
     const contaRow = rows.find(r => String(r[0] || '').startsWith('Conta:'));
     const contaNome = contaRow ? String(contaRow[1] || '').trim() : '';
 
-    // Saldo anterior (linha 6 = "SALDO ANTERIOR", col 11)
+    // Saldo anterior
     let saldoAnterior = 0;
     const saldoAntRow = rows.find(r => String(r[0] || '').trim().toUpperCase() === 'SALDO ANTERIOR');
     if (saldoAntRow) {
-        saldoAnterior = typeof saldoAntRow[11] === 'number' ? saldoAntRow[11] : 0;
+        saldoAnterior = typeof saldoAntRow[cols.saldo] === 'number' ? saldoAntRow[cols.saldo] : 0;
     }
 
     const lancamentos = [];
@@ -99,30 +141,37 @@ export function parseRazaoEstoque(buffer) {
 
     for (const row of rows) {
         if (isTotalizador(row)) {
-            const s = row[11];
+            const s = row[cols.saldo];
             if (typeof s === 'number') saldoFinal = s;
+            else if (typeof s === 'string') saldoFinal = parseFloat(s.replace(/\./g, '').replace(',', '.')) || saldoFinal;
             continue;
         }
-        if (!isLancamento(row)) continue;
+        if (!isLancamento(row, cols)) continue;
 
-        const historico = String(row[3] || '');
-        const debito = typeof row[8] === 'number' ? row[8] : 0;
-        const credito = typeof row[9] === 'number' ? row[9] : 0;
+        const historico = String(row[cols.historico] || '');
+        const debitoRaw = row[cols.debito];
+        const creditoRaw = row[cols.credito];
+        const debito = typeof debitoRaw === 'number' ? debitoRaw : parseFloat(String(debitoRaw||'').replace(/\./g, '').replace(',', '.')) || 0;
+        const credito = typeof creditoRaw === 'number' ? creditoRaw : parseFloat(String(creditoRaw||'').replace(/\./g, '').replace(',', '.')) || 0;
+        
         if (debito === 0 && credito === 0) continue;
 
-        const date = excelSerialToDate(row[0]);
+        const date = parseDataRazao(row[cols.data]);
         const mes = toMesKey(date);
         const chassi7 = extrairChassiDoHistorico(historico);
+        
+        const saldoRaw = row[cols.saldo];
+        const saldo = typeof saldoRaw === 'number' ? saldoRaw : parseFloat(String(saldoRaw||'').replace(/\./g, '').replace(',', '.')) || 0;
 
         lancamentos.push({
             date,
-            mes,           // '01'...'12'
+            mes,
             historico,
-            chassi7,       // últimos 7 chars ou null se não encontrado
+            chassi7,
             debito,
             credito,
-            saldo: typeof row[11] === 'number' ? row[11] : 0,
-            lote: String(row[6] || '').trim(),
+            saldo,
+            lote: String(row[cols.lote] || '').trim(),
         });
     }
 

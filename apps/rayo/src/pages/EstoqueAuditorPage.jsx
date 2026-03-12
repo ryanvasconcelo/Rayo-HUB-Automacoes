@@ -334,7 +334,7 @@ function ChassiRow({ item, index }) {
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
                             <tr style={{ color: 'var(--text-tertiary)', fontSize: '0.7rem' }}>
-                                <th style={{ textAlign: 'left', padding: '2px 8px', fontWeight: 600 }}>Mês</th>
+                                <th style={{ textAlign: 'left', padding: '2px 8px', fontWeight: 600 }}>Data</th>
                                 <th style={{ textAlign: 'left', padding: '2px 8px', fontWeight: 600 }}>Histórico</th>
                                 <th style={{ textAlign: 'right', padding: '2px 8px', fontWeight: 600 }}>Débito</th>
                                 <th style={{ textAlign: 'right', padding: '2px 8px', fontWeight: 600 }}>Crédito</th>
@@ -344,7 +344,7 @@ function ChassiRow({ item, index }) {
                             {item.lancamentosRazao.map((l, i) => (
                                 <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
                                     <td style={{ padding: '4px 8px', fontSize: '0.76rem', color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>
-                                        {MES_NOMES[l.mes] || l.mes}
+                                        {l.date ? l.date.toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : (MES_NOMES[l.mes] || l.mes)}
                                     </td>
                                     <td style={{ padding: '4px 8px', fontSize: '0.76rem', color: 'var(--text-secondary)', maxWidth: '360px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                         {l.historico}

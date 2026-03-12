@@ -55,6 +55,54 @@ function abaParaMes(nomAba) {
 }
 
 /**
+ * Tenta encontrar o mês de referência do Inventário BV.
+ *
+ * Estratégia 1: procura a célula "Estoque Existentes em:" e lê a data na mesma
+ * linha (célula vizinha ou próxima). Isso evita falsos positivos com datas de
+ * entrada de mercadoria que aparecem nas linhas de dados.
+ *
+ * Estratégia 2 (fallback): procura DD/MM/YYYY APENAS nas primeiras 8 linhas,
+ * antes do início dos dados.
+ */
+function tentarExtrairMesDaAba(ws) {
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+    // Estratégia 1: âncora "Estoque Existentes em:"
+    for (let i = 0; i < Math.min(rows.length, 20); i++) {
+        const row = rows[i];
+        for (let c = 0; c < row.length; c++) {
+            const cell = String(row[c] || '').trim().toLowerCase();
+            if (cell.includes('estoque existentes em') || cell.includes('posi\u00e7\u00e3o em')) {
+                // Lê a data nas células à direita (até 6 colunas)
+                for (let dc = 1; dc <= 6; dc++) {
+                    const adjacent = String(row[c + dc] || '').trim();
+                    const match = adjacent.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{2,4})$/);
+                    if (match) {
+                        const mesNum = match[2];
+                        if (MES_MAP[mesNum]) return MES_MAP[mesNum];
+                    }
+                }
+            }
+        }
+    }
+
+    // Estratégia 2: scan DD/MM/YYYY apenas nas primeiras 8 linhas (cabeçalho)
+    for (let i = 0; i < Math.min(rows.length, 8); i++) {
+        const row = rows[i];
+        for (let c = 0; c < row.length; c++) {
+            const cell = String(row[c] || '').trim();
+            const match = cell.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/);
+            if (match) {
+                const mesNum = match[2];
+                if (MES_MAP[mesNum]) return MES_MAP[mesNum];
+            }
+        }
+    }
+
+    return null;
+}
+
+/**
  * Extrai os últimos 7 caracteres de um chassi, removendo espaços.
  * @param {string} chassi
  * @returns {string}
@@ -181,12 +229,18 @@ export function parseEstoque(buffer) {
     const abasNaoMapeadas = [];
 
     for (const nomAba of wb.SheetNames) {
-        const mes = abaParaMes(nomAba);
+        const ws = wb.Sheets[nomAba];
+        let mes = abaParaMes(nomAba);
+        
+        // Se falhou pelo nome da aba (ex: "Sheet1"), tenta procurar datas nas células
+        if (!mes) {
+            mes = tentarExtrairMesDaAba(ws);
+        }
+
         if (!mes) {
             abasNaoMapeadas.push(nomAba);
             continue;
         }
-        const ws = wb.Sheets[nomAba];
         const dadosMes = parseAba(ws, mes);
         // Só inclui abas com motos
         if (dadosMes.motos.length > 0) {
