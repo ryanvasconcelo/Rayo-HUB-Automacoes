@@ -6,12 +6,19 @@
  *   GET  /api/health              → { status: 'ok', version }
  *   GET  /api/queue-status        → { queueLength, processing }
  *   POST /api/scrape-eauditoria   → { ncms, uf, atividade, regime, regimeEspecial } → { rules }
+ *
+ * Módulos estáticos (build de produção):
+ *   /subvencoes-app/*  → build do Auditor de Subvenções ZFM (subvencoes/app/dist)
+ *                        Módulo independente: sem acoplamento de lógica com outros módulos.
+ *                        Para servir: cd subvencoes/app && npm run build
  */
 
 require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 const { scrapeEAuditoria } = require('./scraper/eauditoria-scraper');
 
 const app = express();
@@ -53,6 +60,27 @@ app.use(cors({
     methods: ['GET', 'POST'],
 }));
 app.use(express.json({ limit: '10mb' })); // NCMs podem ser muitos
+
+// ── Módulo Subvenções ZFM — arquivos estáticos (produção) ────────────────────
+// Em dev: o módulo roda em localhost:5174 (vite dev server independente).
+// Em produção: build do app é servido aqui em /subvencoes-app para eliminar
+//              dependência de porta separada e problemas de cross-origin iframe.
+//
+// Para gerar o build: cd subvencoes/app && npm run build
+// Os arquivos ficam em subvencoes/app/dist/ e são servidos diretamente daqui.
+const SUBVENCOES_DIST = path.resolve(__dirname, '..', '..', '..', 'subvencoes', 'app', 'dist');
+if (fs.existsSync(SUBVENCOES_DIST)) {
+    // Arquivos estáticos: JS, CSS, assets
+    app.use('/subvencoes-app', express.static(SUBVENCOES_DIST));
+    // SPA fallback: qualquer rota dentro de /subvencoes-app/* serve o index.html
+    app.get('/subvencoes-app/*', (req, res) => {
+        res.sendFile(path.join(SUBVENCOES_DIST, 'index.html'));
+    });
+    console.log(`   📦 Subvenções ZFM: http://localhost:${process.env.PORT || 3001}/subvencoes-app/`);
+} else {
+    console.log(`   ⚠️  Subvenções ZFM build não encontrado (${SUBVENCOES_DIST})`);
+    console.log(`      Para servir em produção: cd subvencoes/app && npm run build`);
+}
 
 // ── Health Check ──────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

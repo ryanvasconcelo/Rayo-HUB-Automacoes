@@ -11,8 +11,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
-const AUDITOR_URL   = `http://${window.location.hostname}:5174`;
-const SEFAZ_BOT_URL = `http://${window.location.hostname}:3002`;
+// Em produção: rayo-server serve o build do auditor em /subvencoes-app (mesma origem)
+// Em dev:      auditor roda em vite dev server separado na porta 5174
+// Detecta pelo path — se acessado de /subvencoes no Rayo em produção,
+// a origem do rayo-server já serve o módulo em /subvencoes-app
+const IS_DEV = window.location.hostname === 'localhost' && window.location.port === '5173';
+const AUDITOR_URL   = IS_DEV
+    ? `http://localhost:5174`
+    : `${window.location.protocol}//${window.location.host}/subvencoes-app/`;
+const SEFAZ_BOT_URL = `${window.location.protocol}//${window.location.hostname}:3002`;
 
 // Verifica se uma porta está respondendo HTTP (retorna boolean)
 async function portaResponde(url, timeout = 3000) {
@@ -56,20 +63,20 @@ export default function SubvencoesPage() {
     const iframeRef = useRef(null);
 
     async function verificar() {
-        // Auditor: tenta fazer uma requisição real (não no-cors — que dá falso positivo no macOS)
-        // CORS vai bloquear, mas um erro de CORS significa que o servidor RESPONDEU → online
-        // Um erro "Failed to fetch" / TypeError significa porta fechada → offline
+        // Auditor:
+        // - Produção: /subvencoes-app/ é mesma origem → fetch direto funciona
+        // - Dev: porta 5174 → CORS bloqueia mas o erro de rede ≠ erro CORS (servidor respondeu)
         try {
-            await fetch(AUDITOR_URL, { method: 'HEAD', signal: AbortSignal.timeout(3000) });
-            setAuditorOnline(true);
+            const r = await fetch(AUDITOR_URL, { method: 'HEAD', signal: AbortSignal.timeout(3000) });
+            setAuditorOnline(true); // produção: mesma origem, resposta real
         } catch (e) {
-            // TypeError sem mensagem de CORS = porta fechada
-            // Se a mensagem contém "CORS" ou "fetch" o servidor respondeu (CORS block = online)
             const msg = e?.message?.toLowerCase() ?? '';
-            const servidorRespondeu = msg.includes('cors') || msg.includes('blocked');
-            setAuditorOnline(servidorRespondeu);
+            // Em dev, CORS bloqueia mas o servidor RESPONDEU (não foi recusa de conexão)
+            // "Failed to fetch" em chrome = porta fechada; em firefox pode ser "NetworkError"
+            const portaAberta = msg.includes('cors') || msg.includes('blocked') || msg.includes('opaque');
+            setAuditorOnline(portaAberta ? true : false);
         }
-        // Bot SEFAZ: tem endpoint /api/health com CORS aberto
+        // Bot SEFAZ: endpoint /api/health com CORS aberto — check confiável
         try {
             const r = await fetch(`${SEFAZ_BOT_URL}/api/health`, { signal: AbortSignal.timeout(2000) });
             setBotOnline(r.ok);
