@@ -22,7 +22,7 @@ const fs = require('fs');
 const { scrapeEAuditoria } = require('./scraper/eauditoria-scraper');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 80;
 
 // ── Fila de Requisições (Serialização Anti-Ban) ───────────────────────────────
 // Garante que apenas UMA sessão do e-Auditoria roda por vez, evitando
