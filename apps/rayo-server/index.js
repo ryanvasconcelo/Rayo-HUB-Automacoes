@@ -79,8 +79,10 @@ if (fs.existsSync(RAYO_DIST)) {
 // Serve o build do Auditor em /subvencoes-app/ — mesma origem do Rayo Hub,
 // portanto sem CORS nem iframe blocking.
 // Configure SUBVENCOES_DIST no .env se o projeto estiver em outro caminho.
+// Agora o app de subvenções vive dentro do Rayo em apps/subvencoes/
+// Não precisa de projeto separado no servidor.
 const SUBVENCOES_DIST = process.env.SUBVENCOES_DIST
-    || path.resolve(__dirname, '..', '..', '..', 'subvencoes', 'app', 'dist');
+    || path.resolve(__dirname, '..', 'subvencoes', 'dist');
 
 if (fs.existsSync(SUBVENCOES_DIST)) {
     app.use('/subvencoes-app', express.static(SUBVENCOES_DIST));

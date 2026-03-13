@@ -14,6 +14,9 @@
         "dev:frontend": "npm run dev --workspace=apps/rayo",
         "dev:backend": "npm run dev --workspace=apps/rayo-server",
         "build:frontend": "npm run build --workspace=apps/rayo",
-        "install:all": "npm install"
+        "build:subvencoes": "npm run build --workspace=apps/subvencoes",
+        "build:all": "npm run build:frontend && npm run build:subvencoes",
+        "install:all": "npm install",
+        "start": "npm run start --workspace=apps/rayo-server"
     }
 }
