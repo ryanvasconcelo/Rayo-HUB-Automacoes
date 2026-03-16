@@ -78,22 +78,26 @@ if (fs.existsSync(RAYO_DIST)) {
 // ── Módulo Subvenções ZFM — frontend estático ─────────────────────────────────
 // Serve o build do Auditor em /subvencoes-app/ — mesma origem do Rayo Hub,
 // portanto sem CORS nem iframe blocking.
-// Configure SUBVENCOES_DIST no .env se o projeto estiver em outro caminho.
-// Agora o app de subvenções vive dentro do Rayo em apps/subvencoes/
-// Não precisa de projeto separado no servidor.
-const SUBVENCOES_DIST = process.env.SUBVENCOES_DIST
-    || path.resolve(__dirname, '..', 'subvencoes', 'dist');
+// Caminho padrão: apps/subvencoes/dist (gerado por npm run build:subvencoes).
+// Se SUBVENCOES_DIST estiver no .env mas não existir, faz fallback automático.
+const SUBVENCOES_DIST_DEFAULT = path.resolve(__dirname, '..', 'subvencoes', 'dist');
+const SUBVENCOES_DIST_ENV = process.env.SUBVENCOES_DIST;
+const SUBVENCOES_DIST = (SUBVENCOES_DIST_ENV && fs.existsSync(SUBVENCOES_DIST_ENV))
+    ? SUBVENCOES_DIST_ENV
+    : SUBVENCOES_DIST_DEFAULT;
 
 if (fs.existsSync(SUBVENCOES_DIST)) {
     app.use('/subvencoes-app', express.static(SUBVENCOES_DIST));
     app.get('/subvencoes-app/*', (req, res) => {
         res.sendFile(path.join(SUBVENCOES_DIST, 'index.html'));
     });
-    console.log(`   📦 Subvenções ZFM: http://localhost:${process.env.PORT || 3001}/subvencoes-app/`);
+    console.log(`   📦 Subvenções ZFM: http://localhost:${process.env.PORT || 80}/subvencoes-app/`);
+    if (SUBVENCOES_DIST_ENV && !fs.existsSync(SUBVENCOES_DIST_ENV)) {
+        console.log(`   ℹ️  SUBVENCOES_DIST do .env não encontrado, usando padrão: ${SUBVENCOES_DIST}`);
+    }
 } else {
     console.log(`   ⚠️  Subvenções ZFM build não encontrado: ${SUBVENCOES_DIST}`);
-    console.log(`      1. Execute: cd subvencoes/app && npm run build`);
-    console.log(`      2. Ou defina SUBVENCOES_DIST no .env com o caminho absoluto`);
+    console.log(`      Execute: npm run build:subvencoes`);
 }
 
 // ── Health Check ──────────────────────────────────────────────────────────────
