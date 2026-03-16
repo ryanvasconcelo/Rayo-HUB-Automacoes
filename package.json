@@ -17,6 +17,9 @@
         "build:subvencoes": "npm run build --workspace=apps/subvencoes",
         "build:all": "npm run build:frontend && npm run build:subvencoes",
         "install:all": "npm install",
-        "start": "npm run start --workspace=apps/rayo-server"
+        "start": "concurrently --names \"rayo,sefaz\" --prefix-colors \"cyan,yellow\" \"npm run start --workspace=apps/rayo-server\" \"node ../subvencoes/server/index.js\""
+    },
+    "devDependencies": {
+        "concurrently": "^9.2.1"
     }
 }
