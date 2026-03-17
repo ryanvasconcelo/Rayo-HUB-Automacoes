@@ -6,7 +6,8 @@
     "type": "commonjs",
     "scripts": {
         "start": "node index.js",
-        "dev": "node --watch index.js"
+        "dev": "node --watch index.js",
+        "postinstall": "npx playwright install chromium --with-deps"
     },
     "dependencies": {
         "archiver": "^7.0.1",
