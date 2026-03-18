@@ -60,3 +60,7 @@ base-conhecimento/*.pdf
 
 # Prevenir vazamento de planilhas de clientes
 *.xlsx
+
+# Pastas temp com exemplos/dados de clientes
+docs/*/temp/
+docs/**/temp/
