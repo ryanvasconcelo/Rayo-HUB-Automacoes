@@ -1,0 +1,11 @@
+{
+  "_nota": "Base reservada para as NCMs e regras específicas advindas dos Convênios CONFAZ incorporados pela Lei AM 6.256/2023. Atualmente aguardando detalhamento da Regra na Especificação Técnica (NCMs x Benefício/Alíquota) para cruzar no icms-auditor.js.",
+  "convenios_ativos": [
+    "ICMS 44/75",
+    "ICMS 66/94",
+    "ICMS 162/94",
+    "ICMS 142/18",
+    "ICMS 110/07"
+  ],
+  "ncms_especificas": []
+}

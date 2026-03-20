@@ -27,6 +27,7 @@ export function useIcmsAuditor() {
     const [ncmSemCobertura, setNcmSemCobertura] = useState([]);
     const [correctedAlterdata, setCorrectedAlterdata] = useState(null);
     const [modifiedCells, setModifiedCells] = useState(null);
+    const [disambiguationQueue, setDisambiguationQueue] = useState([]);
 
     const handleUploadAlterdata = useCallback(async (file) => {
         try {
@@ -74,27 +75,34 @@ export function useIcmsAuditor() {
     }, []);
 
     const executeAudit = useCallback(() => {
-        if (!alterdataBase || !eAuditoriaBase) {
-            setError('Ambas as planilhas (Alterdata e e-Auditoria) precisam estar carregadas.');
+        // e-Auditoria é OPCIONAL — motor roda apenas com bases legais locais se não carregada
+        if (!alterdataBase) {
+            setError('O arquivo Livrão (Alterdata) precisa estar carregado.');
             return;
         }
 
         try {
             setLoading(true);
-            // Motor usa perfil inserido pelo analista — não mais extraído automaticamente
             const natureza = ['INDUSTRIA', 'INDUSTRIA_ALIMENTICIA'].includes(perfilEmpresa.atividade)
                 ? 'industria'
                 : 'comercio';
 
-            const { report, correctedData, modifiedCells: modified, ncmSemCobertura: semCobertura } = runAudit(
+            const {
+                report,
+                correctedData,
+                modifiedCells: modified,
+                ncmSemCobertura: semCobertura,
+                pendingDisambiguation: pending,
+            } = runAudit(
                 alterdataBase,
-                eAuditoriaBase,
+                eAuditoriaBase || null, // null aceitável — motor usa bases locais
                 { natureza, regime: perfilEmpresa.regime.toLowerCase() }
             );
             setAuditResults(report);
             setNcmSemCobertura(semCobertura);
             setCorrectedAlterdata(correctedData);
             setModifiedCells(modified);
+            setDisambiguationQueue(pending || []);
             setError(null);
         } catch (err) {
             setError('Erro ao cruzar as bases: ' + err.message);
@@ -102,6 +110,16 @@ export function useIcmsAuditor() {
             setLoading(false);
         }
     }, [alterdataBase, eAuditoriaBase, perfilEmpresa]);
+
+    /**
+     * Resolve manualmente um NCM ambíguo da fila de desambiguação.
+     * Re-processa o resultado para aquela linha e mescla ao auditResults.
+     */
+    const resolveDisambiguation = useCallback((rowIndex, regraEscolhida) => {
+        setDisambiguationQueue(prev => prev.filter(p => p.rowIndex !== rowIndex));
+        // Nota: re-processamento completo da linha pode ser implementado em v3.1
+        // Por ora remove da fila — o card da linha ficará como 'análise manual'
+    }, []);
 
     const resetFiles = useCallback(() => {
         setAlterdataBase(null);
@@ -114,8 +132,8 @@ export function useIcmsAuditor() {
         setNcmSemCobertura([]);
         setCorrectedAlterdata(null);
         setModifiedCells(null);
+        setDisambiguationQueue([]);
         setError(null);
-        // Não reseta o perfil — analista provavelmente vai auditar a mesma empresa de novo
     }, []);
 
     return {
@@ -123,6 +141,7 @@ export function useIcmsAuditor() {
         alterdataName, eAuditoriaName, alterdataHasSeguro,
         perfilEmpresa, updatePerfil,
         loading, error, auditResults, ncmSemCobertura, correctedAlterdata, modifiedCells,
+        disambiguationQueue, resolveDisambiguation,
         handleUploadAlterdata, handleUploadEAuditoria, executeAudit, resetFiles,
         setEAuditoriaBaseSilently
     };

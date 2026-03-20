@@ -1,0 +1,53 @@
+{
+  "_fonte": "Resolução do Senado Federal Nº 22/1989 + Resolução Nº 13/2012",
+  "_revisao": "2026-03",
+  "_nota": "ATENÇÃO: Destino analisado é SEMPRE o Amazonas (AM). Alíquota na operação interestadual é definida pela UF do REMETENTE (origem).",
+  "por_uf_origem": {
+    "_regra_sul_sudeste": "Sul e Sudeste → AM: 12% (Art. 1º, §1º, alínea a, Res. 22/89 — estados com maior desenvolvimento industrial pagarão maior alíquota para beneficiar estados destinatários menos desenvolvidos)",
+    "SP": 0.12,
+    "RJ": 0.12,
+    "MG": 0.12,
+    "ES": 0.12,
+    "PR": 0.12,
+    "SC": 0.12,
+    "RS": 0.12,
+    "MS": 0.12,
+    "_regra_norte_nordeste_co": "Norte, Nordeste e Centro-Oeste → AM: 7% (Art. 1º, §1º, alínea b, Res. 22/89)",
+    "AC": 0.07,
+    "AP": 0.07,
+    "PA": 0.07,
+    "RO": 0.07,
+    "RR": 0.07,
+    "TO": 0.07,
+    "AL": 0.07,
+    "BA": 0.07,
+    "CE": 0.07,
+    "MA": 0.07,
+    "PB": 0.07,
+    "PE": 0.07,
+    "PI": 0.07,
+    "RN": 0.07,
+    "SE": 0.07,
+    "DF": 0.07,
+    "GO": 0.07,
+    "MT": 0.07,
+    "_regra_interna": "AM → AM: operação interna, alíquota padrão do estado (LC 19/97)",
+    "AM": 0.20
+  },
+  "importados": {
+    "_regra": "Produtos importados ou com conteúdo de importação >40%: 4% independente da UF de origem",
+    "_base_legal": "Resolução do Senado Federal Nº 13/2012",
+    "_como_detectar": "Dígito de origem da mercadoria no CST: valores 1, 2, 3, 4, 5, 6, 7 ou 8 indicam mercadoria importada ou com conteúdo de importação > 40%",
+    "aliquota": 0.04
+  },
+  "interna_am": {
+    "_regra": "Operação estadual AM (CFOP 1xxx): alíquota interna padrão AM",
+    "_base_legal": "Lei Complementar AM 19/1997, Art. 12, I, b",
+    "aliquota": 0.20
+  },
+  "exterior": {
+    "_regra": "Importação do exterior (CFOP 3xxx): 4%",
+    "_base_legal": "Resolução do Senado Federal Nº 13/2012",
+    "aliquota": 0.04
+  }
+}

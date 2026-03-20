@@ -1,17 +1,17 @@
 /**
- * RAYO HUB — Motor de Auditoria ICMS v2
- * Análise Combinatória de CST + Alíquotas Interestaduais + Operações Especiais.
+ * RAYO HUB — Motor de Auditoria ICMS v3
  *
- * v2 — Novo nesta versão:
- *   - Integração com knowledge-base.js (alíquotas interestaduais, CFOPs especiais, ST/decretos AM)
- *   - Operações especiais → CST X90, zera Base/Alíquota/Valor ICMS
- *   - Coluna "CST Antigo" preservada no correctedData
- *   - Alíquota calculada a partir de CFOP de origem × destino AM
- *   - Chave composta NCM+Descrição com fallback para NCM puro
- *   - NCM parcial: lookup por 8, 6 e 4 dígitos
+ * v3 — Novo nesta versão:
+ *   - e-Auditoria é OPCIONAL (fonte secundária). Bases legais locais são primárias.
+ *   - Correção bug crítico: alíquotas interestaduais corrigidas (Res. 22/89)
+ *   - Detecção de importado via dígito de origem CST (Res. 13/2012 → 4%)
+ *   - R02: Validação CFOP × ST (NCM na 6108 → CFOP deve ser família 14xx/24xx)
+ *   - R03: Validação CST × ST (NCM na 6108 → CST deve ser 060, base/ICMS = 0)
+ *   - R07: Cesta básica (Decreto 6.215/23) → CST deve ser 040/041
+ *   - baseLegalRef + baseLegalDesc em todos os erros e alertas
+ *   - Campo 'fonte' no resultado: 'base_legal_local' | 'e-auditoria' | 'pendente_desambiguacao'
  *
- * GUARDRAIL SOP-IA: Este arquivo é CORE puro — sem imports de UI/React.
- * Toda lógica aqui é testável via vitest sem navegador.
+ * GUARDRAIL SOP-IA: Arquivo CORE puro — sem imports de UI/React.
  */
 
 import {
@@ -19,10 +19,12 @@ import {
     CFOP_DEVOLUCAO,
     CFOP_OPERACOES_ESPECIAIS,
     CFOP_EXCECOES_CREDITO,
+    CFOP_FAMILIA_ST,
     resolverAliquota,
     NCM_ST_LEI_6108_22,
     NCM_CESTA_BASICA_PREFIXOS,
     ALIQUOTA_ESPECIFICA_AM,
+    BASE_LEGAL_DESCRICOES,
 } from './knowledge-base.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -32,23 +34,28 @@ const normalizarDescricao = (desc) =>
         .toLowerCase()
         .trim()
         .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '') // remove acentos
+        .replace(/[\u0300-\u036f]/g, '')
         .replace(/\s+/g, ' ');
 
 const parseBRLNumber = (val) => {
     if (val === undefined || val === null || val === '') return 0;
     if (typeof val === 'number') return isNaN(val) ? 0 : val;
     let str = String(val).replace(/[R$\s]/gi, '');
-    if (str.includes(',')) {
-        str = str.replace(/\./g, '').replace(',', '.');
-    }
+    if (str.includes(',')) str = str.replace(/\./g, '').replace(',', '.');
     const num = parseFloat(str);
     return isNaN(num) ? 0 : num;
 };
 
 /**
+ * Helper para acessar texto de base legal com fallback seguro.
+ */
+const getBaseLegal = (chave) => {
+    const item = BASE_LEGAL_DESCRICOES[chave];
+    return item ?? { ref: chave, desc: '', url: '' };
+};
+
+/**
  * Análise Combinatória de CST — ignora o 1º dígito (Origem).
- * Kickoff: "O 1º dígito diz a origem. Pra gente não significa muita coisa."
  */
 const compararCstCombinatorio = (natureza, cstOriginal, cstBase) => {
     const raizOriginal = String(cstOriginal).padStart(3, '0').slice(-2);
@@ -56,57 +63,29 @@ const compararCstCombinatorio = (natureza, cstOriginal, cstBase) => {
 
     if (raizOriginal === raizBase) return { status: 'ok' };
 
-    // Kickoff: "00 e 20 são a mesma tribo."
     const grupoTributadoComercio = ['00', '20'];
-    // Kickoff: "Indústria: 00, 10, 20, 30 e 70 participam do mesmo bolo combinatório."
     const grupoTributadoIndustria = ['00', '10', '20', '30', '70'];
-
-    // Grupo de Isenções e Não Tributados
     const grupoIsentos = ['40', '41', '50', '90'];
-
-    // Grupo de Substituição Tributária Cobrada / Monofásico
     const grupoSTeMonofasico = ['60', '61'];
-
     const grupoValido = (natureza === 'industria') ? grupoTributadoIndustria : grupoTributadoComercio;
 
-    // Regra 1: Se ambos estão no mesmo grupo de ISENÇÃO
     if (grupoIsentos.includes(raizOriginal) && grupoIsentos.includes(raizBase)) {
-        return {
-            status: 'alerta',
-            detalhe: `Variação Combinatória: esperava raiz ${raizBase}, recebida ${raizOriginal}. Ambas pertencem à mesma tribo de Isentos/Não Tributados.`,
-        };
+        return { status: 'alerta', detalhe: `Variação Combinatória: esperava raiz ${raizBase}, recebida ${raizOriginal}. Ambas pertencem à mesma tribo de Isentos/Não Tributados.` };
     }
-
-    // Regra 2: Se ambos estão no mesmo grupo de SUBSTITUIÇÃO / MONOFÁSICO
     if (grupoSTeMonofasico.includes(raizOriginal) && grupoSTeMonofasico.includes(raizBase)) {
-        return {
-            status: 'alerta',
-            detalhe: `Variação Combinatória: esperava raiz ${raizBase}, recebida ${raizOriginal}. Ambas pertencem à tribo de imposto cobrado/retido anteriormente.`,
-        };
+        return { status: 'alerta', detalhe: `Variação Combinatória: esperava raiz ${raizBase}, recebida ${raizOriginal}. Ambas são de imposto cobrado/retido anteriormente.` };
     }
-
-    // Regra 3 (Antiga): Se ambos estão no grupo TRIBUTADO (Comércio x Indústria)
     if (grupoValido.includes(raizOriginal) && grupoValido.includes(raizBase)) {
-        return {
-            status: 'alerta',
-            detalhe: `Variação Combinatória: esperava raiz ${raizBase}, recebida ${raizOriginal}. Ambas são do grupo Tributado (${natureza}).`,
-        };
+        return { status: 'alerta', detalhe: `Variação Combinatória: esperava raiz ${raizBase}, recebida ${raizOriginal}. Ambas são do grupo Tributado (${natureza}).` };
     }
 
-    return {
-        status: 'erro',
-        detalhe: `Divergência Crítica: a regra exige equivalência à raiz CST ${raizBase}, mas foi recebida ${raizOriginal}.`,
-    };
+    return { status: 'erro', detalhe: `Divergência Crítica: regra exige equivalência à raiz CST ${raizBase}, mas foi recebida ${raizOriginal}.` };
 };
 
 /**
- * Recalcula a Base de Cálculo do ICMS:
- * Base = Valor Item − Descontos + Despesas Acessórias + Frete + Seguro
- * Aplica % de redução se a regra do e-Auditoria determinar.
- * Zera se CST esperado for 60 (ST cobrado anteriormente).
+ * Recalcula a Base de Cálculo do ICMS.
  */
 export const calcularBaseCerta = (linha, regra, cstRaizEsperado) => {
-    // CSTs que exigem Base de Cálculo e ICMS zerados na NF (ST revenda, Isenção, Monofásico)
     const cstsSemBase = ['60', '61', '40', '41', '50'];
     if (cstsSemBase.includes(cstRaizEsperado)) return 0.00;
 
@@ -128,83 +107,47 @@ export const calcularBaseCerta = (linha, regra, cstRaizEsperado) => {
     return base;
 };
 
-// ─── Índice de NCM com suporte a prefixo parcial ──────────────────────────────
-/**
- * Constrói o índice do e-Auditoria com chave primária = NCM completo (8 d)
- * e entradas auxiliares para prefixos de 6 e 4 dígitos.
- * Também indexa chave composta NCM|descricao para desambiguar.
- */
+// ─── Índice do e-Auditoria ────────────────────────────────────────────────────
 const construirBaseMap = (eAuditoriaRows) => {
-    const map = new Map(); // key: ncm8 | ncm6 | ncm4 | ncm8|desc → regra
+    const map = new Map();
+    if (!eAuditoriaRows || eAuditoriaRows.length === 0) return map;
+
     eAuditoriaRows.forEach(row => {
         const ncm = String(row['NCM'] || '').replace(/\D/g, '');
         if (!ncm) return;
 
-        // Função auxiliar para inicializar e dar push no array do map
         const pushToMap = (key, item) => {
             if (!map.has(key)) map.set(key, []);
             map.get(key).push(item);
         };
 
-        // Chave principal: NCM completo
         pushToMap(ncm, row);
 
-        // Chave composta com descrição (desambiguação)
         const desc = normalizarDescricao(row['Descrição do Produto'] || row['Descrição'] || '');
-        if (desc) {
-            const chaveComposta = `${ncm}|${desc}`;
-            pushToMap(chaveComposta, row);
-        }
+        if (desc) pushToMap(`${ncm}|${desc}`, row);
 
-        // Prefixos parciais como fallback
-        if (ncm.length >= 6) {
-            const p6 = ncm.slice(0, 6);
-            pushToMap(p6, row);
-        }
-        if (ncm.length >= 4) {
-            const p4 = ncm.slice(0, 4);
-            pushToMap(p4, row);
-        }
+        if (ncm.length >= 6) pushToMap(ncm.slice(0, 6), row);
+        if (ncm.length >= 4) pushToMap(ncm.slice(0, 4), row);
     });
+
     return map;
 };
 
-/**
- * Se houver múltiplas regras para o mesmo NCM/Prefixo, e nenhuma bater a descrição exata,
- * o desempate é feito pela Legislação do Amazonas:
- * Se o NCM está na lei de ST (Decreto 6108), escolhemos a regra de ST.
- * Senão, escolhemos Tributação Normal.
- * Adicionalmente, se o cliente informou um CST válido dentre as opções, honramos a escolha dele.
- */
-const resolverDesambiguacaoST = (regrasArray, ncmBrutoFormatado, cstOriginalLivrao) => {
+const resolverDesambiguacaoST = (regrasArray, ncmBruto, cstOriginalLivrao) => {
     if (!regrasArray || regrasArray.length === 0) return null;
-    if (regrasArray.length === 1) return regrasArray[0]; // Sem ambiguidade
+    if (regrasArray.length === 1) return regrasArray[0];
 
-    const ncmLimpo = String(ncmBrutoFormatado || '').replace(/\D/g, '');
+    const ncmLimpo = String(ncmBruto || '').replace(/\D/g, '');
     const raizLivrao = String(cstOriginalLivrao || '').padStart(3, '0').slice(-2);
+    const isStOficial = NCM_ST_LEI_6108_22.has(ncmLimpo) || NCM_ST_LEI_6108_22.has(ncmLimpo.slice(0, 6)) || NCM_ST_LEI_6108_22.has(ncmLimpo.slice(0, 4));
 
-    const isStOficial = NCM_ST_LEI_6108_22.has(ncmLimpo)
-        || NCM_ST_LEI_6108_22.has(ncmLimpo.slice(0, 6))
-        || NCM_ST_LEI_6108_22.has(ncmLimpo.slice(0, 4));
+    const grupos = isStOficial
+        ? regrasArray.filter(r => ['10','30','60','70','90'].includes(String(r['CST/CSOSN'] || '').padStart(3, '0').slice(-2)))
+        : regrasArray.filter(r => ['00','20','40','50','51'].includes(String(r['CST/CSOSN'] || '').padStart(3, '0').slice(-2)));
 
-    if (isStOficial) {
-        const stRules = regrasArray.filter(r => {
-            const cstBase = String(r['CST/CSOSN'] || '').padStart(3, '0').slice(-2);
-            return ['10', '30', '60', '70', '90'].includes(cstBase);
-        });
-        if (stRules.length > 0) {
-            const matchCli = stRules.find(r => String(r['CST/CSOSN']).padStart(3, '0').slice(-2) === raizLivrao);
-            return matchCli || stRules[0];
-        }
-    } else {
-        const normRules = regrasArray.filter(r => {
-            const cstBase = String(r['CST/CSOSN'] || '').padStart(3, '0').slice(-2);
-            return ['00', '20', '40', '50', '51'].includes(cstBase);
-        });
-        if (normRules.length > 0) {
-            const matchCli = normRules.find(r => String(r['CST/CSOSN']).padStart(3, '0').slice(-2) === raizLivrao);
-            return matchCli || normRules[0];
-        }
+    if (grupos.length > 0) {
+        const matchCli = grupos.find(r => String(r['CST/CSOSN']).padStart(3, '0').slice(-2) === raizLivrao);
+        return matchCli || grupos[0];
     }
 
     const fallCli = regrasArray.find(r => String(r['CST/CSOSN']).padStart(3, '0').slice(-2) === raizLivrao);
@@ -212,16 +155,36 @@ const resolverDesambiguacaoST = (regrasArray, ncmBrutoFormatado, cstOriginalLivr
 };
 
 /**
- * Lookup com prioridade: NCM+Desc > NCM 8 dígitos > NCM 6 dígitos > NCM 4 dígitos
+ * Tenta resolver uma regra a partir das bases legais locais (sem e-Auditoria).
+ * Retorna um objeto sintético de regra ou null se não houver cobertura local.
  */
-const buscarRegra = (baseMap, ncmLimpo, descricaoLivrao, ncmBruto, cstOriginal) => {
-    const descNorm = normalizarDescricao(descricaoLivrao);
+const buscarRegraLocal = (ncmLimpo) => {
+    const isStOficial = NCM_ST_LEI_6108_22.has(ncmLimpo)
+        || NCM_ST_LEI_6108_22.has(ncmLimpo.slice(0, 6))
+        || NCM_ST_LEI_6108_22.has(ncmLimpo.slice(0, 4));
 
-    if (descNorm) {
-        const chave = `${ncmLimpo}|${descNorm}`;
-        if (baseMap.has(chave)) return baseMap.get(chave)[0];
+    if (isStOficial) {
+        return { _fonte: 'base_legal_local', 'CST/CSOSN': '060', _isST: true };
     }
 
+    const isCestaBasica = NCM_CESTA_BASICA_PREFIXOS.has(ncmLimpo.slice(0, 4));
+    if (isCestaBasica) {
+        return { _fonte: 'base_legal_local', 'CST/CSOSN': '040', _isCestaBasica: true };
+    }
+
+    return null;
+};
+
+const buscarRegra = (baseMap, ncmLimpo, descricaoLivrao, ncmBruto, cstOriginal) => {
+    // 1ª — lookup local (bases legais próprias)
+    const regraLocal = buscarRegraLocal(ncmLimpo);
+    if (regraLocal) return regraLocal;
+
+    // 2ª — e-Auditoria (somente se disponível)
+    if (baseMap.size === 0) return null;
+
+    const descNorm = normalizarDescricao(descricaoLivrao);
+    if (descNorm && baseMap.has(`${ncmLimpo}|${descNorm}`)) return baseMap.get(`${ncmLimpo}|${descNorm}`)[0];
     if (baseMap.has(ncmLimpo)) return resolverDesambiguacaoST(baseMap.get(ncmLimpo), ncmBruto, cstOriginal);
     const p6 = ncmLimpo.slice(0, 6);
     if (baseMap.has(p6)) return resolverDesambiguacaoST(baseMap.get(p6), ncmBruto, cstOriginal);
@@ -231,24 +194,37 @@ const buscarRegra = (baseMap, ncmLimpo, descricaoLivrao, ncmBruto, cstOriginal) 
     return null;
 };
 
+// Retorna array de regras candidatas (para desambiguação interativa)
+const buscarRegrasCandidatas = (baseMap, ncmLimpo, ncmBruto) => {
+    if (baseMap.has(ncmLimpo)) return baseMap.get(ncmLimpo);
+    const p6 = ncmLimpo.slice(0, 6);
+    if (baseMap.has(p6)) return baseMap.get(p6);
+    const p4 = ncmLimpo.slice(0, 4);
+    if (baseMap.has(p4)) return baseMap.get(p4);
+    return [];
+};
+
 // ─── Motor Principal ──────────────────────────────────────────────────────────
 
 /**
- * @param {Array}  alterdataRows   - Linhas do Livrão Bruto (parseAlterdata)
- * @param {Array}  eAuditoriaRows  - Regras do e-Auditoria (parseEAuditoria)
+ * @param {Array}  alterdataRows   - Linhas do Livrão Bruto
+ * @param {Array|null}  eAuditoriaRows  - Regras do e-Auditoria (OPCIONAL — pode ser null/[])
  * @param {Object} perfil          - { natureza: 'comercio'|'industria', regime: string }
- * @returns {{ report, correctedData, modifiedCells, ncmSemCobertura }}
+ * @returns {{ report, correctedData, modifiedCells, ncmSemCobertura, pendingDisambiguation }}
  */
 export const runAudit = (alterdataRows, eAuditoriaRows, perfil) => {
     const report = [];
     const ncmSemCobertura = new Map();
+    const pendingDisambiguation = []; // Épico 4 — NCMs com múltiplas regras ambíguas
     const correctedData = JSON.parse(JSON.stringify(alterdataRows));
-    const modifiedCells = new Map(); // rowIndex → Set<fieldName>
+    const modifiedCells = new Map();
 
-    const baseMap = construirBaseMap(eAuditoriaRows);
+    // e-Auditoria é OPCIONAL — se ausente, baseMap fica vazio e usamos apenas bases locais
+    const baseMap = construirBaseMap(eAuditoriaRows || []);
+    const eAuditoriaDisponivel = baseMap.size > 0;
 
     correctedData.forEach((row, index) => {
-        const numLinha = index + 2; // +2: cabeçalho na linha 1 do Excel
+        const numLinha = index + 2;
 
         const ncmBruto = row['Classificação'];
         if (!ncmBruto) return;
@@ -257,81 +233,153 @@ export const runAudit = (alterdataRows, eAuditoriaRows, perfil) => {
         const cstOriginal = String(row['CST ICMS'] || '').padStart(3, '0');
         const cfopOriginal = String(row['CFOP'] || '').replace(/\D/g, '');
         const raizInformada = cstOriginal.slice(-2);
+        const digitoOrigemCST = cstOriginal.charAt(0); // 0=nacional, 1-8=importado
         const descricaoLivrao = row['Descrição'] || row['Nome do Produto'] || '';
         const ufOrigem = row['UF Emitente'] || row['UF Origem'] || row['Estado Emitente'] || '';
 
-        // ── Classifica tipo de operação ─────────────────────────────────────
         const isOperacaoEspecial = CFOP_OPERACOES_ESPECIAIS.has(cfopOriginal) && !CFOP_EXCECOES_CREDITO.has(cfopOriginal);
         const isExcecaoAmarela = CFOP_EXCECAO_AMARELA.has(cfopOriginal);
         const isDevolucao = CFOP_DEVOLUCAO.has(cfopOriginal);
 
+        // ─── Verificação de ST logo no início ─────────────────────────────
+        const ncmNaST = NCM_ST_LEI_6108_22.has(ncmLimpo)
+            || NCM_ST_LEI_6108_22.has(ncmLimpo.slice(0, 6))
+            || NCM_ST_LEI_6108_22.has(ncmLimpo.slice(0, 4));
+
+        const ncmCestaBasica = NCM_CESTA_BASICA_PREFIXOS.has(ncmLimpo.slice(0, 4));
+
         // ════════════════════════════════════════════════════════════════════
-        // VALIDAÇÃO ESPECIAL — Operações que não são aquisição pra venda
-        // Reunião: "Transferências, uso/consumo, brinde, comodato → CST 90,
-        //           zerar base de cálculo, zerar alíquota e ICMS"
+        // OPERAÇÃO ESPECIAL — CST 90, zerar base/alíquota/ICMS
         // ════════════════════════════════════════════════════════════════════
         if (isOperacaoEspecial) {
             const digitoOrigem = cstOriginal.charAt(0) || '0';
             const cstNovo = digitoOrigem + '90';
             const bcOriginal = row['ICMS Base item'];
+            const campoAliq = Object.keys(row).find(k => ['Alíquota ICMS','Aliquota ICMS','ICMS Aliquota','% ICMS NF'].includes(k));
+            const campoVl = Object.keys(row).find(k => ['Valor ICMS','ICMS Valor','VL_ICMS','ICMS Valor item'].includes(k));
+            const bl = getBaseLegal('OPERACAO_ESPECIAL_CST90');
 
-            // Nomes possíveis de colunas — inclui nomes do Livrão Alterdata
-            const campoAliqEsp = Object.keys(row).find(k => ['Alíquota ICMS', 'Aliquota ICMS', 'ICMS Aliquota', '% ICMS NF'].includes(k));
-            const campoVlIcmsEsp = Object.keys(row).find(k => ['Valor ICMS', 'ICMS Valor', 'VL_ICMS', 'ICMS Valor item'].includes(k));
-            const aliqOriginal = campoAliqEsp ? row[campoAliqEsp] : undefined;
-            const vlIcmsOriginal = campoVlIcmsEsp ? row[campoVlIcmsEsp] : undefined;
-
-            // Registrar CST antigo antes de sobrescrever
             row['CST Antigo'] = cstOriginal;
-
-            // Aplicar zeragem
             row['CST ICMS'] = cstNovo;
             row['ICMS Base item'] = 0;
-            if (campoAliqEsp) row[campoAliqEsp] = 0;
-            if (campoVlIcmsEsp) row[campoVlIcmsEsp] = 0;
+            if (campoAliq) row[campoAliq] = 0;
+            if (campoVl) row[campoVl] = 0;
 
-            // Registrar células modificadas
             if (!modifiedCells.has(index)) modifiedCells.set(index, new Set());
             ['CST ICMS', 'ICMS Base item'].forEach(f => modifiedCells.get(index).add(f));
 
             report.push({
-                linha: numLinha,
-                ncm: ncmBruto,
-                cst: cstOriginal,
-                cfop: cfopOriginal,
+                linha: numLinha, ncm: ncmBruto, cst: cstOriginal, cfop: cfopOriginal,
                 severidade: isExcecaoAmarela ? 'alerta' : 'info',
                 motivo: 'Operação Especial — CST 90 Aplicado',
-                detalhe: `CFOP ${cfopOriginal} = operação não relacionada à aquisição para venda (uso/consumo, comodato, brinde etc.). CST alterado de ${cstOriginal} → ${cstNovo}. Base ICMS, alíquota e valor zerados.`,
-                correcaoAplicada: {
-                    campo: 'CST ICMS / Base / Alíquota / Valor ICMS',
-                    valorAntes: `CST: ${cstOriginal} | Base: ${bcOriginal}`,
-                    valorDepois: `CST: ${cstNovo} | Base: 0 | Alíquota: 0% | ICMS: 0`,
-                },
+                detalhe: `CFOP ${cfopOriginal} = operação não relacionada à aquisição para venda. CST alterado ${cstOriginal} → ${cstNovo}. Base, alíquota e ICMS zerados.`,
+                baseLegalRef: 'OPERACAO_ESPECIAL_CST90',
+                baseLegalDesc: bl.desc,
+                baseLegalNome: bl.ref,
+                correcaoAplicada: { campo: 'CST ICMS / Base / Alíquota / Valor ICMS', valorAntes: `CST: ${cstOriginal} | Base: ${bcOriginal}`, valorDepois: `CST: ${cstNovo} | Base: 0` },
+                fonte: 'base_legal_local',
             });
-            return; // Linha processada — não auditamos CST/alíquota nessas linhas
+            return;
         }
 
-        // ── Busca regra no e-Auditoria ──────────────────────────────────────
-        const regra = buscarRegra(baseMap, ncmLimpo, descricaoLivrao, ncmBruto, cstOriginal);
+        // ════════════════════════════════════════════════════════════════════
+        // R02 — CFOP × ST (Documento Técnico Projecont v1.0, Regra R02)
+        // NCM na Lista 6108 → CFOP deve ser da família 14xx/24xx
+        // ════════════════════════════════════════════════════════════════════
+        if (ncmNaST && !CFOP_FAMILIA_ST.has(cfopOriginal) && !CFOP_OPERACOES_ESPECIAIS.has(cfopOriginal) && !isDevolucao) {
+            const bl = getBaseLegal('CFOP_INCORRETO_ST');
+            report.push({
+                linha: numLinha, ncm: ncmBruto, cst: cstOriginal, cfop: cfopOriginal,
+                severidade: 'erro',
+                motivo: 'CFOP Incorreto para Item ST — R02',
+                detalhe: `NCM ${ncmBruto} pertence ao Decreto 6.108 (ST). CFOP ${cfopOriginal} está incorreto para este regime. CFOPs válidos para compra ST: 1403 (estadual) ou 2403 (interestadual). Verifique o lançamento.`,
+                baseLegalRef: 'CFOP_INCORRETO_ST',
+                baseLegalDesc: bl.desc,
+                baseLegalNome: bl.ref,
+                creditoVedadoST: true,
+                correcaoAplicada: null,
+                fonte: 'base_legal_local',
+            });
+        }
 
         // ════════════════════════════════════════════════════════════════════
-        // VALIDAÇÃO 0 — NCM sem cobertura no e-Auditoria
+        // R03 — CST × ST (Documento Técnico Projecont v1.0, Regra R03)
+        // NCM na Lista 6108 → CST deve ser 060, base e ICMS = 0
+        // ════════════════════════════════════════════════════════════════════
+        if (ncmNaST && raizInformada !== '60' && raizInformada !== '61') {
+            const bcInformada = parseBRLNumber(row['ICMS Base item']);
+            const blSt = getBaseLegal('NCM_ST_6108');
+            const blCst = getBaseLegal('CST_INCORRETO_ST');
+
+            report.push({
+                linha: numLinha, ncm: ncmBruto, cst: cstOriginal, cfop: cfopOriginal,
+                severidade: 'erro',
+                motivo: 'CST Incorreto para Item ST — R03',
+                detalhe: `NCM ${ncmBruto} pertence ao Decreto 6.108 (ST). CST correto: 060 (ICMS cobrado anteriormente por ST). Informado: ${cstOriginal}. Base de cálculo e valor ICMS devem ser zerados.`,
+                baseLegalRef: 'CST_INCORRETO_ST',
+                baseLegalDesc: blCst.desc,
+                baseLegalNome: blCst.ref,
+                creditoVedadoST: true,
+                correcaoAplicada: null,
+                fonte: 'base_legal_local',
+            });
+
+            // Auto-correção: zerar base e ICMS para itens ST com base > 0
+            if (bcInformada > 0) {
+                const campoAliq = Object.keys(row).find(k => ['Alíquota ICMS','Aliquota ICMS','ICMS Aliquota','% ICMS NF'].includes(k));
+                const campoVl = Object.keys(row).find(k => ['Valor ICMS','ICMS Valor','VL_ICMS','ICMS Valor item'].includes(k));
+
+                row['CST Antigo'] = cstOriginal;
+                const digitoOrigem = cstOriginal.charAt(0) || '0';
+                row['CST ICMS'] = digitoOrigem + '60';
+                row['ICMS Base item'] = 0;
+                if (campoAliq) row[campoAliq] = 0;
+                if (campoVl) row[campoVl] = 0;
+
+                if (!modifiedCells.has(index)) modifiedCells.set(index, new Set());
+                ['CST ICMS', 'ICMS Base item'].forEach(f => modifiedCells.get(index).add(f));
+
+                const ap = report[report.length - 1];
+                if (ap) ap.correcaoAplicada = {
+                    campo: 'CST ICMS / ICMS Base item / Valor ICMS',
+                    valorAntes: `CST: ${cstOriginal} | Base: R$ ${bcInformada.toFixed(2)}`,
+                    valorDepois: `CST: ${digitoOrigem}60 | Base: 0 | ICMS: 0`,
+                };
+            }
+
+            return; // linha processada como ST — não auditar CST/alíquota normal
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // Busca regra (local → e-Auditoria)
+        // ════════════════════════════════════════════════════════════════════
+        const regra = buscarRegra(baseMap, ncmLimpo, descricaoLivrao, ncmBruto, cstOriginal);
+        const fonteRegra = regra?._fonte === 'base_legal_local' ? 'base_legal_local' : (eAuditoriaDisponivel ? 'e-auditoria' : 'sem_cobertura');
+
+        // ════════════════════════════════════════════════════════════════════
+        // Sem cobertura
         // ════════════════════════════════════════════════════════════════════
         if (!regra) {
+            // Verificar se há múltiplas candidatas para desambiguação
+            const candidatas = eAuditoriaDisponivel ? buscarRegrasCandidatas(baseMap, ncmLimpo, ncmBruto) : [];
+            if (candidatas.length > 1) {
+                pendingDisambiguation.push({ rowIndex: index, ncm: ncmBruto, descricaoLivrao, opcoes: candidatas });
+                return; // aguarda escolha humana
+            }
+
             if (!ncmSemCobertura.has(ncmBruto)) {
                 ncmSemCobertura.set(ncmBruto, { ncm: ncmBruto, linhas: [], descricao: descricaoLivrao });
             }
             ncmSemCobertura.get(ncmBruto).linhas.push(numLinha);
 
             report.push({
-                linha: numLinha,
-                ncm: ncmBruto,
-                cst: cstOriginal,
-                cfop: cfopOriginal,
+                linha: numLinha, ncm: ncmBruto, cst: cstOriginal, cfop: cfopOriginal,
                 severidade: 'erro',
                 motivo: 'NCM não auditado — Análise Manual Obrigatória',
-                detalhe: 'Este NCM não retornou na base do e-Auditoria. A tributação não pode ser validada automaticamente. Auditoria manual obrigatória antes do SPED.',
+                detalhe: 'Este NCM não consta nas bases legais locais nem no e-Auditoria. Auditoria manual obrigatória.',
+                baseLegalRef: null, baseLegalDesc: null, baseLegalNome: null,
                 correcaoAplicada: null,
+                fonte: 'sem_cobertura',
             });
             return;
         }
@@ -339,13 +387,29 @@ export const runAudit = (alterdataRows, eAuditoriaRows, perfil) => {
         const cstBase = String(regra['CST/CSOSN'] || '').padStart(3, '0');
         const raizEsperada = cstBase.slice(-2);
 
-        // Preservar CST antigo e Descrição do e-Auditoria no correctedData (novas colunas)
         row['CST Antigo'] = cstOriginal;
-        // e-Auditoria exporta cabeçalhos em maiúsculas: "DESCRIÇÃO", "BASE LEGAL ICMS"
         row['Desc_eAuditoria'] = regra['DESCRIÇÃO'] || regra['Descrição do Produto'] || regra['Descrição'] || regra['DESCRICAO'] || '';
 
         // ════════════════════════════════════════════════════════════════════
-        // VALIDAÇÃO 1 — Matemática da Base de Cálculo (tolerância R$0,05)
+        // R07 — Cesta Básica (Decreto 6.215/23)
+        // ════════════════════════════════════════════════════════════════════
+        if (ncmCestaBasica && raizEsperada !== '40' && raizEsperada !== '41') {
+            const bl = getBaseLegal('ISENCAO_CESTA_6215');
+            report.push({
+                linha: numLinha, ncm: ncmBruto, cst: cstOriginal, cfop: cfopOriginal,
+                severidade: 'alerta',
+                motivo: 'Possível Isenção Cesta Básica (Lei AM 6.215/23) — R07',
+                detalhe: `NCM ${ncmBruto} pode ser produto da cesta básica com isenção de ICMS no AM (Lei 6.215/23). CST esperado: 040 ou 041. Confirme antes de tributar.`,
+                baseLegalRef: 'ISENCAO_CESTA_6215',
+                baseLegalDesc: bl.desc,
+                baseLegalNome: bl.ref,
+                correcaoAplicada: null,
+                fonte: fonteRegra,
+            });
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // VALIDAÇÃO 1 — Matemática da Base de Cálculo
         // ════════════════════════════════════════════════════════════════════
         const bcMapeada = calcularBaseCerta(row, regra, raizEsperada);
         const bcInformada = parseBRLNumber(row['ICMS Base item']);
@@ -358,79 +422,65 @@ export const runAudit = (alterdataRows, eAuditoriaRows, perfil) => {
                 severidade: 'erro',
                 motivo: 'Erro Matemático na Base de Cálculo',
                 detalhe: `Base calculada: R$ ${bcMapeada.toFixed(2)} | Base informada: R$ ${bcInformada.toFixed(2)} | Diferença: R$ ${Math.abs(bcMapeada - bcInformada).toFixed(2)}.`,
+                baseLegalRef: null, baseLegalDesc: null, baseLegalNome: null,
                 correcaoAplicada: null,
+                fonte: fonteRegra,
             });
         }
 
         // ════════════════════════════════════════════════════════════════════
-        // VALIDAÇÃO 1b — Alíquota e Valor ICMS
-        // Fonte de alíquota: CFOP de origem × destino AM + alíquotas específicas AM
+        // VALIDAÇÃO 1b — Alíquota e Valor ICMS (R06 corrigido)
         // ════════════════════════════════════════════════════════════════════
-        const { aliquota: aliquotaCorreta, origem: origemCfop } = resolverAliquota(cfopOriginal, ufOrigem);
-        // Verifica se NCM tem alíquota específica no AM (perfumaria 29%, armas 25%, etc.)
+        const { aliquota: aliquotaCorreta, origem: origemCfop, baseLegalRef: aliqBlRef } = resolverAliquota(cfopOriginal, ufOrigem, digitoOrigemCST);
         const aliqEspecifica = ALIQUOTA_ESPECIFICA_AM[ncmLimpo.slice(0, 4)] ?? null;
         const aliquotaFinal = aliqEspecifica ?? aliquotaCorreta;
 
-        const campoAliquota = Object.keys(row).find(k => ['Alíquota ICMS', 'Aliquota ICMS', 'ICMS Aliquota', '% ICMS NF'].includes(k));
-        const campoVlIcms = Object.keys(row).find(k => ['Valor ICMS', 'ICMS Valor', 'VL_ICMS', 'ICMS Valor item'].includes(k));
+        const campoAliquota = Object.keys(row).find(k => ['Alíquota ICMS','Aliquota ICMS','ICMS Aliquota','% ICMS NF'].includes(k));
+        const campoVlIcms = Object.keys(row).find(k => ['Valor ICMS','ICMS Valor','VL_ICMS','ICMS Valor item'].includes(k));
         const aliquotaInformada = campoAliquota ? parseBRLNumber(row[campoAliquota]) : null;
 
         if (aliquotaFinal !== null && aliquotaInformada !== null) {
-            // Pular validação de alíquota em casos sem base:
-            // - raiz '61' = Monofásico (combustíveis) → ICMS recolhido na refinaria, alíquota 0% é correto
-            // - bcMapeada === 0 → produto ST/isento → alíquota irrelevante quando base é zero
             const skipAliquotaCheck = raizEsperada === '61' || bcMapeada === 0;
             const aliqInformNorm = aliquotaInformada > 1 ? aliquotaInformada / 100 : aliquotaInformada;
+
             if (!skipAliquotaCheck && Math.abs(aliqInformNorm - aliquotaFinal) > 0.001) {
+                const blAliq = aliqBlRef ? getBaseLegal(aliqBlRef) : { ref: 'Legislação Federal', desc: '', url: '' };
+                const aliqNFpct = (aliqInformNorm * 100).toFixed(0);
+                const aliqCorretaPct = (aliquotaFinal * 100).toFixed(0);
+                const bcParaCalc = parseBRLNumber(row['ICMS Base item']);
+                const delta = Math.abs((aliquotaFinal - aliqInformNorm) * bcParaCalc);
+
                 report.push({
                     linha: numLinha, ncm: ncmBruto, cst: cstOriginal, cfop: cfopOriginal,
+                    aliquotaNF: aliqInformNorm,
+                    aliquotaCorreta: aliquotaFinal,
                     aliquotaAplicada: aliquotaFinal,
-                    icmsEsperado: parseBRLNumber(row['ICMS Base item']) * aliquotaFinal,
+                    icmsEsperado: bcParaCalc * aliquotaFinal,
+                    diferencaAliquota: delta,
                     severidade: 'erro',
-                    motivo: 'Alíquota ICMS Divergente',
-                    detalhe: `Origem: ${origemCfop}${aliqEspecifica ? ' (alíquota específica AM)' : ''}. Esperada: ${(aliquotaFinal * 100).toFixed(0)}%, informada: ${(aliqInformNorm * 100).toFixed(0)}%.`,
+                    motivo: 'Alíquota ICMS Divergente — R06',
+                    detalhe: `Origem: ${origemCfop}${aliqEspecifica ? ' (alíquota específica AM)' : ''}. Alíq. NF: ${aliqNFpct}% | Alíq. Correta: ${aliqCorretaPct}% — ${blAliq.ref}. Diferença no crédito: R$ ${delta.toFixed(2)}.`,
+                    baseLegalRef: aliqBlRef || null,
+                    baseLegalDesc: blAliq.desc,
+                    baseLegalNome: blAliq.ref,
                     correcaoAplicada: null,
+                    fonte: fonteRegra,
                 });
             }
         }
 
         // ════════════════════════════════════════════════════════════════════
-        // VALIDAÇÃO 2 — ST Invertido (bidirecional)
+        // VALIDAÇÃO 2 — ST Invertido
         // ════════════════════════════════════════════════════════════════════
         if (raizInformada === '60' && raizEsperada !== '60') {
             report.push({
                 linha: numLinha, ncm: ncmBruto, cst: cstOriginal, cfop: cfopOriginal,
-                esperado: cstBase,
-                severidade: 'erro',
+                esperado: cstBase, severidade: 'erro',
                 motivo: 'ST Indevido — Tributação Irregular',
-                detalhe: `CST informado 0${raizInformada} (ST cobrado anteriormente), mas e-Auditoria indica tributação normal (CST ${cstBase}). Crédito pode estar sendo sonegado. Verificação urgente antes do SPED.`,
+                detalhe: `CST 0${raizInformada} (ST cobrado anteriormente), mas a regra indica tributação normal (CST ${cstBase}). Crédito pode estar sendo sonegado.`,
+                baseLegalRef: null, baseLegalDesc: null, baseLegalNome: null,
                 correcaoAplicada: null,
-            });
-        }
-
-        // VALIDAÇÃO 2b — NCM sob ST conforme Lei 6.108/22 mas e-Auditoria indica tributado
-        const ncmNaST = NCM_ST_LEI_6108_22.has(ncmLimpo) ||
-            NCM_ST_LEI_6108_22.has(ncmLimpo.slice(0, 6)) ||
-            NCM_ST_LEI_6108_22.has(ncmLimpo.slice(0, 4));
-        if (raizEsperada !== '60' && raizEsperada !== '61' && ncmNaST) {
-            report.push({
-                linha: numLinha, ncm: ncmBruto, cst: cstOriginal, cfop: cfopOriginal,
-                severidade: 'alerta',
-                motivo: 'NCM sob ST (Lei 6.108/22) — Verificar CST',
-                detalhe: `NCM ${ncmBruto} consta como Substituição Tributária na Lei 6.108/22 (AM). O e-Auditoria indica CST ${cstBase} (tributado). Confirme se a mercadoria está sujeita a ST no período.`,
-                correcaoAplicada: null,
-            });
-        }
-
-        // VALIDAÇÃO 2c — Produto da cesta básica (possível isenção Lei 6.215/23)
-        const ncmCestaBasica = NCM_CESTA_BASICA_PREFIXOS.has(ncmLimpo.slice(0, 4));
-        if (ncmCestaBasica && raizEsperada !== '40' && raizEsperada !== '41') {
-            report.push({
-                linha: numLinha, ncm: ncmBruto, cst: cstOriginal, cfop: cfopOriginal,
-                severidade: 'alerta',
-                motivo: 'Possível Isenção Cesta Básica (Lei 6.215/23)',
-                detalhe: `NCM ${ncmBruto} pode ser produto da cesta básica isento de ICMS no AM conforme Lei 6.215/23. Confirme se o produto se enquadra na lista de isenção antes de tributar.`,
-                correcaoAplicada: null,
+                fonte: fonteRegra,
             });
         }
 
@@ -442,8 +492,10 @@ export const runAudit = (alterdataRows, eAuditoriaRows, perfil) => {
                 linha: numLinha, ncm: ncmBruto, cst: cstOriginal, cfop: cfopOriginal,
                 severidade: 'erro',
                 motivo: 'CFOP de Devolução — Verificação Obrigatória',
-                detalhe: `CFOP ${cfopOriginal} é devolução. Verifique se o ICMS está sendo corretamente creditado e se o CST condiz com a operação original devolvida.`,
+                detalhe: `CFOP ${cfopOriginal} é devolução. Verifique se o ICMS está sendo corretamente creditado.`,
+                baseLegalRef: null, baseLegalDesc: null, baseLegalNome: null,
                 correcaoAplicada: null,
+                fonte: fonteRegra,
             });
         }
 
@@ -459,31 +511,33 @@ export const runAudit = (alterdataRows, eAuditoriaRows, perfil) => {
                     esperado: cstBase, severidade: 'alerta',
                     motivo: 'Operação de Exceção (Uso/Consumo ou Comodato)',
                     detalhe: `CST ${cstOriginal} difere da regra (${cstBase}), mas CFOP ${cfopOriginal} indica exceção contextual. Análise humana necessária.`,
+                    baseLegalRef: null, baseLegalDesc: null, baseLegalNome: null,
                     correcaoAplicada: null,
+                    fonte: fonteRegra,
                 });
             } else {
                 report.push({
                     linha: numLinha, ncm: ncmBruto, cst: cstOriginal, cfop: cfopOriginal,
-                    esperado: cstBase,
-                    aliquotaAplicada: aliquotaFinal,
+                    esperado: cstBase, aliquotaAplicada: aliquotaFinal,
                     icmsEsperado: parseBRLNumber(row['ICMS Base item']) * (aliquotaFinal || 0),
                     severidade: resultadoCst.status,
                     motivo: resultadoCst.status === 'erro'
                         ? 'CST divergente da Base Auditada (Erro Crítico)'
                         : 'Variação de CST Tributável (Atenção)',
                     detalhe: `CFOP ${cfopOriginal}: ${resultadoCst.detalhe}`,
+                    baseLegalRef: null, baseLegalDesc: null, baseLegalNome: null,
                     correcaoAplicada: null,
+                    fonte: fonteRegra,
                 });
             }
         }
 
         // ════════════════════════════════════════════════════════════════════
-        // AUTO-CORREÇÃO — Só opera em faturamentos normais (não devolução/exceção)
+        // AUTO-CORREÇÃO
         // ════════════════════════════════════════════════════════════════════
         const podeCorrigir = !isExcecaoAmarela && !isDevolucao;
 
         if (podeCorrigir) {
-            // Corrigir base matemática
             if (erroMatematico) {
                 const valorAntes = row['ICMS Base item'];
                 row['ICMS Base item'] = Number(bcMapeada.toFixed(2));
@@ -493,26 +547,17 @@ export const runAudit = (alterdataRows, eAuditoriaRows, perfil) => {
                 if (ap) ap.correcaoAplicada = { campo: 'ICMS Base item', valorAntes, valorDepois: row['ICMS Base item'] };
             }
 
-            // Corrigir CST crítico ou Variação Tributável (preserva dígito origem)
-            if (resultadoCst.status === 'erro' || resultadoCst.status === 'alerta') {
+            if (resultadoCst.status === 'erro') {
                 const digitoOrigem = cstOriginal.charAt(0) || '0';
                 const cstCorrigido = digitoOrigem + raizEsperada;
                 const valorAntesCst = row['CST ICMS'];
-
-                // Se for *alerta*, só corrige se a raiz original não estiver validada na mesma tribo do esperado
-                // (Na verdade, o Hotfix 2 definiu que mesmos grupos = Tolerância OK pra nós mas com "Atenção" no texto) 
-                const deveSobrescrever = resultadoCst.status === 'erro';
-
-                if (deveSobrescrever) {
-                    row['CST ICMS'] = cstCorrigido;
-                    if (!modifiedCells.has(index)) modifiedCells.set(index, new Set());
-                    modifiedCells.get(index).add('CST ICMS');
-                    const ap = report.findLast(r => r.linha === numLinha && (r.motivo.includes('CST divergente') || r.motivo.includes('Variação')));
-                    if (ap) ap.correcaoAplicada = { campo: 'CST ICMS', valorAntes: valorAntesCst, valorDepois: cstCorrigido };
-                }
+                row['CST ICMS'] = cstCorrigido;
+                if (!modifiedCells.has(index)) modifiedCells.set(index, new Set());
+                modifiedCells.get(index).add('CST ICMS');
+                const ap = report.findLast(r => r.linha === numLinha && r.motivo.includes('CST divergente'));
+                if (ap) ap.correcaoAplicada = { campo: 'CST ICMS', valorAntes: valorAntesCst, valorDepois: cstCorrigido };
             }
 
-            // Recalcular Valor ICMS se temos base e alíquota correta
             if (aliquotaFinal !== null && campoVlIcms) {
                 const baseFinal = row['ICMS Base item'];
                 const vlIcmsCorreto = Number((baseFinal * aliquotaFinal).toFixed(2));
@@ -531,5 +576,6 @@ export const runAudit = (alterdataRows, eAuditoriaRows, perfil) => {
         correctedData,
         modifiedCells,
         ncmSemCobertura: [...ncmSemCobertura.values()],
+        pendingDisambiguation,
     };
 };

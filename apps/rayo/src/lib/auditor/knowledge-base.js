@@ -1,40 +1,39 @@
 /**
  * RAYO HUB — Base de Conhecimento Legislativa — Auditor ICMS
  *
- * ── Fontes Permanentes de Consulta ──────────────────────────────────────────
- * [1] Lei Nº 6.108/22 (SEFAZ-AM): Mercadorias sujeitas ao ICMS por Substituição
- *     Tributária no Amazonas — Anexos I a XXVI (585 NCMs mapeados).
+ * ── Fontes Legais (ver pasta data/) ─────────────────────────────────────────
+ * [1] Decreto AM 6.108/1999 — NCMs sob ST no Amazonas (585 NCMs)
  *     https://sistemas.sefaz.am.gov.br/get/Normas.do?metodo=viewDoc&uuidDoc=84be7172-451e-4ca0-802e-1a0303e5f0b2
  *
- * [2] Lei Nº 6.215/23 (SEFAZ-AM): Isenção do ICMS para produtos da Cesta Básica
- *     destinados ao consumo popular no Amazonas (23 categorias).
+ * [2] Lei AM 6.215/2023 — Isenção cesta básica AM
  *     https://sistemas.sefaz.am.gov.br/get/Normas.do?metodo=viewDoc&uuidDoc=711873af-84a9-4f5a-93d9-e50ee7f947c3
  *
- * [3] Tabela CFOP (Federal/SEFAZ-PE):
- *     https://www.sefaz.pe.gov.br/legislacao/tributaria/documents/legislacao/tabelas/cfop.htm
- *     Regra do 1º dígito:
- *       1 = Entrada estadual (mesmo estado)
- *       2 = Entrada interestadual (outro estado)
- *       3 = Entrada do exterior (importação)
- *       5 = Saída estadual
- *       6 = Saída interestadual
- *       7 = Saída para o exterior (exportação)
+ * [3] Lei AM 6.256/2023 — Incorporação de convênios CONFAZ
+ *     https://sistemas.sefaz.am.gov.br/get/Normas.do?metodo=viewDoc&uuidDoc=4af262ac-9873-4fd6-a3b9-fa18e443e66e
  *
- * [4] Tabela de Alíquotas ICMS 2026 (TaxGroup / Econet Editora):
- *     Amazonas: regra geral 20% (LC 19/97, art. 12, I, "b").
- *     Com alíquotas específicas para produtos como armas (25-29%), perfumaria (29%), etc.
- *     https://www.taxgroup.com.br/intelligence/tabela-icms-2026-fique-por-dentro-das-aliquotas-estaduais-atualizadas/
+ * [4] Resolução Senado Nº 22/1989 — Alíquotas interestaduais ICMS
+ *     IMPORTANTE: Sul/Sudeste → AM = 12% | Norte/NE/CO → AM = 7%
+ *
+ * [5] Resolução Senado Nº 13/2012 — Alíquota 4% para importados
+ *     Detectado via 1º dígito CST: 1–8 = importado ou conteúdo importação >40%
+ *
+ * [6] Tabela CFOP — Receita Federal
+ *     https://www.gov.br/receitafederal/pt-br/acesso-a-informacao/acoes-e-programas/facilitacao/anexo-ecf-cfop
  *
  * ────────────────────────────────────────────────────────────────────────────
  * GUARDRAIL SOP-IA: Arquivo CORE puro — sem imports de UI/React.
+ * Atualização semestral ou a cada alteração legislativa relevante.
  */
 
-// ─── 1. NCMs sob Substituição Tributária no AM (Lei 6.108/22) ────────────────
-// Extraídos dos Anexos I-XXVI via pypdf. 585 NCMs oficiais.
-// Segmentos cobertos: autopeças, bebidas, cigarros, cimento, combustíveis,
-// energia, ferramentas, lâmpadas, materiais de construção/limpeza/elétricos,
-// medicamentos, papéis/plásticos/cerâmica/vidros, pneumáticos, alimentos,
-// papelaria, perfumaria/higiene, eletrônicos/eletrodomésticos, rações, sorvetes.
+import cfopsStData from './data/cfops_st.json';
+import aliquotasData from './data/aliquotas_interestaduais.json';
+import baseLegalDescricoesData from './data/base_legal_descricoes.json';
+
+// ─── Exportar textos das bases legais ────────────────────────────────────────
+export const BASE_LEGAL_DESCRICOES = baseLegalDescricoesData;
+
+// ─── 1. NCMs sob Substituição Tributária no AM (Decreto 6.108/99) ─────────────
+// Extraídos dos Anexos I-XXVI. 585 NCMs oficiais.
 export const NCM_ST_LEI_6108_22 = new Set([
     "040110", "040120", "04012010", "04012090", "040140", "040150", "04015010",
     "0402", "040210", "04022130", "04022920", "04022930", "0403", "0406", "040690",
@@ -139,9 +138,6 @@ export const NCM_ST_LEI_6108_22 = new Set([
 ]);
 
 // ─── 2. Produtos da Cesta Básica com Isenção (Lei 6.215/23) ──────────────────
-// 23 categorias isentas de ICMS para consumo popular no AM.
-// Importante: quando esses produtos entrarem com CST que indica tributação,
-// emitir ALERTA para revisão humana (podem ser isentos de ST).
 export const CESTA_BASICA_ISENTA_AM = [
     'Leite longa vida e leite integral em pó',
     'Enchidos/embutidos de carne, salsicha, salsicha em lata e mortadela (consumo popular)',
@@ -168,178 +164,165 @@ export const CESTA_BASICA_ISENTA_AM = [
     'Absorventes higiênicos femininos',
 ];
 
-// Prefixos NCM dos produtos da cesta básica (para lookup rápido)
-// Ref: categorias da Lei 6.215/23 cruzadas com NCM da tabela TIPI
+// Prefixos NCM 4 dígitos para lookup rápido
 export const NCM_CESTA_BASICA_PREFIXOS = new Set([
-    '0401', '0402', '0403',   // Leite e derivados
-    '1006',                 // Arroz
-    '1101',                 // Farinha de trigo
-    '1102',                 // Farinha de mandioca / fécula
-    '1101', '1108',          // Fécula de mandioca
-    '1509', '1512',          // Óleos vegetais (soja)
-    '1601', '1602',          // Embutidos / conservas de carne
-    '1604',                 // Sardinha em conserva
-    '1701', '1702',          // Açúcar de cana
-    '1902', '1905',          // Massas alimentícias / biscoitos
-    '1507', '1512', '2009',   // Óleos e margarinas adjacentes
-    '1517',                 // Margarina
-    '0713',                 // Feijão
-    '2501',                 // Sal de cozinha
-    '2309',                 // Composto lácteo
-    '2828',                 // Água sanitária (hipoclorito)
-    '3401',                 // Sabão em barra / sabonete
-    '3402',                 // Detergente líquido
-    '3405',                 // Palha de aço
-    '3306',                 // Creme dental
-    '4818',                 // Papel higiênico
-    '9619',                 // Absorventes higiênicos
+    '0401', '0402', '0403',
+    '1006',
+    '1101', '1102', '1108',
+    '1509', '1512', '1517',
+    '1601', '1602', '1604',
+    '1701', '1702',
+    '1902', '1905',
+    '0713',
+    '2501',
+    '2309',
+    '2828',
+    '3401', '3402', '3405',
+    '3306',
+    '4818',
+    '9619',
 ]);
 
-// ─── 3. Alíquotas Específicas AM (Lei Complementar 19/97 + Convênios) ────────
-// Extraído da Tabela ICMS 2026 (TaxGroup/Econet). Regra geral: 20%.
-// Alíquotas elevadas para produtos supérfluos/luxo:
+// ─── 3. Alíquotas Específicas AM (LC 19/97 + Convênios) ────────────────────
+// Produtos supérfluos/luxo com alíquotas elevadas no estado
 export const ALIQUOTA_ESPECIFICA_AM = {
-    // Armas e munições: 25% + FPS 2% = 27% efetivo
+    // Armas e munições: 25%
     '9301': 0.25, '9302': 0.25, '9303': 0.25, '9304': 0.25,
     '9305': 0.25, '9306': 0.25, '9307': 0.25,
-    // Joias e joalheria: 25%
-    // Embarcações de recreação e lazer: 25%
+    // Embarcações de recreação: 25%
     '8903': 0.25,
-    // Perfumaria e cosméticos: 29% (conforme tabela AM)
+    // Perfumaria e cosméticos: 29%
     '3301': 0.29, '3302': 0.29, '3303': 0.29, '3304': 0.29,
     '3305': 0.29, '3307': 0.29,
 };
 
-// ─── 4. Classificação de UF por Região (Resolução do Senado 22/89) ────────────
-// Destino sempre AM (Amazonas). Usado para resolver alíquota interestadual.
-export const REGIAO_POR_UF = {
-    // Sul/Sudeste → AM: 7%
-    SP: 'sul_sudeste', RJ: 'sul_sudeste', MG: 'sul_sudeste', ES: 'sul_sudeste',
-    PR: 'sul_sudeste', SC: 'sul_sudeste', RS: 'sul_sudeste', MS: 'sul_sudeste',
-    // Norte (exceto AM) → AM: 12%
-    AC: 'norte_nordeste', AP: 'norte_nordeste', PA: 'norte_nordeste',
-    RO: 'norte_nordeste', RR: 'norte_nordeste', TO: 'norte_nordeste',
-    // Nordeste → AM: 12%
-    AL: 'norte_nordeste', BA: 'norte_nordeste', CE: 'norte_nordeste',
-    MA: 'norte_nordeste', PB: 'norte_nordeste', PE: 'norte_nordeste',
-    PI: 'norte_nordeste', RN: 'norte_nordeste', SE: 'norte_nordeste',
-    // Centro-Oeste → AM: 12%
-    DF: 'norte_nordeste', GO: 'norte_nordeste', MT: 'norte_nordeste',
-    // Próprio AM → operação interna
-    AM: 'interna',
-};
+// ─── 4. CFOPs da Família ST ────────────────────────────────────────────────
+// Fonte: Tabela CFOP Receita Federal / data/cfops_st.json
+// R02 (Documento Técnico v1.0): NCM na 6108 → CFOP deve pertencer a esta família
+export const CFOP_FAMILIA_ST = new Set(cfopsStData._todos_codigos_set);
 
-export const ALIQUOTA_POR_REGIAO = {
-    interna: 0.20,   // AM→AM: 20% (LC 19/97, art. 12, I, "b")
-    norte_nordeste: 0.12,   // Norte/NE/CO → AM: 12%
-    sul_sudeste: 0.07,   // Sul/SE → AM: 7%
-    importacao: 0.04,   // Importação (CFOP 3xxx): 4%
-};
+// ─── 5. Tabela de Alíquotas Interestaduais (Res. 22/89 + Res. 13/2012) ──────
+// CORRIGIDO: Sul/Sudeste → AM = 12%, Norte/NE/CO → AM = 7%
+// Fonte: data/aliquotas_interestaduais.json
+const _aliqPorUf = aliquotasData.por_uf_origem;
 
-// ─── 5. Tabela Interestadual Completa → Destino AM ────────────────────────────
 export const MATRIZ_ALIQUOTA_PARA_AM = {
-    SP: 0.07, RJ: 0.07, MG: 0.07, ES: 0.07,
-    PR: 0.07, SC: 0.07, RS: 0.07, MS: 0.07,
-    AC: 0.12, AP: 0.12, PA: 0.12, RO: 0.12, RR: 0.12, TO: 0.12,
-    AL: 0.12, BA: 0.12, CE: 0.12, MA: 0.12, PB: 0.12,
-    PE: 0.12, PI: 0.12, RN: 0.12, SE: 0.12,
-    DF: 0.12, GO: 0.12, MT: 0.12,
-    AM: 0.20,
+    SP: _aliqPorUf.SP, RJ: _aliqPorUf.RJ, MG: _aliqPorUf.MG, ES: _aliqPorUf.ES,
+    PR: _aliqPorUf.PR, SC: _aliqPorUf.SC, RS: _aliqPorUf.RS, MS: _aliqPorUf.MS,
+    AC: _aliqPorUf.AC, AP: _aliqPorUf.AP, PA: _aliqPorUf.PA, RO: _aliqPorUf.RO,
+    RR: _aliqPorUf.RR, TO: _aliqPorUf.TO,
+    AL: _aliqPorUf.AL, BA: _aliqPorUf.BA, CE: _aliqPorUf.CE, MA: _aliqPorUf.MA,
+    PB: _aliqPorUf.PB, PE: _aliqPorUf.PE, PI: _aliqPorUf.PI, RN: _aliqPorUf.RN,
+    SE: _aliqPorUf.SE, DF: _aliqPorUf.DF, GO: _aliqPorUf.GO, MT: _aliqPorUf.MT,
+    AM: _aliqPorUf.AM,
 };
 
-/**
- * Lookup direto por UF de origem para destino AM.
- */
+// ─── 6. Lookup direto UF → alíquota para AM ────────────────────────────────
 export const getAliquotaInterestadualParaAM = (ufOrigem) => {
     if (!ufOrigem) return null;
     return MATRIZ_ALIQUOTA_PARA_AM[String(ufOrigem).toUpperCase()] ?? null;
 };
 
-// ─── 6. Lógica de Alíquota por CFOP (Regra do 1º Dígito) ────────────────────
-// Fonte: [3] Tabela CFOP + regras CONFAZ
-// 1xxx = Entrada estadual (mesmo estado) → operação interna → 20%
-// 2xxx = Entrada interestadual (outro estado) → consulta MATRIZ por UF origem
-// 3xxx = Entrada do exterior (importação) → 4%
-// 5xxx = Saída estadual → não gera crédito de entrada (não aplicar alíquota)
-// 6xxx = Saída interestadual → não gera crédito de entrada
-// 7xxx = Saída para exterior → não gera crédito de entrada
+// ─── 7. Resolução de Alíquota com Detecção de Importado ────────────────────
 /**
- * @param {string|number} cfop - CFOP da linha (ex: '1102', '2102', '3102')
- * @param {string} [ufOrigem]  - UF do emitente. Necessário para CFOP 2xxx.
- * @returns {{ aliquota: number|null, origem: string }} alíquota e descrição da origem
+ * Resolve a alíquota correta de ICMS na entrada, considerando:
+ *   - CFOP (série 1/2/3 = estadual/interestadual/exterior)
+ *   - UF de origem do emitente
+ *   - Dígito de origem da mercadoria no CST (0=nacional, 1-8=importado)
+ *
+ * Regras (Documento Técnico Projecont v1.0, Regra R06):
+ *   1. CFOP 1xxx → operação estadual AM → 20%
+ *   2. CFOP 2xxx + dígito CST 1-8 (importado) → 4% (Res. 13/2012)
+ *   3. CFOP 2xxx + dígito CST 0 (nacional) → tabela por UF (Res. 22/89)
+ *   4. CFOP 3xxx → importação direta → 4% (Res. 13/2012)
+ *   5. CFOP 5/6/7xxx → saída → null (não gera crédito de entrada)
+ *
+ * @param {string|number} cfop
+ * @param {string} ufOrigem       - UF do emitente (ex: 'SP')
+ * @param {string} digitoOrigemCST - 1º dígito do CST ICMS (ex: '0', '2', '8')
  */
-export const resolverAliquota = (cfop, ufOrigem) => {
+export const resolverAliquota = (cfop, ufOrigem, digitoOrigemCST) => {
     const cfopStr = String(cfop).replace(/\D/g, '');
-    if (!cfopStr) return { aliquota: null, origem: 'indeterminado' };
+    if (!cfopStr) return { aliquota: null, origem: 'indeterminado', baseLegalRef: null };
 
     const d1 = cfopStr[0];
+    const digitoOrigem = String(digitoOrigemCST || '0');
+    const isMercadoriaImportada = ['1','2','3','4','5','6','7','8'].includes(digitoOrigem);
 
     if (d1 === '1') {
-        return { aliquota: ALIQUOTA_POR_REGIAO.interna, origem: 'estadual_AM' };
+        return {
+            aliquota: aliquotasData.interna_am.aliquota,
+            origem: 'estadual_AM',
+            baseLegalRef: null,
+        };
     }
 
     if (d1 === '2') {
+        // Mercadoria importada ou com conteúdo de importação > 40% → 4% (Res. 13/2012)
+        if (isMercadoriaImportada) {
+            return {
+                aliquota: aliquotasData.importados.aliquota,
+                origem: `interestadual_importado_${String(ufOrigem || '').toUpperCase()}`,
+                baseLegalRef: 'ALIQ_IMPORTADO_4',
+            };
+        }
+        // Mercadoria nacional → tabela Res. 22/89 por UF
         if (ufOrigem) {
             const aliq = getAliquotaInterestadualParaAM(ufOrigem);
             if (aliq !== null) {
-                return { aliquota: aliq, origem: `interestadual_${ufOrigem.toUpperCase()}` };
+                const ufUp = String(ufOrigem).toUpperCase();
+                const ref = (aliq === 0.12) ? 'ALIQ_INTERST_12' : 'ALIQ_INTERST_7';
+                return { aliquota: aliq, origem: `interestadual_${ufUp}`, baseLegalRef: ref };
             }
         }
-        // Sem UF → padrão conservador 12% (Norte/Nordeste)
-        return { aliquota: ALIQUOTA_POR_REGIAO.norte_nordeste, origem: 'interestadual_UF_desconhecida' };
+        // Sem UF → conservador 12% (Sul/Sudeste mais comum para AM)
+        return { aliquota: 0.12, origem: 'interestadual_UF_desconhecida', baseLegalRef: 'ALIQ_INTERST_12' };
     }
 
     if (d1 === '3') {
-        return { aliquota: ALIQUOTA_POR_REGIAO.importacao, origem: 'importacao_exterior' };
+        return {
+            aliquota: aliquotasData.exterior.aliquota,
+            origem: 'importacao_exterior',
+            baseLegalRef: 'ALIQ_IMPORTADO_4',
+        };
     }
 
-    // 5xxx, 6xxx, 7xxx = saídas — não aplicar alíquota de crédito de entrada
+    // 5/6/7xxx = saídas — não aplicar alíquota de crédito de entrada
     if (['5', '6', '7'].includes(d1)) {
-        return { aliquota: null, origem: 'saida_nao_gera_credito' };
+        return { aliquota: null, origem: 'saida_nao_gera_credito', baseLegalRef: null };
     }
 
-    return { aliquota: null, origem: 'cfop_nao_reconhecido' };
+    return { aliquota: null, origem: 'cfop_nao_reconhecido', baseLegalRef: null };
 };
 
-// ─── 7. CFOPs de Operações Especiais (CST → 90, zerar base/alíquota/ICMS) ────
-// Fonte: [3] Tabela CFOP + Reunião de Alinhamento
-// Exceções que NÃO devem ser zeradas: 1152 (transferência tributável), 1409 (ST creditável)
+// ─── 8. CFOPs de Operações Especiais (CST → 90, zerar base/alíquota/ICMS) ──
+// Fonte: Tabela CFOP + Documento Técnico Projecont v1.0, Regra R04
 export const CFOP_OPERACOES_ESPECIAIS = new Set([
-    // Uso e Consumo
-    '1556', '2556',
-    // Comodato (remessa e retorno)
-    '1908', '2908', '1909', '2909',
-    // Amostra Grátis / Brinde
-    '1911', '2911', '5901', '6901', '1901', '2901',
-    // Bonificação / Brinde interestadual
-    '1910', '2910', '5910', '6910',
-    // Outras entradas sem débito
-    '1949', '2949',
-    // Transferências p/ uso/consumo (não pra revenda)
-    '5908', '6908', '5909', '6909',
-]);
-
-// CFOPs que definitivamente NÃO devem ser zerados (geram crédito legítimo)
-export const CFOP_EXCECOES_CREDITO = new Set([
-    '1102', // Compra pra comercialização — compra normal tributável
-    '1152', // Transferência tributável (creditável na entrada)
-    '1409', // Compra para uso/consumo em regime ST (creditável)
-    '2102', // Compra interestadual pra comercialização
-    '2152', // Transferência interestadual tributável
-    '2409', // Compra interestadual ST
-]);
-
-// ─── 8. CFOPs de Exceção Amarela (alerta, não erro crítico) ──────────────────
-export const CFOP_EXCECAO_AMARELA = new Set([
     '1556', '2556',  // Uso e consumo
-    '1908', '2908',  // Comodato
-    '1949', '2949',  // Outras entradas
+    '1908', '2908', '1909', '2909',  // Comodato
+    '1911', '2911', '5901', '6901', '1901', '2901',  // Amostra grátis / brinde
+    '1910', '2910', '5910', '6910',  // Bonificação / brinde
+    '1949', '2949',  // Outras entradas sem débito
+    '5908', '6908', '5909', '6909',  // Transferências uso/consumo
 ]);
 
-// ─── 9. CFOPs de Devolução (Erro Vermelho) ────────────────────────────────────
+// CFOPs que geram crédito legítimo (NÃO devem ser zerados)
+export const CFOP_EXCECOES_CREDITO = new Set([
+    '1102', '1152', '1409',
+    '2102', '2152', '2409',
+]);
+
+// CFOPs de Exceção Amarela (alerta, não erro crítico)
+export const CFOP_EXCECAO_AMARELA = new Set([
+    '1556', '2556',
+    '1908', '2908',
+    '1949', '2949',
+]);
+
+// CFOPs de Devolução (Erro Vermelho)
 export const CFOP_DEVOLUCAO = new Set([
-    '1201', '2201',  // Devolução de venda de produção
-    '1202', '2202',  // Devolução de venda de mercadoria para revenda
-    '1410', '2410',  // Devolução de compra p/ prestação de serviço
-    '1503', '2503',  // Devolução de mercadoria p/ industrialização
+    '1201', '2201',
+    '1202', '2202',
+    '1410', '2410',
+    '1503', '2503',
 ]);

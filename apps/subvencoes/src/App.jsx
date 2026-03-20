@@ -10,6 +10,14 @@ import { RpaPanel } from './components/RpaPanel.jsx';
 export default function App() {
     const { processing, progress, result, error, spedFilesRef, xmlFilesRef, processFiles } = useSubvencoes();
     const [activeTab, setActiveTab] = useState('processar');
+    const [autoLoadXmls, setAutoLoadXmls] = useState(null);
+
+    function handleAutoLoadXmls(files) {
+        setAutoLoadXmls(files);
+        setActiveTab('processar');
+        // Aviso rápido visual que o ZIP foi transportado à memória
+        setTimeout(() => alert(`⚡ Sucesso! XMLs da SEFAZ baixados e carregados.\n\nAgora arraste o seu arquivo SPED EFD na área de Upload e clique em "Processar Subvenção".`), 100);
+    }
 
     return (
         <div className="app">
@@ -47,13 +55,13 @@ export default function App() {
                 </div>
 
                 {/* Tab: Download SEFAZ */}
-                {activeTab === 'download' && <RpaPanel />}
+                {activeTab === 'download' && <RpaPanel onAutoLoad={handleAutoLoadXmls} />}
 
                 {/* Tab: Processar */}
                 {activeTab === 'processar' && (
                     <>
                         {/* Upload + Trigger */}
-                        <FileUpload spedFilesRef={spedFilesRef} xmlFilesRef={xmlFilesRef} />
+                        <FileUpload spedFilesRef={spedFilesRef} xmlFilesRef={xmlFilesRef} autoLoadXmls={autoLoadXmls} />
 
                         <div style={{ marginTop: 16, display: 'flex', gap: 12 }}>
                             <button

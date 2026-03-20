@@ -1,0 +1,48 @@
+{
+  "_uso": "Cada chave corresponde a um tipo de inconsistência no auditor. O campo 'ref' é o nome curto da lei, 'desc' é o texto explicativo para o analista.",
+  "NCM_ST_6108": {
+    "ref": "Decreto AM 6.108/1999",
+    "url": "https://sistemas.sefaz.am.gov.br/get/Normas.do?metodo=viewDoc&uuidDoc=84be7172-451e-4ca0-802e-1a0303e5f0b2",
+    "desc": "Produto sujeito ao ICMS por Substituição Tributária no Amazonas. O imposto de toda a cadeia já foi recolhido antecipadamente pelo substituto tributário (fabricante ou importador). O adquirente (varejista/atacadista) NÃO pode creditar o ICMS destacado na nota de entrada. CST correto: 060. Base de cálculo e valor ICMS devem ser zerados na escrituração."
+  },
+  "CFOP_INCORRETO_ST": {
+    "ref": "Tabela CFOP — Receita Federal / Convênio ICMS 142/18",
+    "url": "https://www.gov.br/receitafederal/pt-br/acesso-a-informacao/acoes-e-programas/facilitacao/anexo-ecf-cfop",
+    "desc": "Itens sujeitos à Substituição Tributária devem ser escriturados com CFOPs da família 14xx (operação estadual) ou 24xx (operação interestadual): 1401, 1403, 1406, 1407, 1408, 1409 e correspondentes 24xx. CFOPs como 1102 (compra para comercialização) ou 2102 (compra interestadual) indicam operação tributada normal — uso incorreto para itens ST causa apuração errada do imposto."
+  },
+  "CST_INCORRETO_ST": {
+    "ref": "Decreto AM 6.108/1999 — Documento Técnico Projecont v1.0, Regra R03",
+    "url": "https://sistemas.sefaz.am.gov.br/get/Normas.do?metodo=viewDoc&uuidDoc=84be7172-451e-4ca0-802e-1a0303e5f0b2",
+    "desc": "Para produtos monofásicos (ST), o CST correto na entrada é 060 — 'ICMS cobrado anteriormente por Substituição Tributária'. Se o CST informado for 000 (tributação normal) com base de cálculo e ICMS destacados, a empresa pode estar recolhendo imposto já pago pelo substituto, gerando pagamento em duplicidade ou apropiação indevida de crédito."
+  },
+  "ISENCAO_CESTA_6215": {
+    "ref": "Lei AM 6.215/2023",
+    "url": "https://sistemas.sefaz.am.gov.br/get/Normas.do?metodo=viewDoc&uuidDoc=711873af-84a9-4f5a-93d9-e50ee7f947c3",
+    "desc": "Isenção do ICMS nas operações internas com produtos da cesta básica destinados ao consumo popular no Amazonas. Produtos isentos devem ser escriturados com CST 040 (saída isenta) ou 041, com base de cálculo e valor ICMS zerados. Tributar esses produtos gera crédito indevido e risco de autuação."
+  },
+  "ALIQ_INTERST_12": {
+    "ref": "Resolução do Senado Federal Nº 22/1989",
+    "url": "https://www25.senado.leg.br/web/atividade/materias/-/materia/128743",
+    "desc": "Alíquota de 12% nas operações interestaduais em que o remetente está localizado nas Regiões Sul ou Sudeste (SP, RJ, MG, ES, RS, PR, SC, MS) e o destinatário nas demais regiões. Alíquota incorreta afeta o cálculo do crédito de ICMS de entrada e o DIFAL."
+  },
+  "ALIQ_INTERST_7": {
+    "ref": "Resolução do Senado Federal Nº 22/1989",
+    "url": "https://www25.senado.leg.br/web/atividade/materias/-/materia/128743",
+    "desc": "Alíquota de 7% nas operações interestaduais em que o remetente está localizado nas Regiões Norte, Nordeste ou Centro-Oeste e o destinatário nas demais regiões. Alíquota incorreta afeta o cálculo do crédito de ICMS de entrada."
+  },
+  "ALIQ_IMPORTADO_4": {
+    "ref": "Resolução do Senado Federal Nº 13/2012",
+    "url": "https://www25.senado.leg.br/web/atividade/materias/-/materia/1078923",
+    "desc": "Alíquota de 4% para bens ou mercadorias importados do exterior ou com conteúdo de importação superior a 40%, nas operações interestaduais, independentemente do estado de origem. Identificado pelo 1º dígito do CST: valores 1 a 8 indicam mercadoria importada ou com conteúdo de importação relevante."
+  },
+  "CONVENIOS_6256": {
+    "ref": "Lei AM 6.256/2023",
+    "url": "https://sistemas.sefaz.am.gov.br/get/Normas.do?metodo=viewDoc&uuidDoc=4af262ac-9873-4fd6-a3b9-fa18e443e66e",
+    "desc": "Incorpora à legislação tributária do Amazonas convênios CONFAZ, incluindo: Convênio ICMS 44/75 (isenção hortifrutigranjeiros), ICMS 66/94 (polpa de cupuaçu e açaí), ICMS 162/94 (medicamentos para câncer), ICMS 142/18 (regime de ST — principal normativo do regime), ICMS 110/07 (combustíveis ST), entre outros. Altera regras de ST, isenções e procedimentos vigentes no estado do AM."
+  },
+  "OPERACAO_ESPECIAL_CST90": {
+    "ref": "Tabela CFOP — Receita Federal / Documento Técnico Projecont v1.0, Regra R04",
+    "url": "https://www.gov.br/receitafederal/pt-br/acesso-a-informacao/acoes-e-programas/facilitacao/anexo-ecf-cfop",
+    "desc": "Operações que não geram crédito nem débito de ICMS (comodato, uso e consumo, remessas gratuitas, brindes) devem ser escrituradas com CST 090 e base de cálculo zerada. CFOPs identificados: 1556/2556 (uso e consumo), 1908/2908 (comodato), 1949/2949 (outras entradas sem débito)."
+  }
+}

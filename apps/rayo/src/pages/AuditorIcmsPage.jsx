@@ -6,6 +6,7 @@ import { IconSun, IconMoon, IconUpload, IconCheck, IconWarning, IconX, IconRefre
 import { downloadCorrectedAlterdata } from '../lib/writer/excel-writer';
 import { downloadAuditPdf } from '../lib/writer/pdf-generator';
 import IcmsResultCard from '../components/IcmsResultCard';
+import NcmDisambiguationModal from '../components/NcmDisambiguationModal';
 import { Link } from 'react-router-dom';
 import { Virtuoso } from 'react-virtuoso';
 
@@ -72,6 +73,7 @@ export default function AuditorIcmsPage() {
         alterdataName, eAuditoriaName, alterdataHasSeguro,
         perfilEmpresa, updatePerfil,
         loading, error, auditResults, ncmSemCobertura, correctedAlterdata, modifiedCells,
+        disambiguationQueue, resolveDisambiguation,
         handleUploadAlterdata, handleUploadEAuditoria, executeAudit, resetFiles,
         setEAuditoriaBaseSilently // Precisaremos injetar os resultados do robô no state do hook silenciosamente
     } = useIcmsAuditor();
@@ -102,7 +104,7 @@ export default function AuditorIcmsPage() {
     };
 
     const perfilCompleto = !!(perfilEmpresa.uf && perfilEmpresa.atividade && perfilEmpresa.regime);
-    const prontoParaAudit = !!(alterdataName && eAuditoriaName && perfilCompleto);
+    const prontoParaAudit = !!(alterdataName && perfilCompleto); // e-Auditoria não é mais mandatório
 
     const handleDropEAuditoria = (e) => {
         e.preventDefault();
@@ -218,6 +220,17 @@ export default function AuditorIcmsPage() {
 
             <main style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1200px', margin: '0 auto', width: '100%', animation: 'fadeIn 0.5s ease-out' }}>
 
+                {/* Modal de Desambiguação */}
+                {disambiguationQueue && disambiguationQueue.length > 0 && (
+                    <NcmDisambiguationModal
+                        item={disambiguationQueue[0]}
+                        total={disambiguationQueue.length}
+                        current={1}
+                        onSelect={resolveDisambiguation}
+                        onSkip={(rowIndex) => resolveDisambiguation(rowIndex, null)}
+                    />
+                )}
+
                 {/* Avisos */}
                 {alterdataName && !alterdataHasSeguro && (
                     <div className="warn-banner" style={{ background: 'var(--warning-soft)', border: '1px solid var(--warning)', color: 'var(--warning-text)', padding: '12px 20px', borderRadius: 'var(--radius-md)', display: 'flex', gap: '10px', alignItems: 'center', fontSize: '0.85rem', fontWeight: 500 }}>
@@ -330,7 +343,10 @@ export default function AuditorIcmsPage() {
                                             {eAuditoriaName ? <IconCheck size={28} /> : <IconBot size={28} />}
                                         </div>
                                         <div style={{ textAlign: 'left', flex: 1 }}>
-                                            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>{eAuditoriaName || '3. Base de Regras NCM'}</h4>
+                                            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>
+                                                {eAuditoriaName || '3. Base de Regras NCM'}
+                                                {!eAuditoriaName && <span style={{ fontSize: '0.65rem', background: 'var(--bg-primary)', color: 'var(--text-tertiary)', padding: '2px 6px', borderRadius: '4px', verticalAlign: 'middle', marginLeft: '8px', border: '1px solid var(--border)', fontWeight: 700 }}>OPCIONAL</span>}
+                                            </h4>
                                             {eAuditoriaName ? (
                                                 <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Regras aplicadas com sucesso</p>
                                             ) : (

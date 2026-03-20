@@ -14,6 +14,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const AdmZip = require('adm-zip');
 const { baixarXmlsSefaz } = require('./sefaz-downloader');
 
 const app = express();
@@ -65,7 +66,7 @@ app.get('/api/status', (req, res) => {
 
 // ── Download de XMLs do SEFAZ-AM ─────────────────────────────────────────────
 app.post('/api/download-xmls', async (req, res) => {
-    const { ie, senha, cnpj, dtIni, dtFin, cfop, outputDir } = req.body;
+    const { ie, senha, cnpj, dtIni, dtFin, cfops, outputDir } = req.body;
 
     const pfxPath = process.env.SEFAZ_PFX_PATH;
     const pfxSenha = process.env.SEFAZ_PFX_SENHA || senha;
@@ -77,13 +78,13 @@ app.post('/api/download-xmls', async (req, res) => {
     }
 
     const periodoSlug = `${dtIni.replace(/-/g, '')}-${dtFin.replace(/-/g, '')}`;
-    const cfopSlug = cfop ? `cfop-${cfop}` : 'todos';
+    const cfopSlug = (cfops && cfops.length > 0) ? `cfops-${cfops.length}` : 'todos';
     const pastaOutput = outputDir
         ? path.resolve(outputDir)
         : path.join(__dirname, 'data', 'xmls-entrada', ie || 'empresa', cfopSlug, periodoSlug);
 
     const posicaoFila = requestQueue.length + (isProcessing ? 1 : 0);
-    console.log(`[/api/download-xmls] Requisição: IE=${ie} | ${dtIni}→${dtFin}${cfop ? ` | CFOP=${cfop}` : ''} | Posição: ${posicaoFila + 1}`);
+    console.log(`[/api/download-xmls] Requisição: IE=${ie} | ${dtIni}→${dtFin} | Posição: ${posicaoFila + 1}`);
 
     try {
         const result = await enqueue({
@@ -92,7 +93,7 @@ app.post('/api/download-xmls', async (req, res) => {
             pfxSenha,
             dtIni,
             dtFin,
-            cfop: cfop || '',
+            cfops: Array.isArray(cfops) ? cfops : [],
             outputDir: pastaOutput,
         });
 
@@ -121,6 +122,25 @@ app.post('/api/download-xmls', async (req, res) => {
         const { status, sugestao } = match?.[1] || { status: 500, sugestao: 'Erro interno.' };
 
         res.status(status).json({ error: err.message, sugestao });
+    }
+});
+
+// ── Empacotar XMLs em memória ────────────────────────────────────────────────
+app.post('/api/pack-xmls', (req, res) => {
+    const { dir } = req.body;
+    if (!dir || !fs.existsSync(dir)) {
+        return res.status(400).json({ error: 'Diretório não encontrado no servidor.' });
+    }
+    try {
+        const zip = new AdmZip();
+        zip.addLocalFolder(dir);
+        const buffer = zip.toBuffer();
+        res.set('Content-Type', 'application/zip');
+        res.set('Content-Disposition', 'attachment; filename=xmls-sefaz.zip');
+        res.send(buffer);
+    } catch (err) {
+        console.error('[/api/pack-xmls] Erro:', err.message);
+        res.status(500).json({ error: 'Erro ao criar pacote zip: ' + err.message });
     }
 });
 

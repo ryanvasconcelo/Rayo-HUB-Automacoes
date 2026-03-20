@@ -4,17 +4,20 @@ import { useState, useEffect } from 'react';
 // quanto no servidor Windows acessado por PCs na rede
 const SERVER_URL = `http://${window.location.hostname}:3002`;
 
-export function RpaPanel() {
+export function RpaPanel({ onAutoLoad }) {
     const [ie, setIe] = useState('');
     const [senha, setSenha] = useState('');
     const [cnpj, setCnpj] = useState('');
     const [dtIni, setDtIni] = useState('2026-01-01');
     const [dtFin, setDtFin] = useState('2026-01-31');
-    const [cfop, setCfop] = useState('6109');
+    const defaultCfops = ['6101', '6102', '6109', '6110', '6401', '6201', '6202', '6411'];
+    const [selectedCfops, setSelectedCfops] = useState(['6109']); // Seleção default
+    const [newCfop, setNewCfop] = useState('');
     const [status, setStatus] = useState(null);   // { processing, queueLength }
     const [resultado, setResultado] = useState(null);
     const [erro, setErro] = useState(null);
     const [rodando, setRodando] = useState(false);
+    const [packing, setPacking] = useState(false);
     const [serverOnline, setServerOnline] = useState(false);
 
     // Verificar saúde do servidor a cada 5s
@@ -46,6 +49,22 @@ export function RpaPanel() {
         return () => clearInterval(interval);
     }, [rodando]);
 
+    function toggleCfop(cf) {
+        if (selectedCfops.includes(cf)) {
+            setSelectedCfops(selectedCfops.filter(c => c !== cf));
+        } else {
+            setSelectedCfops([...selectedCfops, cf]);
+        }
+    }
+
+    function addNovaCfop() {
+        const val = newCfop.trim();
+        if (val && !selectedCfops.includes(val)) {
+            setSelectedCfops([...selectedCfops, val]);
+            setNewCfop('');
+        }
+    }
+
     async function iniciarDownload() {
         if (!ie || !senha) return;
         setRodando(true);
@@ -56,11 +75,31 @@ export function RpaPanel() {
             const r = await fetch(`${SERVER_URL}/api/download-xmls`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ie, senha, cnpj, dtIni, dtFin, cfop }),
+                body: JSON.stringify({ ie, senha, cnpj, dtIni, dtFin, cfops: selectedCfops }),
             });
             const data = await r.json();
             if (!r.ok) throw new Error(data.error || 'Erro no servidor');
             setResultado(data);
+            
+            if (onAutoLoad && data.outputDir) {
+                setPacking(true);
+                try {
+                    const zipRes = await fetch(`${SERVER_URL}/api/pack-xmls`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ dir: data.outputDir })
+                    });
+                    if (!zipRes.ok) throw new Error('Falha ao empacotar XMLs baixados do servidor RPA.');
+                    const blob = await zipRes.blob();
+                    const file = new File([blob], `SEFAZ_${ie}_${dtIni}_to_${dtFin}.zip`, { type: 'application/zip' });
+                    onAutoLoad([file]);
+                } catch (err) {
+                    setErro("Não foi possível transferir XMLs do servidor RPA automaticamente: " + err.message);
+                } finally {
+                    setPacking(false);
+                }
+            }
+
         } catch (e) {
             setErro(e.message);
         } finally {
@@ -112,17 +151,32 @@ export function RpaPanel() {
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
                     <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>
-                        CFOP <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opcional — filtra diretamente no portal SEFAZ)</span>
+                        Filtros de CFOP <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(Múltipla Seleção)</span>
                     </label>
-                    <input
-                        type="text"
-                        value={cfop}
-                        onChange={e => setCfop(e.target.value)}
-                        placeholder="ex: 6109 ou 6110 — deixe vazio para baixar todos"
-                        style={{ width: '100%', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 12px', color: 'var(--text)', fontSize: 13 }}
-                    />
-                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
-                        CFOPs elegíveis para subvenção: 6101, 6102, 6109, 6110, 6401 · Devoluções: 6201, 6202, 6411
+                    
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '10px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '6px' }}>
+                        {defaultCfops.map(cf => (
+                            <label key={cf} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13, background: 'var(--bg)', padding: '6px 10px', borderRadius: 4, border: '1px solid var(--border)', userSelect: 'none' }}>
+                                <input type="checkbox" checked={selectedCfops.includes(cf)} onChange={() => toggleCfop(cf)} style={{ cursor: 'pointer' }} />
+                                {cf}
+                            </label>
+                        ))}
+                        {selectedCfops.filter(cf => !defaultCfops.includes(cf)).map(cf => (
+                            <label key={cf} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13, background: 'var(--primary-light)', padding: '6px 10px', borderRadius: 4, border: '1px solid var(--primary)', color: 'var(--primary)', userSelect: 'none' }}>
+                                <input type="checkbox" checked={true} onChange={() => toggleCfop(cf)} style={{ cursor: 'pointer' }} />
+                                {cf}
+                            </label>
+                        ))}
+                        
+                        {/* Nova CFOP */}
+                        <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginLeft: 8 }}>
+                            <input type="text" value={newCfop} onChange={e => setNewCfop(e.target.value)} placeholder="Novo (Ex: 5101)" onKeyDown={e => e.key === 'Enter' && addNovaCfop()} maxLength={4} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 4, padding: '5px 8px', fontSize: 12, width: 100, color: 'var(--text)' }} />
+                            <button onClick={addNovaCfop} type="button" style={{ background: 'var(--primary)', color: 'white', border: 'none', borderRadius: 4, width: 26, height: 26, cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: 2 }}>+</button>
+                        </div>
+                    </div>
+                    
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>
+                        O robô buscará os CFOPs assinalados. Para baixar <strong>TODOS</strong> os CFOPs, desmarque todas as opções.
                     </div>
                 </div>
             </div>
@@ -130,12 +184,12 @@ export function RpaPanel() {
             <button
                 className="btn btn-primary"
                 onClick={iniciarDownload}
-                disabled={rodando || !serverOnline || !ie || !senha}
+                disabled={rodando || packing || !serverOnline || !ie || !senha}
             >
-                {rodando ? '⏳ Baixando XMLs do SEFAZ...' : '⬇ Iniciar Download SEFAZ'}
+                {rodando ? '⏳ Baixando XMLs do SEFAZ...' : packing ? '📦 Envelopando pacote de notas...' : '⬇ Iniciar Download SEFAZ'}
             </button>
 
-            {rodando && status && (
+            {rodando && status && !packing && (
                 <div style={{ marginTop: 12, fontSize: 12, color: 'var(--text-muted)' }}>
                     🤖 Robô rodando... {status.queueLength > 0 ? `${status.queueLength} na fila` : 'processando'}
                 </div>

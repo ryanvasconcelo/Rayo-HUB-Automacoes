@@ -1,0 +1,39 @@
+{
+  "_fonte": "Tabela CFOP — Receita Federal (https://www.gov.br/receitafederal/pt-br/acesso-a-informacao/acoes-e-programas/facilitacao/anexo-ecf-cfop)",
+  "_referencia_legal": "Convênio ICMS 142/18 — Regimes de ST",
+  "_revisao": "2026-03",
+  "estaduais_1400": {
+    "descricao": "Entradas de mercadorias sujeitas ao regime de ST — Operação estadual",
+    "codigos": {
+      "1401": "Compra para industrialização em operação com mercadoria sujeita à ST",
+      "1403": "Compra para comercialização em operação com mercadoria sujeita à ST",
+      "1406": "Compra de bem para o ativo imobilizado cuja mercadoria está sujeita à ST",
+      "1407": "Compra de mercadoria para uso ou consumo cuja mercadoria está sujeita à ST",
+      "1408": "Transferência para industrialização em operação com mercadoria sujeita à ST",
+      "1409": "Transferência para comercialização em operação com mercadoria sujeita à ST",
+      "1410": "Devolução de venda de produção do estabelecimento em operação com produto sujeito à ST",
+      "1411": "Devolução de venda de mercadoria adquirida ou recebida de terceiros em operação com mercadoria sujeita à ST",
+      "1414": "Retorno de produção do estabelecimento, remetida para venda fora do estabelecimento em operação com produto sujeito à ST",
+      "1415": "Retorno de mercadoria adquirida ou recebida de terceiros, remetida para venda fora do estabelecimento em operação com mercadoria sujeita à ST"
+    }
+  },
+  "interestaduais_2400": {
+    "descricao": "Entradas de mercadorias sujeitas ao regime de ST — Operação interestadual",
+    "codigos": {
+      "2401": "Compra para industrialização em operação com mercadoria sujeita à ST",
+      "2403": "Compra para comercialização em operação com mercadoria sujeita à ST",
+      "2406": "Compra de bem para o ativo imobilizado cuja mercadoria está sujeita à ST",
+      "2407": "Compra de mercadoria para uso ou consumo cuja mercadoria está sujeita à ST",
+      "2408": "Transferência para industrialização em operação com mercadoria sujeita à ST",
+      "2409": "Transferência para comercialização em operação com mercadoria sujeita à ST",
+      "2410": "Devolução de venda de produção do estabelecimento em operação com produto sujeito à ST",
+      "2411": "Devolução de venda de mercadoria adquirida ou recebida de terceiros em operação com mercadoria sujeita à ST",
+      "2414": "Retorno de produção do estabelecimento, remetida para venda fora do estabelecimento em operação com produto sujeito à ST",
+      "2415": "Retorno de mercadoria adquirida ou recebida de terceiros, remetida para venda fora do estabelecimento em operação com mercadoria sujeita à ST"
+    }
+  },
+  "_todos_codigos_set": [
+    "1401","1403","1406","1407","1408","1409","1410","1411","1414","1415",
+    "2401","2403","2406","2407","2408","2409","2410","2411","2414","2415"
+  ]
+}

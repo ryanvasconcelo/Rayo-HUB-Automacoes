@@ -1,10 +1,17 @@
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 
-export function FileUpload({ spedFilesRef, xmlFilesRef }) {
+export function FileUpload({ spedFilesRef, xmlFilesRef, autoLoadXmls }) {
     const [spedNames, setSpedNames] = useState([]);
     const [xmlNames, setXmlNames] = useState([]);
     const spedInput = useRef(null);
     const xmlInput = useRef(null);
+
+    useEffect(() => {
+        if (autoLoadXmls && autoLoadXmls.length > 0) {
+            xmlFilesRef.current = autoLoadXmls;
+            setXmlNames(autoLoadXmls.map(f => f.name));
+        }
+    }, [autoLoadXmls, xmlFilesRef]);
 
     const onSpedDrop = useCallback((e) => {
         e.preventDefault();

@@ -12,7 +12,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
-const { execSync } = require('child_process');
+const AdmZip = require('adm-zip');
 
 const URL_LOGIN = 'https://online.sefaz.am.gov.br/dte/loginSSL.asp';
 const URL_EMPRESA = (ie) => `https://online.sefaz.am.gov.br/dte/sel_inscricao_pj.asp?inscricao=${ie}`;
@@ -45,7 +45,8 @@ function extrairZips(zipPaths, destino) {
   fs.mkdirSync(destino, { recursive: true });
   for (const zipPath of zipPaths) {
     try {
-      execSync(`unzip -o -q "${zipPath}" -d "${destino}"`, { stdio: 'inherit' });
+      const zip = new AdmZip(zipPath);
+      zip.extractAllTo(destino, true);
     } catch (e) {
       console.warn(`[SEFAZ] ⚠️ Erro ao extrair ${path.basename(zipPath)}: ${e.message}`);
     }
@@ -101,9 +102,10 @@ async function clicarProximaPagina(page) {
   return false;
 }
 
-async function baixarXmlsSefaz({ ie, dtIni, dtFin, cfop, outputDir, pfxPath, pfxSenha }) {
+async function baixarXmlsSefaz({ ie, dtIni, dtFin, cfops, outputDir, pfxPath, pfxSenha }) {
+  const listaCfops = (Array.isArray(cfops) && cfops.length > 0) ? cfops : [''];
   console.log(`\n[SEFAZ] ═══════════════════════════════════════════════════`);
-  console.log(`[SEFAZ] IE=${ie} | ${dtIni} → ${dtFin}${cfop ? ` | CFOP=${cfop}` : ''}`);
+  console.log(`[SEFAZ] IE=${ie} | ${dtIni} → ${dtFin} | CFOPs=${listaCfops.join(',')}`);
   console.log(`[SEFAZ] ═══════════════════════════════════════════════════\n`);
 
   const tempDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'sefaz-'));
@@ -168,55 +170,60 @@ async function baixarXmlsSefaz({ ie, dtIni, dtFin, cfop, outputDir, pfxPath, pfx
     for (const { ini, fin } of periodos) {
       console.log(`[SEFAZ] 4/5 Período: ${ini} → ${fin}`);
 
-      await page.locator('input[type="radio"][value="55"]').check();
-      await page.locator('#origem_nfe').selectOption('RECEBIDAS');
-      await page.locator('select[name="situacaoNFe"]').selectOption('AUTORIZADAS');
+      for (const cfopCurrent of listaCfops) {
+        if (cfopCurrent) console.log(`[SEFAZ] -> Aplicando filtro CFOP: ${cfopCurrent}`);
 
-      const cfopInput = page.locator('input[name="CFOP"], input[id="CFOP"]');
-      if (cfop && await cfopInput.count() > 0) {
-        await cfopInput.first().fill(String(cfop));
-        console.log(`[SEFAZ] Filtro CFOP=${cfop} aplicado`);
-      }
+        await page.locator('input[type="radio"][value="55"]').check();
+        await page.locator('#origem_nfe').selectOption('RECEBIDAS');
+        await page.locator('select[name="situacaoNFe"]').selectOption('AUTORIZADAS');
 
-      await page.locator('#datepicker_de').fill(formatarData(ini));
-      await page.locator('#datepicker_ate').fill(formatarData(fin));
+        const cfopInput = page.locator('input[name="CFOP"], input[id="CFOP"]');
+        if (cfopCurrent && await cfopInput.count() > 0) {
+          await cfopInput.first().fill(String(cfopCurrent));
+        } else if (await cfopInput.count() > 0) {
+          await cfopInput.first().fill('');
+        }
 
-      await page.locator('input[type="submit"]').click();
+        await page.locator('#datepicker_de').fill(formatarData(ini));
+        await page.locator('#datepicker_ate').fill(formatarData(fin));
 
-      let pagina = 1;
-      while (true) {
-        console.log(`[SEFAZ] Página ${pagina}...`);
+        await page.locator('input[type="submit"]').click();
 
-        let zip = null;
-        for (let tentativa = 1; tentativa <= 2; tentativa++) {
-          try {
-            zip = await processarPagina(page, tempDir);
-            break;
-          } catch (errPagina) {
-            if (tentativa === 2) throw errPagina;
-            console.warn(`[SEFAZ] ⚠️ Página ${pagina} falhou (tentativa ${tentativa}), aguardando 3s...`);
-            await page.waitForTimeout(3000);
+        let pagina = 1;
+        while (true) {
+          console.log(`[SEFAZ] Página ${pagina}...`);
+
+          let zip = null;
+          for (let tentativa = 1; tentativa <= 2; tentativa++) {
+            try {
+              zip = await processarPagina(page, tempDir);
+              break;
+            } catch (errPagina) {
+              if (tentativa === 2) throw errPagina;
+              console.warn(`[SEFAZ] ⚠️ Página ${pagina} falhou (tentativa ${tentativa}), aguardando 3s...`);
+              await page.waitForTimeout(3000);
+            }
           }
+
+          if (zip) {
+            console.log(`[SEFAZ] ✅ ZIP salvo: ${path.basename(zip)}`);
+            zipsColetados.push(zip);
+          }
+
+          const temProxima = await clicarProximaPagina(page);
+          if (!temProxima) break;
+          pagina++;
         }
 
-        if (zip) {
-          console.log(`[SEFAZ] ✅ ZIP salvo: ${path.basename(zip)}`);
-          zipsColetados.push(zip);
+        try {
+          await page.locator('input[value="    Voltar    "]').first().click();
+          await page.locator('#datepicker_de').waitFor({ timeout: 15000 });
+        } catch {
+          await page.locator('.menuDte_conteudoCategoria2').click().catch(()=>{});
+          await page.locator('.menuDte_menu2 div[idlink="42"]').click().catch(()=>{});
+          await page.locator('#datepicker_de').waitFor({ timeout: 15000 }).catch(()=>{});
         }
-
-        const temProxima = await clicarProximaPagina(page);
-        if (!temProxima) break;
-        pagina++;
-      }
-
-      try {
-        await page.locator('input[value="    Voltar    "]').first().click();
-        await page.locator('#datepicker_de').waitFor({ timeout: 15000 });
-      } catch {
-        await page.locator('.menuDte_conteudoCategoria2').click().catch(()=>{});
-        await page.locator('.menuDte_menu2 div[idlink="42"]').click().catch(()=>{});
-        await page.locator('#datepicker_de').waitFor({ timeout: 15000 }).catch(()=>{});
-      }
+      } // for cfopCurrent
     }
 
     console.log(`\n[SEFAZ] 5/5 Extraindo XMLs de ${zipsColetados.length} ZIPs...`);
