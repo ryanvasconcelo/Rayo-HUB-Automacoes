@@ -88,6 +88,21 @@ export function reconciliar(spedDocs, xmlDocs) {
                 });
             }
 
+            // Verificar Origem divergente
+            // SPED Origem é o 1º dígito do CST
+            const origSped = (si?.cstIcms || '').charAt(0);
+            const origXml = (xi?.orig || '');
+            const temDivergenciaOrig = si && xi && origSped !== origXml;
+            if (temDivergenciaOrig) {
+                divergencias.push({
+                    numItem: si?.numItem || String(i + 1),
+                    campo: 'ORIGEM',
+                    vlSped: origSped,
+                    vlXml: origXml,
+                    diff: null,
+                });
+            }
+
             itensReconciliados.push({
                 numItem: si?.numItem || xi?.nItem || String(i + 1),
                 // Dados SPED
@@ -102,7 +117,7 @@ export function reconciliar(spedDocs, xmlDocs) {
                         vICMSDeson: xi.vICMSDeson,
                     }
                     : null,
-                divergente: temDivergencia || temDivergenciaCST,
+                divergente: temDivergencia || temDivergenciaCST || temDivergenciaOrig,
             });
         }
 

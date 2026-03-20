@@ -77,7 +77,7 @@ function badgeCell(value, ok) {
 const DETAIL_HEADERS = [
     'Chave NF-e', 'Nº Nota', 'Dt. Emissão', 'Dt. Entrada',
     'UF Origem', 'Nº Item', 'Código Item',
-    'CFOP SPED', 'CFOP XML', 'CST SPED', 'Orig XML',
+    'CFOP SPED', 'CFOP XML', 'CST SPED', 'CST XML', 'Orig SPED', 'Orig XML',
     'vProd XML', 'vFrete XML', 'vSeg XML', 'vDesc XML', 'vICMSDeson XML',
     'Base Calculada', 'Alíquota', 'SUV', 'SUV Acum. Nota',
     'Status Confronto', 'Elegível', 'Motivo Inelegível',
@@ -104,8 +104,10 @@ function buildDetailRows(docs) {
                 strCell(item.xml?.cProd || item.sped?.codItem || ''),
                 strCell(item.sped?.cfop || '', { align: 'center' }),
                 strCell(item.xml?.cfop || '', { align: 'center' }),
-                strCell(item.sped?.cstIcms || '', { align: 'center' }),
-                strCell(item.xml?.orig ?? '', { align: 'center' }),
+                badgeCell(item.sped?.cstIcms || '', !(item.sped?.cstIcms && item.xml?.cst && item.sped.cstIcms.slice(-2) !== item.xml.cst)),
+                badgeCell(item.xml?.cst || '', !(item.sped?.cstIcms && item.xml?.cst && item.sped.cstIcms.slice(-2) !== item.xml.cst)),
+                badgeCell(item.sped?.cstIcms ? item.sped.cstIcms.charAt(0) : '', !(item.sped?.cstIcms && item.xml?.orig && item.sped.cstIcms.charAt(0) !== String(item.xml.orig))),
+                badgeCell(item.xml?.orig ?? '', !(item.sped?.cstIcms && item.xml?.orig && item.sped.cstIcms.charAt(0) !== String(item.xml.orig))),
                 numCell(item.xml?.vProd),
                 numCell(item.xml?.vFrete),
                 numCell(item.xml?.vSeg),
@@ -175,6 +177,18 @@ function buildSummaryRows(docs, totalSuv, totalBase, creditoFiscal) {
         strCell('ECONOMIA TRIBUTÁRIA (34% IRPJ/CSLL)', { font: { bold: true }, align: 'right' }),
         ...Array(7).fill(strCell('')),
         numCell(creditoFiscal, true),
+    ]);
+
+    // Legenda de Auditoria
+    rows.push(Array(SUMMARY_HEADERS.length).fill(strCell('')));
+    rows.push([
+        strCell('LEGENDA DA AUDITORIA DE CST (Aba Detalhamento):', { font: { bold: true } }),
+    ]);
+    rows.push([
+        strCell('Fundo Verde: A origem/CST declarada no SPED bate com o XML da Sefaz.', { font: { color: { rgb: '1F7A3C' } } })
+    ]);
+    rows.push([
+        strCell('Fundo Vermelho: O cliente escriturou a origem/CST incorretamente no SPED. O robô ignorou o SPED e utilizou a verdade do XML para o cálculo.', { font: { color: { rgb: '9B1C1C' } } })
     ]);
 
     return rows;

@@ -86,8 +86,15 @@ export function getAliquota(chaveNfe) {
  * @param {string} cstSped  - CST ICMS do SPED (3 dígitos, ex: '060', '390', '000')
  * @returns {number} alíquota decimal
  */
-export function getAliquotaItem(chaveNfe, cstSped) {
-    const origemDigito = String(cstSped || '').charAt(0);
+export function getAliquotaItem(chaveNfe, cstSped, origXml, cstXml) {
+    // Tenta usar a origem do XML se disponível, fallback para 1º dígito do CST do SPED
+    let origemDigito;
+    if (origXml !== undefined && origXml !== null) {
+        origemDigito = String(origXml);
+    } else {
+        origemDigito = String(cstSped || '').charAt(0);
+    }
+    
     if (ORIGENS_ALIQUOTA_4PCT.has(origemDigito)) return 0.04;
     return getAliquota(chaveNfe);
 }
@@ -134,8 +141,8 @@ export function calcularTotalSuv(docs) {
         const itensCalculados = doc.itensReconciliados.map((item) => {
             if (!item.elegivel || !item.xml) return { ...item, base: 0, suv: 0, aliquota: 0 };
 
-            // Dupla validação: UF base + sobrescrição por origem do produto (CST SPED)
-            const aliquotaItem = getAliquotaItem(doc.chaveNfe, item.sped?.cstIcms);
+            // Dupla validação: UF base + sobrescrição por origem do produto (prioridade para XML)
+            const aliquotaItem = getAliquotaItem(doc.chaveNfe, item.sped?.cstIcms, item.xml?.orig, item.xml?.cst);
             const base = calcBase(item.xml);
             const suv = calcSuv(base, aliquotaItem);
             totalBase += base;
