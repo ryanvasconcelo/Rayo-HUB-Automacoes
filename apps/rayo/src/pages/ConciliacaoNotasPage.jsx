@@ -10,7 +10,7 @@ import {
     IconSearch, IconSun, IconMoon, IconDownload
 } from '../components/Icons';
 import { Link } from 'react-router-dom';
-
+import AppLayout from '../components/layout/AppLayout';
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function fmt(v) {
@@ -202,13 +202,13 @@ function ResultPanel({ resultado, resultadosFiltrados, filtroStatus, setFiltroSt
                 <TotalCard label="Total Relatório" value={fmt(resultado.totalRelatorio)} />
                 <TotalCard label="Total Créditos Razão" value={fmt(resultado.totalCreditoRazao)} />
                 <TotalCard label="Diferença Geral" value={absFmt(resultado.diferencaGeral)} highlight={diferencaColor} />
-                <TotalCard label="🔴 Inconsistências" value={resultado.contadores.inconsistencias} highlight={resultado.contadores.inconsistencias > 0 ? '#ef4444' : undefined} small />
-                <TotalCard label="📋 Notas" value={resultado.resultados.length} small />
+                <TotalCard label="Inconsistências" value={resultado.contadores.inconsistencias} highlight={resultado.contadores.inconsistencias > 0 ? '#ef4444' : undefined} small />
+                <TotalCard label="Notas" value={resultado.resultados.length} small />
             </div>
             <div style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                {resultado.contaNome && <span>📋 Conta: <strong style={{ color: 'var(--text-secondary)' }}>{resultado.contaNome}</strong></span>}
-                <span>📁 Razão: <strong style={{ color: 'var(--text-secondary)' }}>{resultado.nomeRazao}</strong></span>
-                <span>📁 Relatório: <strong style={{ color: 'var(--text-secondary)' }}>{resultado.nomeTitulos || resultado.nomeRelatorio}</strong></span>
+                {resultado.contaNome && <span>Conta: <strong style={{ color: 'var(--text-secondary)' }}>{resultado.contaNome}</strong></span>}
+                <span>Razão: <strong style={{ color: 'var(--text-secondary)' }}>{resultado.nomeRazao}</strong></span>
+                <span>Relatório: <strong style={{ color: 'var(--text-secondary)' }}>{resultado.nomeTitulos || resultado.nomeRelatorio}</strong></span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                 <FilterBar filtroStatus={filtroStatus} setFiltroStatus={setFiltroStatus} contadores={resultado.contadores} />
@@ -326,8 +326,8 @@ function UploadPanel({ config, hook }) {
 // ── Tabs config ──────────────────────────────────────────────────────────────
 
 const TABS = [
-    { id: 'clientes',      label: '👥 Clientes a Receber',  color: '#0ea5e9' },
-    { id: 'fornecedores',  label: '🏭 Fornecedores a Pagar', color: '#f97316' },
+    { id: 'clientes',      label: 'Clientes a Receber',  color: '#0ea5e9' },
+    { id: 'fornecedores',  label: 'Fornecedores a Pagar', color: '#f97316' },
 ];
 
 // ── Página Principal ─────────────────────────────────────────────────────────
@@ -383,27 +383,19 @@ export default function ConciliacaoNotasPage() {
     const accentTab = activeTab === 'clientes' ? '#0ea5e9' : '#f97316';
 
     return (
-        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)' }}>
-
-            {/* Header */}
-            <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 32px', background: 'var(--glass-bg)', backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--glass-border)', zIndex: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <Link to="/" style={{ color: 'var(--text-tertiary)', textDecoration: 'none', fontSize: '0.82rem' }}>← Rayo Hub</Link>
-                    <span style={{ color: 'var(--border)' }}>|</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ width: 28, height: 28, borderRadius: 8, background: `linear-gradient(135deg, ${accentTab}, ${accentTab}99)`, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.3s' }}>
-                            <IconSearch size={14} style={{ color: 'white' }} />
-                        </div>
-                        <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)' }}>Conciliação de Notas</span>
-                        <span style={{ fontSize: '0.72rem', padding: '2px 8px', border: '1px solid var(--border)', borderRadius: 999, color: 'var(--text-tertiary)' }}>MVP</span>
+        <AppLayout breadcrumbs={[{ label: 'Conciliação de Notas' }]}>
+            
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6 bg-card/50 p-4 rounded-xl border border-border">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors" style={{ background: `linear-gradient(135deg, ${accentTab}, ${accentTab}99)` }}>
+                        <IconSearch size={16} className="text-white" />
                     </div>
+                    <h2 className="text-xl font-display font-bold">Conciliação de Notas</h2>
+                    <span className="text-xs px-2 py-1 border border-border rounded-full text-muted-foreground">MVP</span>
                 </div>
-                <button onClick={toggle} style={{ padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                    {theme === 'dark' ? <IconSun size={14} /> : <IconMoon size={14} />}
-                </button>
-            </header>
+            </div>
 
-            <main style={{ flex: 1, padding: '24px 32px', maxWidth: 1300, margin: '0 auto', width: '100%' }}>
+            <div className="flex-1 w-full max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-500">
 
                 {/* Tabs */}
                 <div style={{ display: 'flex', gap: '4px', marginBottom: '28px', borderBottom: '1px solid var(--border)', paddingBottom: '0' }}>
@@ -425,12 +417,11 @@ export default function ConciliacaoNotasPage() {
                 {activeTab === 'fornecedores' && (
                     <UploadPanel config={CONFIGS.fornecedores} hook={fornUIHook} />
                 )}
-            </main>
+            </div>
 
             <style>{`
-                @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                tr:hover td { background: rgba(99,102,241,0.04); }
             `}</style>
-        </div>
+        </AppLayout>
     );
 }

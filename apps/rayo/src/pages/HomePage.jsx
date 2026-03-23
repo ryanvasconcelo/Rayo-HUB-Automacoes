@@ -1,342 +1,122 @@
 import { Link } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
-import { IconSun, IconMoon, IconBolt, IconSearch } from '../components/Icons';
+import { Moon, Sun, Zap, Search, LayoutDashboard, FileSpreadsheet, FileBox } from 'lucide-react';
 
 export default function HomePage() {
     const { theme, toggle } = useTheme();
 
     return (
-        <div className="app-layout" style={{
-            minHeight: '100vh',
-            display: 'flex',
-            flexDirection: 'column',
-            background: 'var(--bg-primary)',
-            backgroundImage: 'radial-gradient(circle at 50% 10%, rgba(100, 100, 255, 0.05) 0%, transparent 50%)'
-        }}>
-            <header className="header" style={{
-                justifyContent: 'space-between',
-                padding: '16px 32px',
-                background: 'var(--glass-bg)',
-                backdropFilter: 'blur(10px)',
-                borderBottom: '1px solid var(--glass-border)',
-                zIndex: 10
-            }}>
-                <div className="header-brand">
-                    <div className="header-logo" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <img src="/logo.png" alt="Rayo Logo" style={{ height: '32px', width: 'auto', filter: theme === 'dark' ? 'none' : 'invert(0.1)' }} />
-                        <span style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.02em', background: 'linear-gradient(90deg, var(--text-primary), var(--text-secondary))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Rayo Hub</span>
-                    </div>
+        <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
+            <header className="sticky top-0 z-50 flex items-center justify-between px-8 py-4 bg-background/80 backdrop-blur-md border-b border-border">
+                <div className="flex items-center gap-3">
+                    <img src="/logo.png" alt="Rayo" className={`h-8 ${theme === 'dark' ? '' : 'invert-[0.1]'}`} />
+                    <span className="text-xl font-display font-extrabold tracking-tight">Rayo Hub</span>
                 </div>
-                <div className="theme-toggle">
-                    <button className={`theme-btn ${theme === 'light' ? 'active' : ''}`} onClick={toggle} style={{ borderRadius: 'var(--radius-md)', padding: '8px' }}>
-                        <IconSun size={16} />
-                    </button>
-                    <button className={`theme-btn ${theme === 'dark' ? 'active' : ''}`} onClick={toggle} style={{ borderRadius: 'var(--radius-md)', padding: '8px' }}>
-                        <IconMoon size={16} />
-                    </button>
-                </div>
+                <button onClick={toggle} className="p-2 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+                    {theme === 'light' ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
             </header>
 
-            <main style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-                padding: '60px 20px',
-                maxWidth: '1100px',
-                margin: '0 auto',
-                textAlign: 'center',
-                animation: 'fadeIn 0.8s ease-out'
-            }}>
-                <div style={{ marginBottom: '50px' }}>
-                    <h1 style={{
-                        fontSize: '3rem',
-                        fontWeight: 900,
-                        marginBottom: '16px',
-                        letterSpacing: '-0.04em',
-                        lineHeight: 1.1,
-                        color: 'var(--text-primary)'
-                    }}>
-                        Bem-vindo ao <span style={{ color: 'var(--accent)' }}>Rayo Hub</span>
+            <main className="flex-1 w-full max-w-6xl mx-auto p-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <div className="mb-12 text-center mt-10">
+                    <h1 className="text-5xl font-display font-bold tracking-tight mb-4 text-foreground">
+                        Sistema <span className="text-primary">Rayo</span>
                     </h1>
-                    <p style={{
-                        color: 'var(--text-secondary)',
-                        fontSize: '1.25rem',
-                        maxWidth: '600px',
-                        margin: '0 auto',
-                        lineHeight: 1.6,
-                        fontWeight: 500
-                    }}>
-                        Central de inteligência e automação fiscal. Selecione o módulo para iniciar sua auditoria.
+                    <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+                        Portal central de auditoria e automação contábil/fiscal.
                     </p>
                 </div>
 
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
-                    gap: '24px',
-                    width: '100%',
-                    perspective: '1000px'
-                }}>
-
-                    <Link to="/pis-cofins" style={{ textDecoration: 'none' }}>
-                        <div className="glass-card" style={{
-                            padding: '40px 32px',
-                            height: '100%',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            gap: '20px',
-                            transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                            position: 'relative',
-                            overflow: 'hidden'
-                        }}
-                            onMouseEnter={e => {
-                                e.currentTarget.style.transform = 'translateY(-10px) scale(1.02)';
-                                e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.2), 0 0 20px rgba(139, 92, 246, 0.1)';
-                            }}
-                            onMouseLeave={e => {
-                                e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                                e.currentTarget.style.boxShadow = 'var(--glass-shadow)';
-                            }}
-                        >
-                            <div style={{
-                                padding: '18px',
-                                background: 'linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary))',
-                                borderRadius: '20px',
-                                color: 'var(--accent)',
-                                boxShadow: 'var(--shadow-md)',
-                                border: '1px solid var(--border)'
-                            }}>
-                                <IconBolt size={40} />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-min">
+                    
+                    {/* Fiscal Group */}
+                    <Link to="/icms" className="group rounded-xl border border-border bg-card hover:border-primary/50 transition-all p-6 shadow-sm hover:shadow-md col-span-1 md:col-span-2 relative overflow-hidden flex flex-col justify-between">
+                         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-700"></div>
+                         <div>
+                            <div className="w-12 h-12 bg-primary/10 text-primary rounded-lg flex items-center justify-center mb-4 transition-transform group-hover:scale-110">
+                                <Search size={24} />
                             </div>
-                            <div>
-                                <h2 style={{ color: 'var(--text-primary)', marginBottom: '12px', fontSize: '1.5rem', fontWeight: 800 }}>Auditor PIS/COFINS</h2>
-                                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.5, fontSize: '0.95rem' }}>
-                                    Recuperação estratégica de crédito. Revisão inteligente de NCM e SPED Contribuições com motor de automação.
-                                </p>
-                            </div>
-                            <div style={{ marginTop: 'auto', color: 'var(--accent)', fontWeight: 600, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                Acessar Módulo <IconBolt size={14} />
-                            </div>
-                        </div>
+                            <h2 className="text-2xl font-bold font-display mb-2 text-foreground">Auditor ICMS</h2>
+                            <p className="text-muted-foreground mb-6">Cruzamento avançado de dados com regras e-Auditoria e Livrão Alterdata.</p>
+                         </div>
+                         <div className="font-semibold text-primary flex items-center gap-2 mt-auto text-sm uppercase tracking-wide">
+                            Acessar Módulo <Search size={14} className="group-hover:translate-x-1 transition-transform" />
+                         </div>
                     </Link>
 
-                    <Link to="/icms" style={{ textDecoration: 'none' }}>
-                        <div className="glass-card" style={{
-                            padding: '40px 32px',
-                            height: '100%',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            gap: '20px',
-                            transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                            border: '1px solid var(--accent-light)',
-                            background: theme === 'dark' ? 'rgba(57, 102, 255, 0.05)' : 'rgba(57, 102, 255, 0.02)',
-                            position: 'relative',
-                            overflow: 'hidden'
-                        }}
-                            onMouseEnter={e => {
-                                e.currentTarget.style.transform = 'translateY(-10px) scale(1.02)';
-                                e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.2), 0 0 30px rgba(57, 102, 255, 0.2)';
-                            }}
-                            onMouseLeave={e => {
-                                e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                                e.currentTarget.style.boxShadow = 'var(--glass-shadow)';
-                            }}
-                        >
-                            <div style={{
-                                padding: '18px',
-                                background: 'var(--accent)',
-                                borderRadius: '20px',
-                                color: 'black',
-                                boxShadow: '0 8px 16px rgba(57, 102, 255, 0.3)'
-                            }}>
-                                <IconSearch size={40} />
-                            </div>
-                            <div>
-                                <h2 style={{ color: 'var(--text-primary)', marginBottom: '12px', fontSize: '1.5rem', fontWeight: 800 }}>Auditor ICMS</h2>
-                                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.5, fontSize: '0.95rem' }}>
-                                    Cruzamento avançado de dados. Sincronização em tempo real com regras e-Auditoria e Livrão Alterdata.
-                                </p>
-                            </div>
-                            <div style={{ marginTop: 'auto', color: 'var(--accent)', fontWeight: 600, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                Acessar Módulo <IconSearch size={14} />
-                            </div>
-                        </div>
+                    <Link to="/pis-cofins" className="group rounded-xl border border-border bg-card hover:border-accent/50 transition-all p-6 shadow-sm hover:shadow-md relative overflow-hidden flex flex-col justify-between">
+                         <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-700"></div>
+                         <div>
+                             <div className="w-12 h-12 bg-accent/10 text-accent rounded-lg flex items-center justify-center mb-4 transition-transform group-hover:scale-110">
+                                <Zap size={24} />
+                             </div>
+                             <h2 className="text-xl font-bold font-display mb-2 text-foreground">PIS/COFINS</h2>
+                             <p className="text-muted-foreground mb-6 text-sm">Revisão inteligente de NCM e automação SPED.</p>
+                         </div>
+                         <div className="font-semibold text-accent flex items-center gap-2 mt-auto text-sm uppercase tracking-wide">
+                            Acessar Módulo <Zap size={14} className="group-hover:translate-x-1 transition-transform" />
+                         </div>
                     </Link>
 
-                    <Link to="/contas-razao" style={{ textDecoration: 'none' }}>
-                        <div className="glass-card" style={{
-                            padding: '40px 32px',
-                            height: '100%',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            gap: '20px',
-                            transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                            border: '1px solid rgba(99, 102, 241, 0.3)',
-                            background: theme === 'dark' ? 'rgba(99, 102, 241, 0.05)' : 'rgba(99, 102, 241, 0.02)',
-                            position: 'relative',
-                            overflow: 'hidden'
-                        }}
-                            onMouseEnter={e => {
-                                e.currentTarget.style.transform = 'translateY(-10px) scale(1.02)';
-                                e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.2), 0 0 30px rgba(99, 102, 241, 0.25)';
-                            }}
-                            onMouseLeave={e => {
-                                e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                                e.currentTarget.style.boxShadow = 'var(--glass-shadow)';
-                            }}
-                        >
-                            <div style={{
-                                padding: '18px',
-                                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                                borderRadius: '20px',
-                                color: 'white',
-                                boxShadow: '0 8px 16px rgba(99, 102, 241, 0.35)'
-                            }}>
-                                <IconSearch size={40} />
-                            </div>
-                            <div>
-                                <h2 style={{ color: 'var(--text-primary)', marginBottom: '12px', fontSize: '1.5rem', fontWeight: 800 }}>
-                                    Auditor Contas e Razão
-                                    <span style={{ marginLeft: '8px', fontSize: '0.65rem', padding: '2px 8px', border: '1px solid rgba(99,102,241,0.4)', borderRadius: 999, color: '#6366f1', fontWeight: 700, verticalAlign: 'middle' }}>NOVO</span>
-                                </h2>
-                                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.5, fontSize: '0.95rem' }}>
-                                    Conciliação automática entre Razão Contábil (NBS) e Relatório Financeiro (Sifin). Aponta inconsistências em segundos.
-                                </p>
-                            </div>
-                            <div style={{ marginTop: 'auto', color: '#6366f1', fontWeight: 600, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                Acessar Módulo <IconSearch size={14} />
-                            </div>
-                        </div>
+                    <Link to="/subvencoes" className="group rounded-xl border border-border bg-card hover:border-green-500/50 transition-all p-6 shadow-sm hover:shadow-md col-span-1 md:col-span-2 relative overflow-hidden flex flex-col justify-between">
+                         <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-700"></div>
+                         <div>
+                             <div className="w-12 h-12 bg-green-500/10 text-green-500 rounded-lg flex items-center justify-center mb-4 transition-transform group-hover:scale-110">
+                                <FileSpreadsheet size={24} />
+                             </div>
+                             <h2 className="text-2xl font-bold font-display mb-2 text-foreground">Subvenções ZFM </h2>
+                             <p className="text-muted-foreground mb-6">Apuração automática de ICMS Desonerado (Convênio 65/88). Cruzamento SPED × XML.</p>
+                         </div>
+                         <div className="font-semibold text-green-500 flex items-center gap-2 mt-auto text-sm uppercase tracking-wide">
+                            Acessar Módulo <Search size={14} className="group-hover:translate-x-1 transition-transform" />
+                         </div>
                     </Link>
 
-                    <Link to="/stock" style={{ textDecoration: 'none' }}>
-                        <div className="glass-card" style={{
-                            padding: '40px 32px', height: '100%', display: 'flex', flexDirection: 'column',
-                            alignItems: 'center', gap: '20px',
-                            transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                            border: '1px solid rgba(249, 115, 22, 0.3)',
-                            background: theme === 'dark' ? 'rgba(249, 115, 22, 0.05)' : 'rgba(249, 115, 22, 0.02)',
-                            position: 'relative', overflow: 'hidden'
-                        }}
-                            onMouseEnter={e => {
-                                e.currentTarget.style.transform = 'translateY(-10px) scale(1.02)';
-                                e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.2), 0 0 30px rgba(249, 115, 22, 0.25)';
-                            }}
-                            onMouseLeave={e => {
-                                e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                                e.currentTarget.style.boxShadow = 'var(--glass-shadow)';
-                            }}
-                        >
-                            <div style={{
-                                padding: '18px', background: 'linear-gradient(135deg, #f97316, #fb923c)',
-                                borderRadius: '20px', color: 'white', boxShadow: '0 8px 16px rgba(249, 115, 22, 0.35)'
-                            }}>
-                                <IconSearch size={40} />
-                            </div>
-                            <div>
-                                <h2 style={{ color: 'var(--text-primary)', marginBottom: '12px', fontSize: '1.5rem', fontWeight: 800 }}>
-                                    Auditor de Estoque
-                                    <span style={{ marginLeft: '8px', fontSize: '0.65rem', padding: '2px 8px', border: '1px solid rgba(249,115,22,0.4)', borderRadius: 999, color: '#f97316', fontWeight: 700, verticalAlign: 'middle' }}>NOVO</span>
-                                </h2>
-                                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.5, fontSize: '0.95rem' }}>
-                                    Comparativo Estoque × Razão Contábil. Identifica exatamente qual chassi está causando divergências de valor mês a mês.
-                                </p>
-                            </div>
-                            <div style={{ marginTop: 'auto', color: '#f97316', fontWeight: 600, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                Acessar Módulo <IconSearch size={14} />
-                            </div>
-                        </div>
+                    {/* Contábil Group */}
+                    <Link to="/contas-razao" className="group rounded-xl border border-border bg-card hover:border-indigo-500/50 transition-all p-6 shadow-sm hover:shadow-md relative overflow-hidden flex flex-col justify-between">
+                         <div>
+                             <div className="w-12 h-12 bg-indigo-500/10 text-indigo-500 rounded-lg flex items-center justify-center mb-4 transition-transform group-hover:scale-110">
+                                <LayoutDashboard size={24} />
+                             </div>
+                             <h2 className="text-xl font-bold font-display mb-2 text-foreground">Contas e Razão</h2>
+                             <p className="text-muted-foreground mb-6 text-sm">Conciliação automática entre Razão Contábil (NBS) e Sifin.</p>
+                         </div>
+                         <div className="font-semibold text-indigo-500 flex items-center gap-2 mt-auto text-sm uppercase tracking-wide">
+                            Acessar Módulo <Search size={14} className="group-hover:translate-x-1 transition-transform" />
+                         </div>
                     </Link>
 
-                    {/* ── Subvenções ZFM ── módulo independente, sem dependência do rayo-server ── */}
-                    <Link to="/subvencoes" style={{ textDecoration: 'none' }}>
-                        <div className="glass-card" style={{
-                            padding: '40px 32px', height: '100%', display: 'flex', flexDirection: 'column',
-                            alignItems: 'center', gap: '20px',
-                            transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                            border: '1px solid rgba(34, 197, 94, 0.3)',
-                            background: theme === 'dark' ? 'rgba(34, 197, 94, 0.05)' : 'rgba(34, 197, 94, 0.02)',
-                            position: 'relative', overflow: 'hidden'
-                        }}
-                            onMouseEnter={e => {
-                                e.currentTarget.style.transform = 'translateY(-10px) scale(1.02)';
-                                e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.2), 0 0 30px rgba(34, 197, 94, 0.25)';
-                            }}
-                            onMouseLeave={e => {
-                                e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                                e.currentTarget.style.boxShadow = 'var(--glass-shadow)';
-                            }}
-                        >
-                            <div style={{
-                                padding: '18px', background: 'linear-gradient(135deg, #16a34a, #22c55e)',
-                                borderRadius: '20px', color: 'white', boxShadow: '0 8px 16px rgba(34, 197, 94, 0.35)'
-                            }}>
-                                <IconSearch size={40} />
-                            </div>
-                            <div>
-                                <h2 style={{ color: 'var(--text-primary)', marginBottom: '12px', fontSize: '1.5rem', fontWeight: 800 }}>
-                                    Subvenções ZFM
-                                    <span style={{ marginLeft: '8px', fontSize: '0.65rem', padding: '2px 8px', border: '1px solid rgba(34,197,94,0.4)', borderRadius: 999, color: '#22c55e', fontWeight: 700, verticalAlign: 'middle' }}>NOVO</span>
-                                </h2>
-                                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.5, fontSize: '0.95rem' }}>
-                                    Apuração automática de ICMS Desonerado (Convênio 65/88). Cruzamento SPED × XML, elegibilidade e laudo PDF/Excel com trilha de auditoria.
-                                </p>
-                            </div>
-                            <div style={{ marginTop: 'auto', color: '#22c55e', fontWeight: 600, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                Acessar Módulo <IconSearch size={14} />
-                            </div>
-                        </div>
+                    <Link to="/stock" className="group rounded-xl border border-border bg-card hover:border-orange-500/50 transition-all p-6 shadow-sm hover:shadow-md relative overflow-hidden flex flex-col justify-between">
+                         <div>
+                             <div className="w-12 h-12 bg-orange-500/10 text-orange-500 rounded-lg flex items-center justify-center mb-4 transition-transform group-hover:scale-110">
+                                <FileBox size={24} />
+                             </div>
+                             <h2 className="text-xl font-bold font-display mb-2 text-foreground">Estoque</h2>
+                             <p className="text-muted-foreground mb-6 text-sm">Comparativo Estoque × Razão por chassi.</p>
+                         </div>
+                         <div className="font-semibold text-orange-500 flex items-center gap-2 mt-auto text-sm uppercase tracking-wide">
+                            Acessar Módulo <Search size={14} className="group-hover:translate-x-1 transition-transform" />
+                         </div>
                     </Link>
 
-                    <Link to="/conciliacao-notas" style={{ textDecoration: 'none' }}>
-                        <div className="glass-card" style={{
-                            padding: '40px 32px', height: '100%', display: 'flex', flexDirection: 'column',
-                            alignItems: 'center', gap: '20px',
-                            transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                            border: '1px solid rgba(14, 165, 233, 0.3)',
-                            background: theme === 'dark' ? 'rgba(14, 165, 233, 0.05)' : 'rgba(14, 165, 233, 0.02)',
-                            position: 'relative', overflow: 'hidden'
-                        }}
-                            onMouseEnter={e => {
-                                e.currentTarget.style.transform = 'translateY(-10px) scale(1.02)';
-                                e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.2), 0 0 30px rgba(14, 165, 233, 0.25)';
-                            }}
-                            onMouseLeave={e => {
-                                e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                                e.currentTarget.style.boxShadow = 'var(--glass-shadow)';
-                            }}
-                        >
-                            <div style={{
-                                padding: '18px', background: 'linear-gradient(135deg, #0ea5e9, #38bdf8)',
-                                borderRadius: '20px', color: 'white', boxShadow: '0 8px 16px rgba(14, 165, 233, 0.35)'
-                            }}>
-                                <IconSearch size={40} />
-                            </div>
-                            <div>
-                                <h2 style={{ color: 'var(--text-primary)', marginBottom: '12px', fontSize: '1.5rem', fontWeight: 800 }}>
-                                    Conciliação de Notas
-                                    <span style={{ marginLeft: '8px', fontSize: '0.65rem', padding: '2px 8px', border: '1px solid rgba(14,165,233,0.4)', borderRadius: 999, color: '#0ea5e9', fontWeight: 700, verticalAlign: 'middle' }}>NOVO</span>
-                                </h2>
-                                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.5, fontSize: '0.95rem' }}>
-                                    Cruzamento Razão NBS × Relatório Sankhya pelo Número da Nota. Identifica inconsistências e parcelas divergentes em segundos.
-                                </p>
-                            </div>
-                            <div style={{ marginTop: 'auto', color: '#0ea5e9', fontWeight: 600, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                Acessar Módulo <IconSearch size={14} />
-                            </div>
-                        </div>
+                    <Link to="/conciliacao-notas" className="group rounded-xl border border-border bg-card hover:border-blue-500/50 transition-all p-6 shadow-sm hover:shadow-md relative overflow-hidden flex flex-col justify-between">
+                         <div>
+                             <div className="w-12 h-12 bg-blue-500/10 text-blue-500 rounded-lg flex items-center justify-center mb-4 transition-transform group-hover:scale-110">
+                                <FileSpreadsheet size={24} />
+                             </div>
+                             <h2 className="text-xl font-bold font-display mb-2 text-foreground">Conciliação de Notas</h2>
+                             <p className="text-muted-foreground mb-6 text-sm">Razão NBS × Relatório Sankhya (Nº Nota).</p>
+                         </div>
+                         <div className="font-semibold text-blue-500 flex items-center gap-2 mt-auto text-sm uppercase tracking-wide">
+                            Acessar Módulo <Search size={14} className="group-hover:translate-x-1 transition-transform" />
+                         </div>
                     </Link>
 
                 </div>
             </main>
 
-            <footer style={{ padding: '24px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>
-                &copy; 2026 Rayo Hub — Inteligência Fiscal em Tempo Real
+            <footer className="py-6 text-center text-sm text-muted-foreground border-t border-border mt-auto">
+                &copy; 2026 Rayo Hub — Integridade Tecnológica Profunda
             </footer>
         </div>
     );

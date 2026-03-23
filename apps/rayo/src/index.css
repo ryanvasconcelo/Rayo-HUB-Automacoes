@@ -1,16 +1,39 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Chakra+Petch:ital,wght@1,700&display=swap');
 
-/* ============================================================
-   CSS VARIABLES — THEME SYSTEM
-   ============================================================ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-    /* Light theme (default) */
+@layer base {
+  :root {
+    --background: 240 20% 97%;
+    --foreground: 222.2 47.4% 11.2%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 47.4% 11.2%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47.4% 11.2%;
+    --primary: 195 100% 47%; /* Projecont Teal #00AEEF */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 214 17% 43%; /* Projecont Slate */
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 46 95% 48%; /* Rayo Yellow #EAB308 */
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 195 100% 47%;
+    --radius: 0.5rem;
+    
+    /* Legacy Light theme (default) */
     --bg-primary: #f5f5f7;
     --bg-secondary: #ffffff;
     --bg-tertiary: #f0f0f2;
     --bg-hover: #e8e8ec;
     --bg-input: #ffffff;
+
 
     --text-primary: #1a1a2e;
     --text-secondary: #6b7280;
@@ -49,9 +72,29 @@
     --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
 
     --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-[data-theme="dark"] {
+  }
+ 
+  .dark, [data-theme="dark"] {
+    --background: 210 73% 14%; /* Projecont Navy #0A2540 */
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 195 100% 47%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 46 95% 48%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 195 100% 47%;
+    
     --bg-primary: #0a0b10;
     --bg-secondary: #141620;
     --bg-tertiary: #1c1e2a;
@@ -88,6 +131,7 @@
     --glass-border: rgba(255, 255, 255, 0.05);
     --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
 }
+} /* Close @layer base */
 
 /* ============================================================
    RESET & BASE

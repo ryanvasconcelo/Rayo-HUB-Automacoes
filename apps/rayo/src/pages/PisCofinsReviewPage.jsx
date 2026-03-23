@@ -12,6 +12,7 @@ import { Link } from 'react-router-dom';
 import { useEAuditoriaScraper, SCRAPER_STATUS } from '../hooks/useEAuditoriaScraper';
 import { aplicarAutoCorrecaoPisCofins } from '../lib/auditor/piscofins-auditor';
 import { useAssignments } from '../hooks/useAssignments';
+import AppLayout from '../components/layout/AppLayout';
 
 const ATIVIDADES = [
     { value: 'GERAL', label: 'Geral' },
@@ -334,54 +335,35 @@ export default function PisCofinsReviewPage() {
     };
 
     return (
-        <div className="app-layout">
-
-            {/* Header */}
-            <header className="header">
-                <div className="header-brand">
-                    <div className="header-logo">
-                        <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', color: 'inherit' }}>
-                            <img src="/logo.png" alt="Rayo Logo" style={{ height: '32px', width: 'auto' }} />
-                            <span>Rayo Hub</span>
-                        </Link>
-                    </div>
-                    <span className="header-subtitle" style={{ borderLeft: '1px solid var(--border)', paddingLeft: '15px' }}>Revisão PIS/COFINS</span>
+        <AppLayout breadcrumbs={[{ label: 'Revisão PIS/COFINS' }]}>
+            
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6 bg-card/50 p-4 rounded-xl border border-border">
+                <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-display font-bold">Automação SPED</h2>
                 </div>
 
-                {perfilCompleto && parsedData && (
-                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', fontSize: '0.75rem' }}>
-                        {[perfilEmpresa.uf, perfilEmpresa.atividade, perfilEmpresa.regime].map((v, idx) => (
-                            <span key={`${idx}-${v}`} style={{
-                                padding: '3px 10px',
-                                background: 'var(--bg-tertiary)',
-                                border: '1px solid var(--border)',
-                                borderRadius: 'var(--radius-sm)',
-                                color: 'var(--text-secondary)',
-                                fontWeight: 600,
-                                letterSpacing: '0.02em',
-                                boxShadow: 'var(--shadow-sm)'
-                            }}>{v}</span>
-                        ))}
-                    </div>
-                )}
-
-                <div className="theme-toggle">
+                <div className="flex items-center gap-4">
+                    {/* Onboarding Trigger */}
                     <button
-                        className="btn-help"
+                        className="w-8 h-8 rounded-full bg-accent text-accent-foreground font-bold flex items-center justify-center shadow-md hover:scale-110 transition-transform"
                         onClick={() => setShowOnboarding(true)}
                         title="Como usar o Rayo"
                         aria-label="Ajuda"
                     >
                         ?
                     </button>
-                    <button className={`theme-btn ${theme === 'light' ? 'active' : ''}`} onClick={toggle}>
-                        <IconSun size={14} />
-                    </button>
-                    <button className={`theme-btn ${theme === 'dark' ? 'active' : ''}`} onClick={toggle}>
-                        <IconMoon size={14} />
-                    </button>
+                    
+                    {perfilCompleto && parsedData && (
+                        <div className="flex gap-2 text-xs">
+                            {[perfilEmpresa.uf, perfilEmpresa.atividade, perfilEmpresa.regime].map((v, idx) => (
+                                <span key={`${idx}-${v}`} className="px-3 py-1 bg-muted text-muted-foreground font-bold rounded-md border border-border">
+                                    {v}
+                                </span>
+                            ))}
+                        </div>
+                    )}
                 </div>
-            </header>
+            </div>
 
             {/* Upload */}
             {!parsedData && !loading && (
@@ -586,7 +568,7 @@ export default function PisCofinsReviewPage() {
                                         </div>
                                     )}
                                     {scraperStatus === SCRAPER_STATUS.ERRO && (
-                                        <p style={{ color: 'var(--danger)', fontSize: '0.7rem', marginTop: '4px' }}>⚠️ Falha: {scraperProgresso}</p>
+                                        <p style={{ color: 'var(--danger)', fontSize: '0.7rem', marginTop: '4px' }}>Falha: {scraperProgresso}</p>
                                     )}
                                 </>
                             )}
@@ -608,7 +590,7 @@ export default function PisCofinsReviewPage() {
                                 { id: 'warning', label: 'Pendentes', color: 'var(--warning-text)', bg: 'rgba(245, 158, 11, 0.1)' },
                                 { id: 'danger', label: 'Não Encontrados', color: 'var(--danger)', bg: 'rgba(239, 68, 68, 0.1)' },
                                 { id: 'info', label: 'Informativos', color: 'var(--accent)', bg: 'var(--accent-soft)' },
-                                { id: 'multicst', label: '⚠️ Multi-CST', color: '#d97706', bg: 'rgba(245, 158, 11, 0.1)' }
+                                { id: 'multicst', label: 'Multi-CST', color: '#d97706', bg: 'rgba(245, 158, 11, 0.1)' }
                             ].map(filter => (
                                 <button
                                     key={filter.id}
@@ -748,11 +730,6 @@ export default function PisCofinsReviewPage() {
             )
             }
 
-            {/* Footer */}
-            <footer className="footer">
-                Rayo v2.0 — Processamento 100% local. Seus dados fiscais nunca saem do seu computador.
-            </footer>
-
             {/* Onboarding Guide */}
             {
                 showOnboarding && (
@@ -845,6 +822,6 @@ export default function PisCofinsReviewPage() {
                     </div>
                 ))}
             </div>
-        </div >
+        </AppLayout>
     );
 }

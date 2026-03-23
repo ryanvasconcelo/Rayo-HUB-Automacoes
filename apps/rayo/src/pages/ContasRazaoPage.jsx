@@ -9,6 +9,7 @@ import {
     IconSearch, IconSun, IconMoon, IconTrash, IconDownload
 } from '../components/Icons';
 import { Link } from 'react-router-dom';
+import AppLayout from '../components/layout/AppLayout';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -352,44 +353,27 @@ export default function ContasRazaoPage() {
     };
 
     return (
-        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)' }}>
-
-            {/* Header */}
-            <header style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '14px 32px', background: 'var(--glass-bg)',
-                backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--glass-border)', zIndex: 10,
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <Link to="/" style={{ color: 'var(--text-tertiary)', textDecoration: 'none', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        ← Rayo Hub
-                    </Link>
-                    <span style={{ color: 'var(--border)' }}>|</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ width: 28, height: 28, borderRadius: 8, background: accentRazao, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <IconSearch size={14} style={{ color: 'white' }} />
-                        </div>
-                        <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)' }}>Auditor de Contas e Razão</span>
-                        <span style={{ fontSize: '0.72rem', padding: '2px 8px', border: '1px solid var(--border)', borderRadius: 999, color: 'var(--text-tertiary)' }}>MVP</span>
+        <AppLayout breadcrumbs={[{ label: 'Contas e Razão' }]}>
+            
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6 bg-card/50 p-4 rounded-xl border border-border">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                        <IconSearch size={16} className="text-indigo-500" />
                     </div>
+                    <h2 className="text-xl font-display font-bold">Auditor de Contas e Razão</h2>
+                    <span className="text-xs px-2 py-1 border border-border rounded-full text-muted-foreground">MVP</span>
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                
+                <div className="flex items-center gap-2">
                     {resultado && (
-                        <button onClick={limpar} style={{
-                            display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px',
-                            border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-                            background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.82rem',
-                        }}>
+                        <button onClick={limpar} className="flex items-center gap-2 px-3 py-1.5 border border-border rounded-md hover:bg-muted transition-colors text-sm font-medium">
                             <IconRefresh size={14} /> Nova Análise
                         </button>
                     )}
-                    <button onClick={toggle} style={{ padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                        {theme === 'dark' ? <IconSun size={14} /> : <IconMoon size={14} />}
-                    </button>
                 </div>
-            </header>
+            </div>
 
-            <main style={{ flex: 1, padding: '28px 32px', maxWidth: 1300, margin: '0 auto', width: '100%' }}>
+            <div className="flex-1 w-full max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-500">
 
                 {/* Upload Section */}
                 {!resultado && (
@@ -433,7 +417,7 @@ export default function ContasRazaoPage() {
                                     })}
                                 </div>
                                 <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginTop: '14px', lineHeight: 1.5 }}>
-                                    💡 Para fechar competências entre meses, carregue também o mês anterior e posterior.
+                                    Para fechar competências entre meses, carregue também o mês anterior e posterior.
                                 </p>
                             </div>
 
@@ -521,7 +505,7 @@ export default function ContasRazaoPage() {
                             />
                             <TotalCard label="Saldo Final Razão" value={fmt(resultado.saldoFinalRazao)} small />
                             <TotalCard
-                                label="🔴 Inconsistências"
+                                label="Inconsistências"
                                 value={resultado.contadores.inconsistencias}
                                 highlight={resultado.contadores.inconsistencias > 0 ? '#ef4444' : undefined}
                                 small
@@ -530,9 +514,9 @@ export default function ContasRazaoPage() {
 
                         {/* Info da análise + Legenda */}
                         <div style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '-4px' }}>
-                            {resultado.contaNome && <span>📋 Conta: <strong style={{ color: 'var(--text-secondary)' }}>{resultado.contaNome}</strong></span>}
-                            <span>📁 Relatório: <strong style={{ color: 'var(--text-secondary)' }}>{resultado.nomeRelatorio}</strong></span>
-                            <span>📅 Meses carregados: <strong style={{ color: 'var(--text-secondary)' }}>{resultado.mesesCarregados.map(m => MES_LABELS[m]).join(', ')}</strong></span>
+                            {resultado.contaNome && <span>Conta: <strong style={{ color: 'var(--text-secondary)' }}>{resultado.contaNome}</strong></span>}
+                            <span>Relatório: <strong style={{ color: 'var(--text-secondary)' }}>{resultado.nomeRelatorio}</strong></span>
+                            <span>Meses carregados: <strong style={{ color: 'var(--text-secondary)' }}>{resultado.mesesCarregados.map(m => MES_LABELS[m]).join(', ')}</strong></span>
                         </div>
 
                         <LegendaStatus />
@@ -593,13 +577,11 @@ export default function ContasRazaoPage() {
                         </div>
                     </div>
                 )}
-            </main>
+            </div>
 
             <style>{`
-                @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
                 tr:hover td { background: rgba(99,102,241,0.04); }
             `}</style>
-        </div>
+        </AppLayout>
     );
 }

@@ -9,7 +9,7 @@
  *   Robô SEFAZ: cd subvencoes/server && node index.js → porta 3002
  */
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import AppLayout from '../components/layout/AppLayout';
 
 // Em produção: rayo-server serve o build do auditor em /subvencoes-app (mesma origem)
 // Em dev:      auditor roda em vite dev server separado na porta 5174
@@ -97,44 +97,23 @@ export default function SubvencoesPage() {
     const mostrarOffline = auditorOnline === false;
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh',
-            background: 'var(--bg-primary, #0a0a0a)' }}>
-
-            {/* ── Barra superior ──────────────────────────────────────── */}
-            <div style={{
-                display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
-                padding: '8px 20px', flexShrink: 0,
-                background: 'var(--glass-bg, rgba(255,255,255,0.04))',
-                backdropFilter: 'blur(10px)',
-                borderBottom: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
-            }}>
-                <Link to="/" style={{ textDecoration: 'none', color: 'var(--text-secondary, #9ca3af)',
-                    fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap' }}>
-                    ← Rayo Hub
-                </Link>
-
-                <div style={{ width: 1, height: 16, background: 'var(--glass-border, rgba(255,255,255,0.1))', flexShrink: 0 }} />
-
-                <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary, #f9fafb)',
-                    letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
-                    Subvenções ZFM
-                </span>
-
-                <span style={{ fontSize: 11, padding: '2px 8px',
-                    background: 'rgba(34,197,94,0.1)', color: '#22c55e',
-                    borderRadius: 999, border: '1px solid rgba(34,197,94,0.3)', fontWeight: 700 }}>
-                    Convênio 65/88
-                </span>
-
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <AppLayout breadcrumbs={[{ label: 'Subvenções ZFM' }]}>
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6 bg-card/50 p-4 rounded-xl border border-border">
+                <div className="flex items-center gap-3">
+                    <h2 className="text-xl font-display font-bold">Convênio 65/88</h2>
+                    <span className="text-xs px-2 py-1 bg-green-500/10 text-green-500 rounded-full border border-green-500/30 font-bold">
+                        Módulo Independente
+                    </span>
+                </div>
+                
+                <div className="flex items-center gap-3 flex-wrap">
                     <StatusPill online={auditorOnline} label="Auditor" />
                     <StatusPill online={botOnline}     label="Robô SEFAZ" />
                     {mostrarOffline && (
                         <button
                             onClick={() => { setAuditorOnline(null); verificar(); }}
-                            style={{ fontSize: 11, padding: '3px 10px', borderRadius: 999,
-                                background: 'rgba(34,197,94,0.1)', color: '#22c55e',
-                                border: '1px solid rgba(34,197,94,0.3)', cursor: 'pointer', fontWeight: 600 }}>
+                            className="text-xs px-3 py-1 rounded-full bg-green-500/10 text-green-500 border border-green-500/30 hover:bg-green-500/20 transition-colors font-bold"
+                        >
                             ↺ Verificar
                         </button>
                     )}
@@ -215,6 +194,6 @@ export default function SubvencoesPage() {
                     <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
                 </div>
             )}
-        </div>
+        </AppLayout>
     );
 }

@@ -9,6 +9,7 @@ import IcmsResultCard from '../components/IcmsResultCard';
 import NcmDisambiguationModal from '../components/NcmDisambiguationModal';
 import { Link } from 'react-router-dom';
 import { Virtuoso } from 'react-virtuoso';
+import AppLayout from '../components/layout/AppLayout';
 
 const TOLERANCIA_BC = 0.05;
 
@@ -159,64 +160,32 @@ export default function AuditorIcmsPage() {
     const allowProfileEdit = !eAuditoriaName && !isRoboRunning;
 
     return (
-        <div className="app-layout" style={{
-            backgroundImage: 'radial-gradient(circle at 50% -10%, rgba(57, 102, 255, 0.05) 0%, transparent 50%)',
-            minHeight: '100vh',
-            display: 'flex',
-            flexDirection: 'column'
-        }}>
-            {/* --- Header --- */}
-            <header className="header" style={{
-                justifyContent: 'space-between',
-                padding: '12px 24px',
-                background: 'var(--glass-bg)',
-                backdropFilter: 'blur(10px)',
-                borderBottom: '1px solid var(--glass-border)',
-                zIndex: 10
-            }}>
-                <div className="header-brand" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <div className="header-logo">
-                        <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', color: 'inherit' }}>
-                            <img src="/logo.png" alt="Rayo Logo" style={{ height: '28px', width: 'auto' }} />
-                            <span style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: '1.1rem' }}>Rayo Hub</span>
-                        </Link>
-                    </div>
-                    <span style={{ borderLeft: '1px solid var(--border)', paddingLeft: '15px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-tertiary)' }}>Auditor ICMS</span>
+        <AppLayout breadcrumbs={[{ label: 'Auditor ICMS' }]}>
+            {/* Header Context Actions (Moved from the old navbar) */}
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6 bg-card/50 p-4 rounded-xl border border-border">
+                <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-display font-bold">Configuração da Auditoria</h2>
                 </div>
+                
+                <div className="flex flex-wrap items-center gap-4">
+                    {perfilCompleto && (
+                        <div className="flex gap-2">
+                            {[perfilEmpresa.uf, perfilEmpresa.atividade, perfilEmpresa.regime].map((v, idx) => (
+                                <span key={`${idx}-${v}`} className="px-3 py-1 bg-muted text-muted-foreground text-xs font-bold rounded-md border border-border">
+                                    {v}
+                                </span>
+                            ))}
+                        </div>
+                    )}
 
-                {perfilCompleto && (
-                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', fontSize: '0.75rem' }}>
-                        {[perfilEmpresa.uf, perfilEmpresa.atividade, perfilEmpresa.regime].map((v, idx) => (
-                            <span key={`${idx}-${v}`} style={{
-                                padding: '3px 10px',
-                                background: 'var(--bg-tertiary)',
-                                border: '1px solid var(--border)',
-                                borderRadius: 'var(--radius-sm)',
-                                color: 'var(--text-secondary)',
-                                fontWeight: 700,
-                                boxShadow: 'var(--shadow-sm)'
-                            }}>{v}</span>
-                        ))}
-                    </div>
-                )}
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                     {serverOnline !== null && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 600, color: serverOnline ? 'var(--success)' : 'var(--text-tertiary)' }}>
-                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: serverOnline ? 'var(--success)' : 'var(--text-tertiary)' }} className={serverOnline ? 'pulse-anim' : ''}></div>
+                        <div className={`flex items-center gap-2 text-xs font-bold ${serverOnline ? 'text-green-500' : 'text-muted-foreground'}`}>
+                            <div className={`w-2 h-2 rounded-full ${serverOnline ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground'}`}></div>
                             {serverOnline ? 'Robô EC2 Online' : 'Offline'}
                         </div>
                     )}
-                    <div className="theme-toggle">
-                        <button className={`theme-btn ${theme === 'light' ? 'active' : ''}`} onClick={toggle}>
-                            <IconSun size={14} />
-                        </button>
-                        <button className={`theme-btn ${theme === 'dark' ? 'active' : ''}`} onClick={toggle}>
-                            <IconMoon size={14} />
-                        </button>
-                    </div>
                 </div>
-            </header>
+            </div>
 
             <main style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1200px', margin: '0 auto', width: '100%', animation: 'fadeIn 0.5s ease-out' }}>
 
@@ -478,6 +447,6 @@ export default function AuditorIcmsPage() {
                     </div>
                 </div>
             )}
-        </div>
+        </AppLayout>
     );
 }

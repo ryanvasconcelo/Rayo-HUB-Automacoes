@@ -11,7 +11,7 @@ import {
     IconSearch, IconSun, IconMoon, IconDownload
 } from '../components/Icons';
 import { Link } from 'react-router-dom';
-
+import AppLayout from '../components/layout/AppLayout';
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function fmt(v) {
@@ -431,7 +431,7 @@ function CompetenciaCallout({ mes, contTiming, ultimoMes }) {
             background: 'rgba(148,163,184,0.08)', border: '1px solid rgba(148,163,184,0.25)',
             display: 'flex', gap: '14px', alignItems: 'flex-start', position: 'relative',
         }}>
-            <span style={{ fontSize: '1.3rem', flexShrink: 0, marginTop: '2px' }}>⏱</span>
+            <span style={{ fontSize: '1.3rem', flexShrink: 0, marginTop: '2px' }}></span>
             <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--text-primary)', marginBottom: '6px' }}>
                     O que é "Diferença de Competência"?
@@ -589,44 +589,26 @@ export default function EstoqueAuditorPage() {
     };
 
     return (
-        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)' }}>
-
-            {/* Header */}
-            <header style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '14px 32px', background: 'var(--glass-bg)',
-                backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--glass-border)', zIndex: 10,
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <Link to="/" style={{ color: 'var(--text-tertiary)', textDecoration: 'none', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        ← Rayo Hub
-                    </Link>
-                    <span style={{ color: 'var(--border)' }}>|</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ width: 28, height: 28, borderRadius: 8, background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <IconSearch size={14} style={{ color: 'white' }} />
-                        </div>
-                        <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)' }}>Auditor de Estoque</span>
-                        <span style={{ fontSize: '0.72rem', padding: '2px 8px', border: '1px solid var(--border)', borderRadius: 999, color: 'var(--text-tertiary)' }}>MVP</span>
+        <AppLayout breadcrumbs={[{ label: 'Estoque de Motos' }]}>
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6 bg-card/50 p-4 rounded-xl border border-border">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                        <IconSearch size={16} className="text-orange-500" />
                     </div>
+                    <h2 className="text-xl font-display font-bold">Auditor de Estoque</h2>
+                    <span className="text-xs px-2 py-1 border border-border rounded-full text-muted-foreground">MVP</span>
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                
+                <div className="flex items-center gap-2">
                     {resultado && (
-                        <button onClick={limpar} style={{
-                            display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px',
-                            border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-                            background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.82rem',
-                        }}>
+                        <button onClick={limpar} className="flex items-center gap-2 px-3 py-1.5 border border-border rounded-md hover:bg-muted transition-colors text-sm font-medium">
                             <IconRefresh size={14} /> Nova Análise
                         </button>
                     )}
-                    <button onClick={toggle} style={{ padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                        {theme === 'dark' ? <IconSun size={14} /> : <IconMoon size={14} />}
-                    </button>
                 </div>
-            </header>
+            </div>
 
-            <main style={{ flex: 1, padding: '28px 32px', maxWidth: 1400, margin: '0 auto', width: '100%' }}>
+            <div className="flex-1 w-full max-w-[1400px] mx-auto animate-in fade-in slide-in-from-bottom-2 duration-500">
 
                 {/* ── Tela de Upload ── */}
                 {!resultado && (
@@ -724,7 +706,7 @@ export default function EstoqueAuditorPage() {
                             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                                 <TotalCard label="Saldo Final Razão" value={fmt(resultado.saldoFinalRazao)} />
                                 <TotalCard
-                                    label={`🔴 Meses em Divergência`}
+                                    label={`Meses em Divergência`}
                                     value={resultado.mesesEmDivergencia.length}
                                     highlight={resultado.mesesEmDivergencia.length > 0 ? '#ef4444' : undefined}
                                     small
@@ -785,7 +767,7 @@ export default function EstoqueAuditorPage() {
                                         </span>
                                         {mesSelecionadoDados.mesDeReferencia && (
                                             <span style={{ fontSize: '0.72rem', padding: '2px 8px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 999, color: '#f59e0b', fontWeight: 700 }}>
-                                                ★ Mês de referência — comparação mais precisa
+                                                Mês de referência — comparação mais precisa
                                             </span>
                                         )}
                                     </div>
@@ -795,7 +777,7 @@ export default function EstoqueAuditorPage() {
                                             border: '1px solid rgba(239,68,68,0.3)', borderRadius: 'var(--radius-md)', cursor: 'pointer',
                                             display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 700,
                                         }}>
-                                            📄 Relatório PDF
+                                            Relatório PDF
                                         </button>
                                         <button onClick={() => handleExportXLSX()} style={{
                                             padding: '7px 14px', background: 'var(--bg-secondary)', color: 'var(--text-primary)',
@@ -826,12 +808,7 @@ export default function EstoqueAuditorPage() {
                         )}
                     </div>
                 )}
-            </main>
-
-            <style>{`
-                @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-            `}</style>
-        </div>
+            </div>
+        </AppLayout>
     );
 }
