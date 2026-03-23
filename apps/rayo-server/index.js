@@ -19,6 +19,17 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
+
+function getLocalIP() {
+    const nets = os.networkInterfaces();
+    for (const name of Object.keys(nets)) {
+        for (const net of nets[name]) {
+            if (net.family === 'IPv4' && !net.internal) return net.address;
+        }
+    }
+    return 'SEU-IP';
+}
 const { scrapeEAuditoria } = require('./scraper/eauditoria-scraper');
 
 const app = express();
@@ -192,8 +203,12 @@ app.get('*', (req, res) => {
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 app.listen(PORT, '0.0.0.0', () => {
+    const ip = getLocalIP();
     console.log(`\n🚀 Rayo Server rodando em http://localhost:${PORT}`);
-    console.log(`   Acesso na rede: http://<IP-do-servidor>:${PORT}`);
+    console.log(`   Acesso na rede: http://${ip}:${PORT}`);
+    if (ip !== 'SEU-IP') {
+        console.log(`   Se não abrir na rede, execute como Admin: scripts/deploy/abrir-firewall-windows.bat`);
+    }
     console.log(`   Health:   GET  http://localhost:${PORT}/api/health`);
     console.log(`   Fila:     GET  http://localhost:${PORT}/api/queue-status`);
     console.log(`   Scraper:  POST http://localhost:${PORT}/api/scrape-eauditoria\n`);

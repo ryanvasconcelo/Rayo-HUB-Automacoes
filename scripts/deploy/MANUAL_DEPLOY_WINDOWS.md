@@ -118,6 +118,12 @@ Isso inicia:
 
 Se o **Firewall do Windows** perguntar se deseja permitir acesso à rede, marque **Redes Privadas** e clique em **Permitir Acesso**.
 
+### Liberar portas manualmente (se não abrir na rede)
+
+1. Clique com o botão direito em `scripts/deploy/abrir-firewall-windows.bat`
+2. Escolha **Executar como administrador**
+3. Confirme a execução — as portas 3000, 3002 e 80 serão liberadas
+
 ---
 
 ## 6. Acessar na Rede
