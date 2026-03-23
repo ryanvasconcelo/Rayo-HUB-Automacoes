@@ -1,6 +1,6 @@
 /**
  * RAYO HUB — Servidor Express (Microserviço Local)
- * Porta: 3001 | Frontend Rayo: porta 5173
+ * Porta: 3000 (ou PORT no .env)
  *
  * Endpoints:
  *   GET  /api/health              → { status: 'ok', version }
@@ -22,7 +22,7 @@ const fs = require('fs');
 const { scrapeEAuditoria } = require('./scraper/eauditoria-scraper');
 
 const app = express();
-const PORT = process.env.PORT || 80;
+const PORT = process.env.PORT || 3000;
 
 // ── Fila de Requisições (Serialização Anti-Ban) ───────────────────────────────
 // Garante que apenas UMA sessão do e-Auditoria roda por vez, evitando
@@ -91,7 +91,7 @@ if (fs.existsSync(SUBVENCOES_DIST)) {
     app.get('/subvencoes-app/*', (req, res) => {
         res.sendFile('index.html', { root: subvencoesRoot });
     });
-    console.log(`   📦 Subvenções ZFM: http://localhost:${process.env.PORT || 80}/subvencoes-app/`);
+    console.log(`   📦 Subvenções ZFM: http://localhost:${PORT}/subvencoes-app/`);
     if (SUBVENCOES_DIST_ENV && !fs.existsSync(SUBVENCOES_DIST_ENV)) {
         console.log(`   ℹ️  SUBVENCOES_DIST do .env não encontrado, usando padrão: ${SUBVENCOES_DIST}`);
     }
