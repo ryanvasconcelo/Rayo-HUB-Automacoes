@@ -97,8 +97,8 @@ export default function SubvencoesPage() {
     const mostrarOffline = auditorOnline === false;
 
     return (
-        <AppLayout breadcrumbs={[{ label: 'Subvenções ZFM' }]}>
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-6 bg-card/50 p-4 rounded-xl border border-border">
+        <AppLayout breadcrumbs={[{ label: 'Subvenções ZFM' }]} flush>
+            <div className="flex flex-wrap items-center justify-between gap-4 bg-muted/30 px-6 md:px-8 py-4 border-b border-border shadow-sm shrink-0">
                 <div className="flex items-center gap-3">
                     <h2 className="text-xl font-display font-bold">Convênio 65/88</h2>
                     <span className="text-xs px-2 py-1 bg-green-500/10 text-green-500 rounded-full border border-green-500/30 font-bold">

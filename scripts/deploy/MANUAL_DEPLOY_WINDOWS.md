@@ -76,9 +76,7 @@ O robô do e-Auditoria precisa de credenciais para buscar regras de ICMS.
 ```
 EAUDITORIA_EMAIL=seu_email@empresa.com
 EAUDITORIA_PASSWORD=SuaSenha
-# Porta 3000 = não exige admin; acesse http://<IP>:3000
-# Porta 80 = exige "Executar como administrador"
-PORT=3000
+PORT=80
 ```
 
 4. Salve o arquivo. Sem isso, o **Auditor ICMS** ficará offline.
@@ -113,16 +111,10 @@ npm start
 ```
 
 Isso inicia:
-- **rayo-server** (porta 3000) — Rayo Hub + API do e-Auditoria
+- **rayo-server** (porta 80) — Rayo Hub + API do e-Auditoria
 - **subvencoes-server** (porta 3002) — Download de XMLs SEFAZ-AM
 
 Se o **Firewall do Windows** perguntar se deseja permitir acesso à rede, marque **Redes Privadas** e clique em **Permitir Acesso**.
-
-### Liberar portas manualmente (se não abrir na rede)
-
-1. Clique com o botão direito em `scripts/deploy/abrir-firewall-windows.bat`
-2. Escolha **Executar como administrador**
-3. Confirme a execução — as portas 3000, 3002 e 80 serão liberadas
 
 ---
 
@@ -138,15 +130,13 @@ Procure **Endereço IPv4** (ex: `192.168.0.166`).
 Qualquer PC na mesma rede abre no navegador:
 
 ```
-http://192.168.0.166:3000
+http://192.168.0.166
 ```
 
 Ou diretamente em um módulo:
-- `http://192.168.0.166:3000/icms` — Auditor ICMS
-- `http://192.168.0.166:3000/subvencoes` — Subvenções ZFM
-- `http://192.168.0.166:3000/conciliacao-notas` — Conciliação de Notas
-
-Se configurou `PORT=80` no `.env`, use `http://192.168.0.166` (sem porta).
+- `http://192.168.0.166/icms` — Auditor ICMS
+- `http://192.168.0.166/subvencoes` — Subvenções ZFM
+- `http://192.168.0.166/conciliacao-notas` — Conciliação de Notas
 
 ---
 
@@ -184,7 +174,7 @@ npm start
 
 | Problema | Solução |
 |----------|---------|
-| **Site não carrega / carregando infinito** | Libere as portas **3000** e **3002** no Firewall do Windows (Regras de Entrada > Nova Regra > Porta TCP). Se usar PORT=80, libere também a 80. |
+| **Site não carrega / carregando infinito** | Libere as portas **80** e **3002** no Firewall do Windows (Regras de Entrada > Nova Regra > Porta TCP). |
 | **Auditor ICMS: Offline** | Verifique o `.env` em `apps\rayo-server\` com `EAUDITORIA_EMAIL` e `EAUDITORIA_PASSWORD` corretos. |
 | **Robô SEFAZ: Offline** | Verifique o `.env` em `apps\subvencoes-server\` e se o certificado `.pfx` existe no caminho indicado. |
 | **Subvenções: tela em branco** | Execute `npm run build:all` novamente. O build do módulo Subvenções deve gerar `apps\subvencoes\dist\`. |

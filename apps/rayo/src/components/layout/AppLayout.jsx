@@ -5,7 +5,7 @@ import { Moon, Sun, ArrowLeft, ChevronRight, Home } from 'lucide-react';
 /**
  * AppLayout wraps internal module pages with a standard Top Navbar and Breadcrumbs.
  */
-export default function AppLayout({ children, breadcrumbs = [] }) {
+export default function AppLayout({ children, breadcrumbs = [], flush = false }) {
     const { theme, toggle } = useTheme();
 
     return (
@@ -48,7 +48,7 @@ export default function AppLayout({ children, breadcrumbs = [] }) {
                 </div>
             </header>
 
-            <main className="flex-1 w-full max-w-7xl mx-auto p-6 md:p-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <main className={`flex-1 w-full mx-auto flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-500 ${flush ? 'max-w-none p-0' : 'max-w-7xl p-6 md:p-8'}`}>
                 {children}
             </main>
         </div>

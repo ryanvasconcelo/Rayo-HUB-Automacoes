@@ -1,6 +1,6 @@
 /**
  * RAYO HUB — Servidor Express (Microserviço Local)
- * Porta: 3000 (ou PORT no .env)
+ * Porta: 3001 | Frontend Rayo: porta 5173
  *
  * Endpoints:
  *   GET  /api/health              → { status: 'ok', version }
@@ -19,21 +19,10 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
-
-function getLocalIP() {
-    const nets = os.networkInterfaces();
-    for (const name of Object.keys(nets)) {
-        for (const net of nets[name]) {
-            if (net.family === 'IPv4' && !net.internal) return net.address;
-        }
-    }
-    return 'SEU-IP';
-}
 const { scrapeEAuditoria } = require('./scraper/eauditoria-scraper');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 80;
 
 // ── Fila de Requisições (Serialização Anti-Ban) ───────────────────────────────
 // Garante que apenas UMA sessão do e-Auditoria roda por vez, evitando
@@ -75,7 +64,8 @@ app.use(express.json({ limit: '10mb' })); // NCMs podem ser muitos
 // ── Rayo Hub — frontend estático ─────────────────────────────────────────────
 // Serve o build do Rayo Hub diretamente, eliminando o `serve -s dist` separado.
 // Configure RAYO_DIST no .env se a pasta dist estiver em outro lugar.
-const RAYO_DIST = path.resolve(process.env.RAYO_DIST || path.join(__dirname, '..', 'rayo', 'dist'));
+const RAYO_DIST = process.env.RAYO_DIST
+    || path.resolve(__dirname, '..', 'rayo', 'dist');
 
 if (fs.existsSync(RAYO_DIST)) {
     app.use(express.static(RAYO_DIST));
@@ -90,19 +80,18 @@ if (fs.existsSync(RAYO_DIST)) {
 // portanto sem CORS nem iframe blocking.
 // Caminho padrão: apps/subvencoes/dist (gerado por npm run build:subvencoes).
 // Se SUBVENCOES_DIST estiver no .env mas não existir, faz fallback automático.
-const SUBVENCOES_DIST_DEFAULT = path.join(__dirname, '..', 'subvencoes', 'dist');
+const SUBVENCOES_DIST_DEFAULT = path.resolve(__dirname, '..', 'subvencoes', 'dist');
 const SUBVENCOES_DIST_ENV = process.env.SUBVENCOES_DIST;
-const SUBVENCOES_DIST = path.resolve((SUBVENCOES_DIST_ENV && fs.existsSync(path.resolve(SUBVENCOES_DIST_ENV)))
+const SUBVENCOES_DIST = (SUBVENCOES_DIST_ENV && fs.existsSync(SUBVENCOES_DIST_ENV))
     ? SUBVENCOES_DIST_ENV
-    : SUBVENCOES_DIST_DEFAULT);
+    : SUBVENCOES_DIST_DEFAULT;
 
 if (fs.existsSync(SUBVENCOES_DIST)) {
-    const subvencoesRoot = path.resolve(SUBVENCOES_DIST);
-    app.use('/subvencoes-app', express.static(subvencoesRoot));
+    app.use('/subvencoes-app', express.static(SUBVENCOES_DIST));
     app.get('/subvencoes-app/*', (req, res) => {
-        res.sendFile('index.html', { root: subvencoesRoot });
+        res.sendFile(path.join(SUBVENCOES_DIST, 'index.html'));
     });
-    console.log(`   📦 Subvenções ZFM: http://localhost:${PORT}/subvencoes-app/`);
+    console.log(`   📦 Subvenções ZFM: http://localhost:${process.env.PORT || 80}/subvencoes-app/`);
     if (SUBVENCOES_DIST_ENV && !fs.existsSync(SUBVENCOES_DIST_ENV)) {
         console.log(`   ℹ️  SUBVENCOES_DIST do .env não encontrado, usando padrão: ${SUBVENCOES_DIST}`);
     }
@@ -190,25 +179,19 @@ app.post('/api/scrape-eauditoria', async (req, res) => {
 // ── SPA fallback — Rayo Hub ───────────────────────────────────────────────────
 // Deve ficar APÓS todas as rotas /api/* e /subvencoes-app/*.
 // Rotas do React Router (ex: /icms, /subvencoes) retornam o index.html do Rayo.
-// RAYO_DIST já é absoluto; root obrigatório para sendFile no Windows
 app.get('*', (req, res) => {
     const index = path.join(RAYO_DIST, 'index.html');
-    if (!fs.existsSync(index)) {
-        return res.status(404).send('Execute: cd apps/rayo && npm run build');
+    if (fs.existsSync(index)) {
+        res.sendFile(index);
+    } else {
+        res.status(404).send('Execute: cd apps/rayo && npm run build');
     }
-    res.sendFile('index.html', { root: RAYO_DIST }, (err) => {
-        if (err && !res.headersSent) res.status(500).send('Erro ao servir página.');
-    });
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 app.listen(PORT, '0.0.0.0', () => {
-    const ip = getLocalIP();
     console.log(`\n🚀 Rayo Server rodando em http://localhost:${PORT}`);
-    console.log(`   Acesso na rede: http://${ip}:${PORT}`);
-    if (ip !== 'SEU-IP') {
-        console.log(`   Se não abrir na rede, execute como Admin: scripts/deploy/abrir-firewall-windows.bat`);
-    }
+    console.log(`   Acesso na rede: http://<IP-do-servidor>:${PORT}`);
     console.log(`   Health:   GET  http://localhost:${PORT}/api/health`);
     console.log(`   Fila:     GET  http://localhost:${PORT}/api/queue-status`);
     console.log(`   Scraper:  POST http://localhost:${PORT}/api/scrape-eauditoria\n`);
