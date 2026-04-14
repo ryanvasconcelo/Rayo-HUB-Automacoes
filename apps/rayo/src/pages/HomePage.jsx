@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
-import { Moon, Sun, Zap, Search, LayoutDashboard, FileSpreadsheet, FileBox } from 'lucide-react';
+import { Moon, Sun, Zap, Search, LayoutDashboard, FileSpreadsheet, FileBox, Landmark } from 'lucide-react';
 
 export default function HomePage() {
     const { theme, toggle } = useTheme();
@@ -108,6 +108,19 @@ export default function HomePage() {
                              <p className="text-muted-foreground mb-6 text-sm">Razão NBS × Relatório Sankhya (Nº Nota).</p>
                          </div>
                          <div className="font-semibold text-blue-500 flex items-center gap-2 mt-auto text-sm uppercase tracking-wide">
+                            Acessar Módulo <Search size={14} className="group-hover:translate-x-1 transition-transform" />
+                         </div>
+                    </Link>
+
+                    <Link to="/conciliacao-bancaria" className="group rounded-xl border border-border bg-card hover:border-sky-500/50 transition-all p-6 shadow-sm hover:shadow-md relative overflow-hidden flex flex-col justify-between">
+                         <div>
+                             <div className="w-12 h-12 bg-sky-500/10 text-sky-500 rounded-lg flex items-center justify-center mb-4 transition-transform group-hover:scale-110">
+                                <Landmark size={24} />
+                             </div>
+                             <h2 className="text-xl font-bold font-display mb-2 text-foreground">Conciliação Bancária</h2>
+                             <p className="text-muted-foreground mb-6 text-sm">Razão Interno × Saldo da Conta com Netting automático de estornos.</p>
+                         </div>
+                         <div className="font-semibold text-sky-500 flex items-center gap-2 mt-auto text-sm uppercase tracking-wide">
                             Acessar Módulo <Search size={14} className="group-hover:translate-x-1 transition-transform" />
                          </div>
                     </Link>
