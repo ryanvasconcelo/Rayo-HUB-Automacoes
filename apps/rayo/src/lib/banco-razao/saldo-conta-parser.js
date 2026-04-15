@@ -1,131 +1,136 @@
-/**
- * saldo-conta-parser.js — Parser do Relatório "Saldo da Conta" (ERP/SAP)
- *
- * Layout confirmado nos arquivos reais (Sheet1):
- *   Row 1 (header): #, Data de lançamento, Nº transação, Origem, Nº origem,
- *                   Conta de contrapartida, Detalhes, C/D (ML), Saldo acumulado (MC),
- *                   Débito (MC), Crédito (MC), Contrato guarda-chuva
- *   Row 2: saldo inicial (Origem = 'SI')
- *   Row 3+: lançamentos reais
- *
- * Padrões de anulação confirmados nos dados reais:
- *   1. Texto "Anular entrada para pagamento nº XXXXX" no campo Detalhes → ESTORNO EXPLÍCITO
- *   2. Mesmo Nº origem com movimento oposto (D→C ou C→D) de mesmo valor → ANULADO_INTERNO
- */
-
 import * as XLSX from 'xlsx';
 
-// Detecta estorno explícito pelo texto do campo Detalhes
-const ANULAR_REGEX = /Anular entrada para pagamento\s+n[oº°]?\s*(\d+)/i;
-
-const COL = {
-    SEQ: 0,
-    DATA: 1,
-    NR_TRANSACAO: 2,
-    ORIGEM: 3,
-    NR_ORIGEM: 4,
-    CONTA_CONTRAPARTIDA: 5,
-    DETALHES: 6,
-    CD_ML: 7,
-    SALDO_ACUMULADO: 8,
-    DEBITO: 9,
-    CREDITO: 10,
-};
-
 /**
- * @param {string} detalhes
- * @returns {boolean}
- */
-function isEstornoExplicito(detalhes) {
-    return ANULAR_REGEX.test(detalhes);
-}
-
-/**
- * @param {string} detalhes
- * @returns {string|null} — Nr. Origem anulado
- */
-function extractOrigemAnulada(detalhes) {
-    const m = String(detalhes).match(ANULAR_REGEX);
-    return m ? m[1] : null;
-}
-
-/**
- * Converte string "DD/MM/YYYY" para Date
- */
-function parseDataBR(str) {
-    if (!str || typeof str !== 'string') return null;
-    const [d, m, y] = str.split('/');
-    if (!d || !m || !y) return null;
-    return new Date(Number(y), Number(m) - 1, Number(d));
-}
-
-/**
- * Parse do arquivo "Saldo da Conta" (XLSX).
+ * saldo-conta-parser.js — Parser Universal Corrigido
  *
- * @param {ArrayBuffer} buffer
- * @returns {{ lancamentos: SaldoContaEntry[], saldoInicial: number, contaNome: string }}
+ * Índices validados diretamente contra os dados reais dos arquivos do cliente.
+ *
+ * Layout SAP (RAZAO - BANCO BRADESCO 58070 EXCEL.xlsx):
+ *   0: #  | 1: Data de lançamento | 2: Nº transação | 3: Origem | 4: Nº origem
+ *   5: Conta de contrapartida | 6: Detalhes | 7: C/D (ML) | 8: Saldo acumulado (MC)
+ *   9: Débito (MC) | 10: Crédito (MC)
+ *
+ * Layout Simplificado (RELATORIO DE CONCILIAÇÃO EXCEL BRADESCO 58070.xlsx):
+ *   Header na linha 1 (deslocado). Dados reais:
+ *   0: Doc | 1: Nome | 2: Detalhes | 3: DataVcto | 4: DataPgto | 5: Debito | 6: Credito
  */
+
 export function parseSaldoConta(buffer) {
-    const wb = XLSX.read(buffer, { type: 'array' });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    const workbook = XLSX.read(buffer, { type: 'array', cellDates: false });
+    const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
 
-    if (rows.length < 2) return { lancamentos: [], saldoInicial: 0, contaNome: '' };
+    if (sheetData.length < 2) throw new Error('Arquivo de Saldo vazio.');
 
-    // Extrai conta do cabeçalho (linha 0, col 0)
-    const contaNome = String(rows[0]?.[0] || '').trim();
+    // 1. Detectar Layout
+    let headerRowIndex = -1;
+    let layoutType = 'SAP';
 
-    let saldoInicial = 0;
-    const lancamentos = [];
-
-    for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-
-        // Linha de saldo inicial (Origem = 'SI' ou seq = '1' sem data)
-        if (String(row[COL.ORIGEM] || '').trim() === 'SI') {
-            saldoInicial = typeof row[COL.SALDO_ACUMULADO] === 'number'
-                ? row[COL.SALDO_ACUMULADO]
-                : parseFloat(row[COL.SALDO_ACUMULADO]) || 0;
-            continue;
+    for (let i = 0; i < Math.min(sheetData.length, 20); i++) {
+        const rowStr = sheetData[i].join(' ').toLowerCase();
+        if (rowStr.includes('nº origem') && rowStr.includes('nº transação')) {
+            headerRowIndex = i;
+            layoutType = 'SAP';
+            break;
         }
-
-        // Pula linhas vazias ou sem Nr. Origem
-        const nrOrigemRaw = row[COL.NR_ORIGEM];
-        if (!nrOrigemRaw && nrOrigemRaw !== 0) continue;
-        const nrOrigem = String(nrOrigemRaw).trim();
-        if (!nrOrigem) continue;
-
-        const detalhes = String(row[COL.DETALHES] || '').trim();
-        const cdML = typeof row[COL.CD_ML] === 'number' ? row[COL.CD_ML] : parseFloat(row[COL.CD_ML]) || 0;
-
-        // Derivar débito/crédito a partir do C/D (ML)
-        // C/D positivo → débito (entrada na conta); negativo → crédito (saída)
-        const debito = cdML > 0 ? cdML : 0;
-        const credito = cdML < 0 ? Math.abs(cdML) : 0;
-
-        const estaEstorno = isEstornoExplicito(detalhes);
-        const origemAnulada = estaEstorno ? extractOrigemAnulada(detalhes) : null;
-
-        const dataStr = String(row[COL.DATA] || '').trim();
-
-        lancamentos.push({
-            seq: String(row[COL.SEQ] || '').trim(),
-            data: parseDataBR(dataStr),
-            dataStr,
-            nrTransacao: row[COL.NR_TRANSACAO],
-            origem: String(row[COL.ORIGEM] || '').trim(),
-            nrOrigem,
-            contaContrapartida: String(row[COL.CONTA_CONTRAPARTIDA] || '').trim(),
-            detalhes,
-            cdML,
-            saldoAcumulado: typeof row[COL.SALDO_ACUMULADO] === 'number' ? row[COL.SALDO_ACUMULADO] : 0,
-            debito,
-            credito,
-            isEstorno: estaEstorno,
-            origemAnulada,
-            status: 'ATIVO', // será atualizado pelo netting-engine
-        });
+        if (rowStr.includes('nome do fornecedor') || rowStr.includes('detalhes da linha')) {
+            headerRowIndex = i;
+            layoutType = 'SIMPLIFICADO';
+            break;
+        }
     }
 
-    return { lancamentos, saldoInicial, contaNome };
+    if (headerRowIndex === -1) headerRowIndex = 0;
+
+    const dataRows = sheetData.slice(headerRowIndex + 1);
+    const lancamentos = [];
+    let saldoInicial = 0;
+    let contaNome = '';
+
+    // Extrair nome da conta e saldo inicial
+    for (let i = 0; i <= headerRowIndex; i++) {
+        const row = sheetData[i] || [];
+        const meaningful = row.filter(c => c !== '' && c !== null && c !== undefined);
+        const combined = meaningful.join(' ');
+        if (combined.includes('Saldo Inicial')) {
+            const m = combined.match(/Saldo Inicial.*?(\d[\d.]*,\d{2})/i);
+            if (m) saldoInicial = parseMoeda(m[1]);
+        }
+        if (meaningful.length >= 2) {
+            const candidate = String(meaningful[0]) + ' ' + String(meaningful[1]);
+            if ((candidate.includes('BANCO') || candidate.includes(':') || candidate.includes('.01.')) && !contaNome) {
+                contaNome = candidate.trim();
+            }
+        }
+    }
+
+    // 2. Índices validados manualmente
+    dataRows.forEach((row, idx) => {
+        let nrOrigem, nrTransacao, detalhes, contaContrapartida, dataStr, debito, credito;
+
+        if (layoutType === 'SAP') {
+            nrOrigem = String(row[4] ?? '').trim();          // Nº origem
+            nrTransacao = String(row[2] ?? '').trim();        // Nº transação
+            detalhes = String(row[6] ?? '').trim();           // Detalhes
+            contaContrapartida = String(row[5] ?? '').trim(); // Conta de contrapartida
+            dataStr = String(row[1] ?? '').trim();            // Data de lançamento
+            debito = parseMoeda(row[9]);                      // Débito (MC)
+            credito = parseMoeda(row[10]);                    // Crédito (MC)
+
+            // Fallback via C/D (ML) se coluna de débito/crédito estiver vazia
+            if (debito === 0 && credito === 0) {
+                const cdML = row[7];
+                if (typeof cdML === 'number') {
+                    if (cdML > 0) debito = Math.abs(cdML);
+                    else credito = Math.abs(cdML);
+                }
+            }
+
+            // Ignorar linha de saldo inicial (Origem = 'SI')
+            if (String(row[3]).trim() === 'SI') return;
+
+        } else {
+            // SIMPLIFICADO: dados deslocados em relação ao header visual
+            nrOrigem = String(row[0] ?? '').trim();           // Doc
+            nrTransacao = null;
+            detalhes = String(row[2] ?? '').trim();           // Detalhes da Linha
+            contaContrapartida = '';
+            dataStr = String(row[4] ?? '').trim();            // Data de Pagamento
+            debito = parseMoeda(row[5]);                      // Débito
+            credito = parseMoeda(row[6]);                     // Crédito
+        }
+
+        // Validar doc
+        if (!nrOrigem) return;
+        if (String(nrOrigem).toLowerCase().includes('doc')) return;
+
+        if (debito === 0 && credito === 0) return;
+
+        lancamentos.push({
+            id: `saldo-${idx}`,
+            nrOrigem,
+            nrTransacao,
+            detalhes,
+            contaContrapartida,
+            dataStr,
+            debito,
+            credito,
+            cdML: debito > 0 ? debito : -credito,
+            status: 'ATIVO',
+            layout: layoutType
+        });
+    });
+
+    return { contaNome, saldoInicial, lancamentos, layoutDetectado: layoutType };
+}
+
+function parseMoeda(valor) {
+    if (typeof valor === 'number') return Math.abs(valor);
+    if (!valor || valor === '') return 0;
+    const str = String(valor).replace(/[R$\s]/g, '');
+    if (str.includes(',')) {
+        // Formato BR: 1.234,56
+        return Math.abs(parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0);
+    }
+    // Formato EN: 1234.56
+    return Math.abs(parseFloat(str) || 0);
 }

@@ -1,13 +1,10 @@
 /**
- * useConciliacaoBancaria.js — Hook orquestrador do módulo Conciliação Bancária
+ * useConciliacaoBancaria.js — Hook Universal Corrigido
  *
- * Fluxo:
- *   1. Usuário sobe Fonte A (razao-planilha.xlsx) e Fonte B (saldo-conta.xlsx)
- *   2. ao clicar "Processar":
- *      a. Parseia ambos os arquivos
- *      b. Aplica Netting em cada fonte separadamente
- *      c. Executa matching dos ativos
- *   3. Expõe resultados, filtros e funções de UI
+ * Quando os arquivos são invertidos (SAP no campo "Razão", Simplificado no campo "Saldo"),
+ * o hook normaliza ambas as listas para o schema esperado pelo reconcileBanco:
+ *   - Razão → cada item deve ter: { doc, valor, debito, credito, ... }
+ *   - Saldo → cada item deve ter: { nrOrigem, nrTransacao, cdML, ... }
  */
 
 import { useState, useCallback, useMemo } from 'react';
@@ -16,146 +13,152 @@ import { parseSaldoConta } from '../lib/banco-razao/saldo-conta-parser';
 import { applyNettingRazao, applyNettingSaldoConta } from '../lib/banco-razao/netting-engine';
 import { reconcileBanco, STATUS_BANCO } from '../lib/banco-razao/banco-reconciler';
 
+/**
+ * Converte lançamento do Saldo (nrOrigem, cdML) para schema do Razão (doc, valor).
+ * Usado quando a inversão é detectada e o arquivo Simplificado está em parsedB.
+ */
+function saldoToRazaoSchema(lancamentos) {
+    return lancamentos.map(l => ({
+        ...l,
+        doc: l.nrOrigem,
+        transacao: l.nrTransacao,
+        nome: l.detalhes,
+        dataPgtoStr: l.dataStr,
+        debito: l.debito,
+        credito: l.credito,
+        valor: l.cdML,
+    }));
+}
+
+/**
+ * Converte lançamento do Razão (doc, valor) para schema do Saldo (nrOrigem, cdML).
+ * Usado quando a inversão é detectada e o arquivo SAP está em parsedA.
+ */
+function razaoToSaldoSchema(lancamentos) {
+    return lancamentos.map(l => ({
+        ...l,
+        nrOrigem: l.doc,
+        nrTransacao: l.transacao,
+        cdML: l.valor,
+        dataStr: l.dataPgtoStr,
+    }));
+}
+
 export function useConciliacaoBancaria() {
-    // ── Arquivos ──────────────────────────────────────────────────────────
-    const [arquivoRazao, setArquivoRazaoState] = useState(null);   // Fonte A
-    const [arquivoSaldo, setArquivoSaldoState] = useState(null);   // Fonte B
-
-    // ── Estado de processamento ──────────────────────────────────────────
-    const [status, setStatus] = useState('idle'); // 'idle' | 'processing' | 'done' | 'error'
+    const [arquivoRazao, setArquivoRazaoState] = useState(null);
+    const [arquivoSaldo, setArquivoSaldoState] = useState(null);
+    const [status, setStatus] = useState('idle');
     const [erro, setErro] = useState(null);
-
-    // ── Resultado bruto ──────────────────────────────────────────────────
     const [resultado, setResultado] = useState(null);
-
-    // ── Filtros ──────────────────────────────────────────────────────────
     const [filtroStatus, setFiltroStatus] = useState('TODOS');
     const [buscaTexto, setBuscaTexto] = useState('');
 
-    // ── Handlers de arquivo ───────────────────────────────────────────────
-    const setArquivoRazao = useCallback((file) => {
-        setArquivoRazaoState(file);
-        setResultado(null);
-        setErro(null);
-    }, []);
+    const setArquivoRazao = useCallback((file) => { setArquivoRazaoState(file); setResultado(null); }, []);
+    const setArquivoSaldo = useCallback((file) => { setArquivoSaldoState(file); setResultado(null); }, []);
 
-    const setArquivoSaldo = useCallback((file) => {
-        setArquivoSaldoState(file);
-        setResultado(null);
-        setErro(null);
-    }, []);
-
-    // ── Processamento Principal ───────────────────────────────────────────
     const processar = useCallback(async () => {
         if (!arquivoRazao || !arquivoSaldo) return;
-
         setStatus('processing');
         setErro(null);
 
         try {
-            // Lê ambos como ArrayBuffer
-            const [bufferRazao, bufferSaldo] = await Promise.all([
+            const [bufferA, bufferB] = await Promise.all([
                 arquivoRazao.arrayBuffer(),
                 arquivoSaldo.arrayBuffer(),
             ]);
 
-            // === FASE 1: Parse ===
-            const parsedRazao = parseRazaoBanco(bufferRazao);
-            const parsedSaldo = parseSaldoConta(bufferSaldo);
+            // === FASE 1: Parse com Auto-Detecção ===
+            const parsedA = parseRazaoBanco(bufferA);
+            const parsedB = parseSaldoConta(bufferB);
 
-            // === FASE 2: Netting ===
-            const nettingRazao = applyNettingRazao(parsedRazao.lancamentos);
-            const nettingSaldo = applyNettingSaldoConta(parsedSaldo.lancamentos);
+            // === FASE 2: Normalização de Schemas ===
+            // O reconciliador espera:
+            //   Razão → items com .doc e .valor
+            //   Saldo → items com .nrOrigem e .cdML
+            // Independente de em qual campo o usuário subiu o arquivo.
 
-            // === FASE 3: Reconciliação ===
+            let razaoLancamentos, saldoLancamentos;
+            let arquivosInvertidos = false;
+            let contaNome = parsedB.contaNome || parsedA.contaNome;
+
+            if (parsedA.layoutDetectado === 'SIMPLIFICADO' && parsedB.layoutDetectado === 'SAP') {
+                // Usuário subiu Simplificado no campo Razão e SAP no campo Saldo -> Invertido
+                arquivosInvertidos = true;
+                razaoLancamentos = saldoToRazaoSchema(parsedB.lancamentos); // SAP (B) -> Razão
+                saldoLancamentos = razaoToSaldoSchema(parsedA.lancamentos); // Simplificado (A) -> Saldo
+                contaNome = parsedB.contaNome || parsedA.contaNome;
+            } else if (parsedA.layoutDetectado === 'SAP' && parsedB.layoutDetectado === 'SIMPLIFICADO') {
+                // Usuário subiu SAP no campo Razão e Simplificado no campo Saldo — ordem correta
+                razaoLancamentos = parsedA.lancamentos; // já tem .doc e .valor
+                saldoLancamentos = parsedB.lancamentos; // já tem .nrOrigem e .cdML
+            } else {
+                // Mesmo layout nos dois — usa como enviado
+                razaoLancamentos = parsedA.lancamentos;
+                saldoLancamentos = parsedB.lancamentos;
+            }
+
+            // === FASE 3: Netting ===
+            const nettingRazao = applyNettingRazao(razaoLancamentos);
+            const nettingSaldo = applyNettingSaldoConta(saldoLancamentos);
+
+            // === FASE 4: Reconciliação ===
             const conciliacao = reconcileBanco(nettingRazao.ativos, nettingSaldo.ativos);
 
             setResultado({
-                // Dados de contexto
-                contaNome: parsedSaldo.contaNome || parsedRazao.contaNome,
-                saldoInicial: parsedSaldo.saldoInicial,
-                saldoFinalRazao: parsedRazao.saldoFinal,
+                contaNome,
+                saldoInicial: parsedB.saldoInicial || parsedA.saldoInicial,
                 nomeArquivoRazao: arquivoRazao.name,
                 nomeArquivoSaldo: arquivoSaldo.name,
+                arquivosInvertidos,
+                layoutA: parsedA.layoutDetectado,
+                layoutB: parsedB.layoutDetectado,
 
-                // Netting stats
                 nettingRazaoStats: nettingRazao.estatisticas,
                 nettingSaldoStats: nettingSaldo.estatisticas,
                 saldoAnulados: nettingSaldo.anulados,
                 razaoAnulados: nettingRazao.anulados,
 
-                // Conciliação
                 ...conciliacao,
             });
 
             setStatus('done');
         } catch (err) {
             console.error('[useConciliacaoBancaria] Erro:', err);
-            setErro(err.message || 'Erro inesperado ao processar arquivos.');
+            setErro(err.message || 'Erro ao processar arquivos.');
             setStatus('error');
         }
     }, [arquivoRazao, arquivoSaldo]);
 
-    // ── Limpar ────────────────────────────────────────────────────────────
     const limpar = useCallback(() => {
         setArquivoRazaoState(null);
         setArquivoSaldoState(null);
         setResultado(null);
-        setErro(null);
         setStatus('idle');
-        setFiltroStatus('TODOS');
-        setBuscaTexto('');
+        setErro(null);
     }, []);
 
-    // ── Resultados Filtrados ──────────────────────────────────────────────
     const resultadosFiltrados = useMemo(() => {
         if (!resultado) return [];
-        let lista = resultado.resultados;
-
-        if (filtroStatus !== 'TODOS') {
-            lista = lista.filter(r => r.status === filtroStatus);
-        }
-
+        let lista = resultado.resultados || [];
+        if (filtroStatus !== 'TODOS') lista = lista.filter(r => r.status === filtroStatus);
         if (buscaTexto.trim()) {
             const q = buscaTexto.toLowerCase();
             lista = lista.filter(r =>
-                (r.razaoDoc && r.razaoDoc.toLowerCase().includes(q)) ||
-                (r.razaoNome && r.razaoNome.toLowerCase().includes(q)) ||
-                (r.razaoDetalhes && r.razaoDetalhes.toLowerCase().includes(q)) ||
-                (r.saldoNrOrigem && r.saldoNrOrigem.toLowerCase().includes(q)) ||
-                (r.saldoDetalhes && r.saldoDetalhes.toLowerCase().includes(q)) ||
-                (r.saldoContaContrapartida && r.saldoContaContrapartida.toLowerCase().includes(q))
+                (r.razaoDoc && String(r.razaoDoc).toLowerCase().includes(q)) ||
+                (r.razaoNome && String(r.razaoNome).toLowerCase().includes(q)) ||
+                (r.saldoNrOrigem && String(r.saldoNrOrigem).toLowerCase().includes(q)) ||
+                (r.saldoDetalhes && String(r.saldoDetalhes).toLowerCase().includes(q))
             );
         }
-
         return lista;
     }, [resultado, filtroStatus, buscaTexto]);
 
     return {
-        // Arquivos
-        arquivoRazao,
-        arquivoSaldo,
-        setArquivoRazao,
-        setArquivoSaldo,
-
-        // Estado
-        status,
-        erro,
-        resultado,
-        resultadosFiltrados,
-
-        // Filtros
-        filtroStatus,
-        setFiltroStatus,
-        buscaTexto,
-        setBuscaTexto,
-
-        // Ações
-        processar,
-        limpar,
-
-        // Helpers
+        arquivoRazao, arquivoSaldo, setArquivoRazao, setArquivoSaldo,
+        status, erro, resultado, resultadosFiltrados,
+        filtroStatus, setFiltroStatus, buscaTexto, setBuscaTexto,
+        processar, limpar,
         pronto: !!arquivoRazao && !!arquivoSaldo,
-        processing: status === 'processing',
+        processing: status === 'processing'
     };
 }

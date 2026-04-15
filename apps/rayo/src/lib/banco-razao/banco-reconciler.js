@@ -1,17 +1,5 @@
 /**
- * banco-reconciler.js — Motor de Conciliação Bancária
- *
- * Recebe os lançamentos ATIVOS (pós-netting) de ambas as fontes
- * e realiza o matching Fonte A × Fonte B.
- *
- * Chave de matching (em ordem de prioridade):
- *   1. doc (Fonte A) === nrOrigem (Fonte B)  — correspondência exata por Nr. Doc/Origem
- *
- * Status de saída:
- *   CONCILIADO       — match encontrado, |delta| ≤ R$ 0,05
- *   DIVERGENTE       — match encontrado, mas valores diferem > R$ 0,05
- *   PENDENTE_RAZAO   — existe no Saldo (Fonte B) mas não encontrado no Razão (Fonte A)
- *   PENDENTE_BANCO   — existe no Razão (Fonte A) mas não encontrado no Saldo (Fonte B)
+ * banco-reconciler.js — Motor de Conciliação Bancária Universal
  */
 
 const TOLERANCIA = 0.05;
@@ -24,52 +12,66 @@ export const STATUS_BANCO = {
 };
 
 /**
- * Formata número BR
+ * Normaliza uma chave de documento para matching (remover espaços, zeros à esquerda, etc.)
  */
-function fmtBR(v) {
-    if (typeof v !== 'number') return '—';
-    return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+function normalizeKey(key) {
+    if (!key) return '';
+    return String(key).trim().replace(/^0+/, '');
 }
 
-/**
- * Motor principal de conciliação Banco × Razão.
- *
- * @param {RazaoBancoEntry[]} razaoAtivos   — Fonte A pós-netting
- * @param {SaldoContaEntry[]} saldoAtivos   — Fonte B pós-netting
- * @returns {ConciliacaoBancariaResultado}
- */
 export function reconcileBanco(razaoAtivos, saldoAtivos) {
     const resultados = [];
-    const saldoUsados = new Set(); // índices já casados
+    const saldoUsados = new Set();
 
-    // Indexa Saldo por nrOrigem para O(1) lookup
-    const saldoByNrOrigem = new Map();
+    // Indexa Saldo por múltiplas chaves (Origem e Transação)
+    const saldoByOrigem = new Map();
+    const saldoByTransacao = new Map();
+
     saldoAtivos.forEach((l, idx) => {
-        if (!saldoByNrOrigem.has(l.nrOrigem)) {
-            saldoByNrOrigem.set(l.nrOrigem, []);
+        const keyOrigem = normalizeKey(l.nrOrigem);
+        const keyTrans = normalizeKey(l.nrTransacao);
+
+        if (keyOrigem) {
+            if (!saldoByOrigem.has(keyOrigem)) saldoByOrigem.set(keyOrigem, []);
+            saldoByOrigem.get(keyOrigem).push({ l, idx });
         }
-        saldoByNrOrigem.get(l.nrOrigem).push({ l, idx });
+        if (keyTrans) {
+            if (!saldoByTransacao.has(keyTrans)) saldoByTransacao.set(keyTrans, []);
+            saldoByTransacao.get(keyTrans).push({ l, idx });
+        }
     });
 
-    // === Fase A: Para cada lançamento do Razão, busca par no Saldo ===
+    // === Fase A: Matching do Razão p/ Saldo ===
     for (const razao of razaoAtivos) {
-        const candidatos = saldoByNrOrigem.get(razao.doc) || [];
+        const keyRazao = normalizeKey(razao.doc);
+        const keyTransRazao = normalizeKey(razao.transacao);
+
+        // Tenta match por Doc -> Origem
+        let candidatos = saldoByOrigem.get(keyRazao) || [];
+        
+        // Tenta match por Doc -> Transação (Caso o cliente peça ou layout mude)
+        if (candidatos.length === 0) {
+            candidatos = saldoByTransacao.get(keyRazao) || [];
+        }
+
+        // Se o Razão tem Transação explícita, tenta match por Transação -> Transação
+        if (candidatos.length === 0 && keyTransRazao) {
+            candidatos = saldoByTransacao.get(keyTransRazao) || [];
+        }
+
         const candidatoNaoUsado = candidatos.find(c => !saldoUsados.has(c.idx));
 
         if (!candidatoNaoUsado) {
-            // Sem par no Saldo → PENDENTE_BANCO
             resultados.push({
                 type: 'PENDENTE_BANCO',
                 status: STATUS_BANCO.PENDENTE_BANCO,
-                // Razão
                 razaoDoc: razao.doc,
                 razaoNome: razao.nome,
                 razaoDetalhes: razao.detalhes,
-                razaoDataStr: razao.dataPgtoStr || razao.dataVctoStr,
+                razaoDataStr: razao.dataPgtoStr,
                 razaoDebito: razao.debito,
                 razaoCredito: razao.credito,
                 razaoValor: razao.valor,
-                // Saldo
                 saldoNrOrigem: null,
                 saldoDetalhes: null,
                 saldoDataStr: null,
@@ -77,10 +79,8 @@ export function reconcileBanco(razaoAtivos, saldoAtivos) {
                 saldoCredito: 0,
                 saldoCdML: 0,
                 saldoContaContrapartida: null,
-                // Delta
                 delta: razao.valor,
                 deltaAbs: Math.abs(razao.valor),
-                // Lançamentos raw
                 lancamentosRazao: [razao],
                 lancamentosSaldo: [],
             });
@@ -90,10 +90,8 @@ export function reconcileBanco(razaoAtivos, saldoAtivos) {
         const { l: saldo, idx } = candidatoNaoUsado;
         saldoUsados.add(idx);
 
-        // Comparar valores: Razão usa debito/credito absolutos; Saldo usa cdML (com sinal)
-        // Estratégia: compara o valor líquido de cada lado
-        const valorRazao = razao.valor; // débito positivo, crédito negativo
-        const valorSaldo = saldo.cdML;  // positivo = entrada, negativo = saída
+        const valorRazao = razao.valor;
+        const valorSaldo = saldo.cdML;
 
         const delta = Math.abs(valorRazao - valorSaldo);
         const status = delta <= TOLERANCIA ? STATUS_BANCO.CONCILIADO : STATUS_BANCO.DIVERGENTE;
@@ -101,15 +99,13 @@ export function reconcileBanco(razaoAtivos, saldoAtivos) {
         resultados.push({
             type: 'MATCHED',
             status,
-            // Razão
             razaoDoc: razao.doc,
             razaoNome: razao.nome,
             razaoDetalhes: razao.detalhes,
-            razaoDataStr: razao.dataPgtoStr || razao.dataVctoStr,
+            razaoDataStr: razao.dataPgtoStr,
             razaoDebito: razao.debito,
             razaoCredito: razao.credito,
             razaoValor: valorRazao,
-            // Saldo
             saldoNrOrigem: saldo.nrOrigem,
             saldoDetalhes: saldo.detalhes,
             saldoDataStr: saldo.dataStr,
@@ -117,23 +113,25 @@ export function reconcileBanco(razaoAtivos, saldoAtivos) {
             saldoCredito: saldo.credito,
             saldoCdML: saldo.cdML,
             saldoContaContrapartida: saldo.contaContrapartida,
-            // Delta
             delta: valorRazao - valorSaldo,
             deltaAbs: delta,
-            // Lançamentos raw
             lancamentosRazao: [razao],
             lancamentosSaldo: [saldo],
         });
     }
 
-    // === Fase B: Sobras do Saldo sem par no Razão → PENDENTE_RAZAO ===
+    // === Fase B: Sobras do Saldo ===
     saldoAtivos.forEach((saldo, idx) => {
         if (saldoUsados.has(idx)) return;
+
+        // Suporte a schemas invertidos: se o item veio de parseSaldoConta mas foi convertido
+        // para schema do Razão, ele pode ter .doc em vez de .nrOrigem
+        const nrOrigem = saldo.nrOrigem || saldo.doc || null;
+        const cdML = typeof saldo.cdML === 'number' ? saldo.cdML : (saldo.debito > 0 ? saldo.debito : -(saldo.credito || 0));
 
         resultados.push({
             type: 'PENDENTE_RAZAO',
             status: STATUS_BANCO.PENDENTE_RAZAO,
-            // Razão
             razaoDoc: null,
             razaoNome: null,
             razaoDetalhes: null,
@@ -141,35 +139,30 @@ export function reconcileBanco(razaoAtivos, saldoAtivos) {
             razaoDebito: 0,
             razaoCredito: 0,
             razaoValor: 0,
-            // Saldo
-            saldoNrOrigem: saldo.nrOrigem,
-            saldoDetalhes: saldo.detalhes,
-            saldoDataStr: saldo.dataStr,
-            saldoDebito: saldo.debito,
-            saldoCredito: saldo.credito,
-            saldoCdML: saldo.cdML,
-            saldoContaContrapartida: saldo.contaContrapartida,
-            // Delta
-            delta: -saldo.cdML,
-            deltaAbs: Math.abs(saldo.cdML),
-            // Lançamentos raw
+            saldoNrOrigem: nrOrigem,
+            saldoDetalhes: saldo.detalhes || saldo.nome || null,
+            saldoDataStr: saldo.dataStr || saldo.dataPgtoStr || null,
+            saldoDebito: saldo.debito || 0,
+            saldoCredito: saldo.credito || 0,
+            saldoCdML: cdML,
+            saldoContaContrapartida: saldo.contaContrapartida || saldo.detalhes || null,
+            delta: -cdML,
+            deltaAbs: Math.abs(cdML),
             lancamentosRazao: [],
             lancamentosSaldo: [saldo],
         });
     });
 
-    // === Ordenação: DIVERGENTE > PENDENTE_RAZAO > PENDENTE_BANCO > CONCILIADO ===
     const ordem = {
         [STATUS_BANCO.DIVERGENTE]: 0,
         [STATUS_BANCO.PENDENTE_RAZAO]: 1,
         [STATUS_BANCO.PENDENTE_BANCO]: 2,
         [STATUS_BANCO.CONCILIADO]: 3,
     };
-    resultados.sort((a, b) => ordem[a.status] - ordem[b.status]);
+    resultados.sort((a, b) => (ordem[a.status] ?? 99) - (ordem[b.status] ?? 99));
 
-    // === Totalizadores ===
-    const totalRazao = razaoAtivos.reduce((s, l) => s + l.debito, 0);
-    const totalSaldo = saldoAtivos.reduce((s, l) => s + l.debito, 0);
+    const totalRazao = razaoAtivos.reduce((s, l) => s + Math.abs(l.debito || l.credito), 0);
+    const totalSaldo = saldoAtivos.reduce((s, l) => s + Math.abs(l.debito || l.credito), 0);
 
     const contadores = {
         conciliados: resultados.filter(r => r.status === STATUS_BANCO.CONCILIADO).length,
