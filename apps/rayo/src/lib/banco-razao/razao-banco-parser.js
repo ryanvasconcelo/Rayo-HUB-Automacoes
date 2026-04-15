@@ -32,7 +32,7 @@ export function parseRazaoBanco(buffer) {
             layoutType = 'SAP';
             break;
         }
-        if (rowStr.includes('nome do fornecedor') || rowStr.includes('detalhes da linha')) {
+        if (rowStr.includes('nome do fornecedor') || rowStr.includes('detalhes da linha') || rowStr.includes('data de pagamento') || rowStr.includes('data de vencimento')) {
             headerRowIndex = i;
             layoutType = 'SIMPLIFICADO';
             break;

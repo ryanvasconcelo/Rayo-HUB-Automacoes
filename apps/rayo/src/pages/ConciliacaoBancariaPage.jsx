@@ -22,10 +22,10 @@ function sign(v) { return v > 0.05 ? '+' : v < -0.05 ? '-' : ''; }
 // ── Status Config ────────────────────────────────────────────────────────────
 
 const STATUS_CFG = {
-    [STATUS_BANCO.CONCILIADO]:    { label: 'Conciliado',      color: '#22c55e', bg: 'rgba(34,197,94,0.1)',    icon: '✓' },
+    [STATUS_BANCO.CONCILIADO]:    { label: 'Conciliado (Consta no Razão e no Relatório Financeiro)',      color: '#22c55e', bg: 'rgba(34,197,94,0.1)',    icon: '✓' },
     [STATUS_BANCO.DIVERGENTE]:    { label: 'Divergente',      color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  icon: '△' },
-    [STATUS_BANCO.PENDENTE_RAZAO]:{ label: 'Pend. Razão',    color: '#ef4444', bg: 'rgba(239,68,68,0.1)',   icon: '✕' },
-    [STATUS_BANCO.PENDENTE_BANCO]:{ label: 'Pend. Banco',    color: '#6366f1', bg: 'rgba(99,102,241,0.12)', icon: '?' },
+    [STATUS_BANCO.PENDENTE_RAZAO]:{ label: 'Pendente no razão e consta no relatório financeiro',    color: '#ef4444', bg: 'rgba(239,68,68,0.1)',   icon: '✕' },
+    [STATUS_BANCO.PENDENTE_BANCO]:{ label: 'Consta no razão porém não consta no relatório Financeiro',    color: '#6366f1', bg: 'rgba(99,102,241,0.12)', icon: '?' },
     ANULADO:     { label: 'Anulado',         color: '#64748b', bg: 'rgba(100,116,139,0.1)', icon: '⊘' },
     ANULADO_INTERNO: { label: 'Int. Anulado', color: '#64748b', bg: 'rgba(100,116,139,0.1)', icon: '⊘' },
     ESTORNO:     { label: 'Estorno',          color: '#64748b', bg: 'rgba(100,116,139,0.1)', icon: '↩' },
@@ -127,13 +127,13 @@ function NettingPanel({ resultado }) {
                     {/* Saldo Stats */}
                     <div>
                         <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.06em' }}>
-                            Fonte B — Saldo da Conta
+                            Relatório Banco
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                             <span>Total lido: <strong>{ns.total}</strong></span>
-                            <span>Estornos explícitos ("Anular entrada..."): <strong style={{ color: '#ef4444' }}>{ns.estornosExplicitos || 0}</strong></span>
-                            <span>Anulados internos (par Déb/Créd): <strong style={{ color: '#f59e0b' }}>{ns.anuladosInternos || 0}</strong></span>
-                            <span>Disponíveis para matching: <strong style={{ color: '#22c55e' }}>{ns.ativos}</strong></span>
+                            <span>Estornos explícitos: <strong style={{ color: '#ef4444' }}>{ns.estornosExplicitos || 0}</strong></span>
+                            <span>Anulados internos: <strong style={{ color: '#f59e0b' }}>{ns.anuladosInternos || 0}</strong></span>
+                            <span>Aptos p/ matching: <strong style={{ color: '#22c55e' }}>{ns.ativos}</strong></span>
                         </div>
                         {/* Lista de anulados */}
                         {resultado.saldoAnulados.length > 0 && (
@@ -156,12 +156,12 @@ function NettingPanel({ resultado }) {
                     {/* Razao Stats */}
                     <div>
                         <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.06em' }}>
-                            Fonte A — Razão Interno
+                            Razão ERP
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                             <span>Total lido: <strong>{nr.total}</strong></span>
-                            <span>Anulados internos (par Déb/Créd): <strong style={{ color: '#f59e0b' }}>{nr.anuladosInternos || 0}</strong></span>
-                            <span>Disponíveis para matching: <strong style={{ color: '#22c55e' }}>{nr.ativos}</strong></span>
+                            <span>Anulados internos: <strong style={{ color: '#f59e0b' }}>{nr.anuladosInternos || 0}</strong></span>
+                            <span>Aptos p/ matching: <strong style={{ color: '#22c55e' }}>{nr.ativos}</strong></span>
                         </div>
                         {resultado.razaoAnulados.length > 0 && (
                             <div style={{ marginTop: '10px', maxHeight: '140px', overflowY: 'auto' }}>
@@ -461,15 +461,15 @@ export default function ConciliacaoBancariaPage() {
                             {/* Fonte A */}
                             <div className="glass-card" style={{ padding: '24px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
-                                    <div style={{ width: 24, height: 24, borderRadius: 6, background: accentA, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: 'white', fontWeight: 800 }}>A</div>
+                                    <div style={{ width: 24, height: 24, borderRadius: 6, background: accentA, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: 'white', fontWeight: 800 }}>1</div>
                                     <div>
-                                        <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Razão Interno (Fonte A)</div>
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>razao-planilha.xlsx — movimentação com Doc, Débito e Crédito</div>
+                                        <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Primeiro Arquivo (Qualquer um)</div>
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>A ordem dos arquivos não importa, o sistema detecta automaticamente.</div>
                                     </div>
                                 </div>
                                 <DropZone
-                                    label="Arquivo Razão"
-                                    sublabel="Solte razao-planilha.xlsx aqui"
+                                    label="Arquivo 1"
+                                    sublabel="Solte o primeiro arquivo (.xlsx) aqui"
                                     accept=".xlsx,.xls"
                                     arquivo={arquivoRazao}
                                     onFile={setArquivoRazao}
@@ -477,23 +477,23 @@ export default function ConciliacaoBancariaPage() {
                                     accent={accentA}
                                 />
                                 <div style={{ marginTop: '16px', padding: '12px 14px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border)', fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-                                    <div>Colunas esperadas: <strong>Doc · Nome · Detalhes · Data Vcto · Data Pag. · Débito · Crédito</strong></div>
-                                    <div>A coluna <strong>Doc</strong> é a chave de cruzamento com o Nº Origem do Saldo.</div>
+                                    <div>Colunas esperadas no SAP: <strong>Doc · Nome · Detalhes · Débito · Crédito</strong></div>
+                                    <div>Colunas esperadas no Simplificado: <strong>Data Pgto · Nome · Débito · Crédito</strong></div>
                                 </div>
                             </div>
 
                             {/* Fonte B */}
                             <div className="glass-card" style={{ padding: '24px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
-                                    <div style={{ width: 24, height: 24, borderRadius: 6, background: accentB, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: 'white', fontWeight: 800 }}>B</div>
+                                    <div style={{ width: 24, height: 24, borderRadius: 6, background: accentB, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: 'white', fontWeight: 800 }}>2</div>
                                     <div>
-                                        <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Saldo da Conta (Fonte B)</div>
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Exportação ERP — inclui lançamentos de anulação</div>
+                                        <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Segundo Arquivo (O outro)</div>
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>A ordem dos arquivos não importa, o sistema detecta automaticamente.</div>
                                     </div>
                                 </div>
                                 <DropZone
-                                    label="Arquivo Saldo"
-                                    sublabel="Solte Saldo da conta...xlsx aqui"
+                                    label="Arquivo 2"
+                                    sublabel="Solte o segundo arquivo (.xlsx) aqui"
                                     accept=".xlsx,.xls"
                                     arquivo={arquivoSaldo}
                                     onFile={setArquivoSaldo}
@@ -501,8 +501,8 @@ export default function ConciliacaoBancariaPage() {
                                     accent={accentB}
                                 />
                                 <div style={{ marginTop: '16px', padding: '12px 14px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border)', fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-                                    <div>Colunas esperadas: <strong>#, Data, Nº transação, Origem, Nº origem, Conta Contrapartida, Detalhes, C/D (ML), Saldo Acumulado, Débito, Crédito</strong></div>
-                                    <div>Lançamentos com <em>"Anular entrada para pagamento nº XXXXX"</em> são detectados como estornos.</div>
+                                    <div>O Inteligência de Parsing vai identificar sozinho qual arquivo é o Saldo / Bancário e qual arquivo é o Razão / ERP.</div>
+                                    <div>Lançamentos como <em>"Anular entrada..."</em> são saneados automaticamente.</div>
                                 </div>
                             </div>
                         </div>
@@ -572,8 +572,8 @@ export default function ConciliacaoBancariaPage() {
 
                         {/* Info */}
                         <div style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                            <span>Fonte A: <strong style={{ color: 'var(--text-secondary)' }}>{resultado.nomeArquivoRazao}</strong></span>
-                            <span>Fonte B: <strong style={{ color: 'var(--text-secondary)' }}>{resultado.nomeArquivoSaldo}</strong></span>
+                            <span>Razão ERP: <strong style={{ color: 'var(--text-secondary)' }}>{resultado.nomeArquivoRazao}</strong></span>
+                            <span>Relatório Banco: <strong style={{ color: 'var(--text-secondary)' }}>{resultado.nomeArquivoSaldo}</strong></span>
                         </div>
 
                         {/* Netting Panel */}

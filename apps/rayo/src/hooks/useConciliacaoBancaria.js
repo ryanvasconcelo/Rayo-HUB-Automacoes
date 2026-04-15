@@ -107,8 +107,8 @@ export function useConciliacaoBancaria() {
             setResultado({
                 contaNome,
                 saldoInicial: parsedB.saldoInicial || parsedA.saldoInicial,
-                nomeArquivoRazao: arquivoRazao.name,
-                nomeArquivoSaldo: arquivoSaldo.name,
+                nomeArquivoRazao: arquivosInvertidos ? arquivoSaldo.name : arquivoRazao.name,
+                nomeArquivoSaldo: arquivosInvertidos ? arquivoRazao.name : arquivoSaldo.name,
                 arquivosInvertidos,
                 layoutA: parsedA.layoutDetectado,
                 layoutB: parsedB.layoutDetectado,
