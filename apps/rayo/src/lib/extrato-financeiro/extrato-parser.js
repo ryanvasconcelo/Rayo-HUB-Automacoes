@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import * as pdfjsLib from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist/build/pdf.mjs';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url';
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
