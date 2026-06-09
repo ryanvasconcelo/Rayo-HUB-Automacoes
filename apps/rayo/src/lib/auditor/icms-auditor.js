@@ -25,6 +25,8 @@ import {
     NCM_CESTA_BASICA_PREFIXOS,
     ALIQUOTA_ESPECIFICA_AM,
     BASE_LEGAL_DESCRICOES,
+    NCM_CATALOGO,
+    NCM_SEM_ENCERRAMENTO_CONFIG,
 } from './knowledge-base.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -207,12 +209,13 @@ const buscarRegrasCandidatas = (baseMap, ncmLimpo, ncmBruto) => {
 // ─── Motor Principal ──────────────────────────────────────────────────────────
 
 /**
- * @param {Array}  alterdataRows   - Linhas do Livrão Bruto
- * @param {Array|null}  eAuditoriaRows  - Regras do e-Auditoria (OPCIONAL — pode ser null/[])
+ * @param {Array}  alterdataRows   - Linhas do Livrão Bruto (SPED)
+ * @param {Array|null}  eAuditoriaRows  - Regras do e-Auditoria (OPCIONAL)
  * @param {Object} perfil          - { natureza: 'comercio'|'industria', regime: string }
- * @returns {{ report, correctedData, modifiedCells, ncmSemCobertura, pendingDisambiguation }}
+ * @param {Array|null} xmlItems    - Itens extraídos dos XMLs (OPCIONAL) para reconciliação
+ * @returns {{ report, correctedData, modifiedCells, ncmSemCobertura, pendingDisambiguation, diagnostico }}
  */
-export const runAudit = (alterdataRows, eAuditoriaRows, perfil) => {
+export const runAudit = (alterdataRows, eAuditoriaRows, perfil, xmlItems = null) => {
     const report = [];
     const ncmSemCobertura = new Map();
     const pendingDisambiguation = []; // Épico 4 — NCMs com múltiplas regras ambíguas
@@ -223,6 +226,17 @@ export const runAudit = (alterdataRows, eAuditoriaRows, perfil) => {
     const baseMap = construirBaseMap(eAuditoriaRows || []);
     const eAuditoriaDisponivel = baseMap.size > 0;
 
+    // Indexar itens de XML para reconciliação
+    const xmlIndex = new Map();
+    if (xmlItems) {
+        xmlItems.forEach(item => {
+            const key = `${item.chave_nfe}|${item.num_item}`;
+            xmlIndex.set(key, item);
+        });
+    }
+
+    const diagnosticoList = [];
+
     correctedData.forEach((row, index) => {
         const numLinha = index + 2;
 
@@ -230,23 +244,150 @@ export const runAudit = (alterdataRows, eAuditoriaRows, perfil) => {
         if (!ncmBruto) return;
 
         const ncmLimpo = String(ncmBruto).replace(/\D/g, '');
-        const cstOriginal = String(row['CST ICMS'] || '').padStart(3, '0');
+        const cstOriginal = String(row['CST ICMS'] || '').replace(/\D/g, '').padStart(3, '0').slice(-3);
         const cfopOriginal = String(row['CFOP'] || '').replace(/\D/g, '');
         const raizInformada = cstOriginal.slice(-2);
-        const digitoOrigemCST = cstOriginal.charAt(0); // 0=nacional, 1-8=importado
-        const descricaoLivrao = row['Descrição'] || row['Nome do Produto'] || '';
+        const digitoOrigemCST = cstOriginal.charAt(0); // 0 a 8
         const ufOrigem = row['UF Emitente'] || row['UF Origem'] || row['Estado Emitente'] || '';
+        
+        // Dados para Reconciliação
+        const chaveNFe = row['Chave NFe'] || row['Chave_NFe'] || row['CHV_NFE'] || '';
+        const numItem = String(row['Num_Item'] || row['NUM_ITEM'] || row['Item'] || index + 1);
+        let descricaoLivrao = row['Descrição'] || row['Nome do Produto'] || '';
+
+        // Objeto base do diagnóstico
+        const ncmNormalizado = String(ncmBruto).replace(/\D/g, ''); // Remover pontos, espaços
+        
+        let tipoMatchNcm = 'SEM_MATCH';
+        let ncmMatch = null;
+        let ncmDescricaoOficial = null;
+        let ncm8DigitosValido = false;
+
+        // Wave 4: Match NCM
+        if (ncmNormalizado.length >= 8 && NCM_CATALOGO[ncmNormalizado.slice(0, 8)]) {
+            tipoMatchNcm = 'NCM_8_DIGITOS';
+            ncmMatch = ncmNormalizado.slice(0, 8);
+            ncmDescricaoOficial = NCM_CATALOGO[ncmMatch];
+            ncm8DigitosValido = true;
+        } else if (ncmNormalizado.length >= 4) {
+            const ncm4 = ncmNormalizado.slice(0, 4);
+            const fallbackKey = Object.keys(NCM_CATALOGO).find(k => k.startsWith(ncm4));
+            if (fallbackKey) {
+                tipoMatchNcm = 'NCM_4_DIGITOS';
+                ncmMatch = ncm4; 
+                ncmDescricaoOficial = `Fallback Posição NCM ${ncm4}`;
+            }
+        }
+
+        const diagObj = {
+            linha: numLinha,
+            chave_nfe: chaveNFe,
+            num_item: numItem,
+            ncm_sped: ncmBruto,
+            ncm_xml: null,
+            cfop_sped: cfopOriginal,
+            cfop_xml: null,
+            cst_sped: cstOriginal,
+            cst_xml: null,
+            divergencias_comparaveis: [],
+            diferencas_perspectiva: [],
+            erro_fiscal_confirmado: [],
+            descricao_fonte: 'SPED',
+            ncm_fonte: ncmBruto ? 'SPED' : 'NAO_ENCONTRADO',
+            cfop_fonte: cfopOriginal ? 'SPED' : 'NAO_ENCONTRADO',
+            cfop_comparavel: false,
+            cst_comparavel: 'parcial',
+            ncm_comparavel: true,
+            valor_item_comparavel: true,
+            // Wave 4
+            tipo_match_ncm: tipoMatchNcm,
+            ncm_utilizado: ncmMatch,
+            ncm_8_digitos_valido: ncm8DigitosValido,
+            base_legal_utilizada: null,
+            // Wave 5 - Separação Conceitual ST vs Monofásico vs Sem Encerramento
+            icms_st: null, // Será preenchido pelas regras abaixo se detectado ST
+            icms_sem_encerramento: false,
+            percentual_agregado: null,
+            pis_cofins_monofasico: null,
+            pis_cofins_monofasico_status: 'BASE_MONOFASICA_NAO_CARREGADA'
+        };
+
+        // Sem Encerramento (Wave 4)
+        if (ncmMatch && ncmMatch.length >= 4) {
+            const match4 = ncmMatch.slice(0, 4);
+            if (NCM_SEM_ENCERRAMENTO_CONFIG[match4]) {
+                diagObj.icms_sem_encerramento = true;
+                diagObj.percentual_agregado = NCM_SEM_ENCERRAMENTO_CONFIG[match4];
+                diagObj.base_legal_utilizada = `Base Parcial Sem Encerramento (Posição NCM ${match4})`;
+            }
+        }
+
+        // Motor de Reconciliação SPED x XML
+        if (chaveNFe && xmlIndex.has(`${chaveNFe}|${numItem}`)) {
+            const xItem = xmlIndex.get(`${chaveNFe}|${numItem}`);
+            diagObj.ncm_xml = xItem.ncm;
+            diagObj.cfop_xml = xItem.cfop;
+            diagObj.cst_xml = xItem.cst_icms;
+
+            // Enriquecimento (Fallback) - ATENÇÃO: NÃO USAR XML PARA SOBRESCREVER CFOP/CST NO SPED
+            if (!descricaoLivrao && xItem.descricao_item) {
+                descricaoLivrao = xItem.descricao_item;
+                row['Descrição'] = descricaoLivrao;
+                diagObj.descricao_fonte = 'XML';
+            }
+            if (!ncmBruto && xItem.ncm) {
+                row['Classificação'] = xItem.ncm;
+                diagObj.ncm_fonte = 'XML';
+            }
+
+            // Divergências e Diferenças de Perspectiva
+            if (diagObj.ncm_sped && diagObj.ncm_xml && diagObj.ncm_sped !== diagObj.ncm_xml) {
+                diagObj.divergencias_comparaveis.push(`NCM divergente: SPED=${diagObj.ncm_sped}, XML=${diagObj.ncm_xml}`);
+            }
+            if (diagObj.cfop_sped && diagObj.cfop_xml && diagObj.cfop_sped !== diagObj.cfop_xml) {
+                diagObj.diferencas_perspectiva.push(`CFOP: SPED (Entrada)=${diagObj.cfop_sped}, XML (Saída)=${diagObj.cfop_xml}`);
+            }
+            if (diagObj.cst_sped && diagObj.cst_xml && diagObj.cst_sped !== diagObj.cst_xml) {
+                diagObj.diferencas_perspectiva.push(`CST: SPED=${diagObj.cst_sped}, XML=${diagObj.cst_xml}`);
+            }
+            
+            // Base de cálculo e Valores
+            const bcSped = parseBRLNumber(row['ICMS Base item']);
+            if (Math.abs(bcSped - xItem.base_calculo) > 0.05) {
+                diagObj.divergencias_comparaveis.push(`Base ICMS divergente: SPED=${bcSped}, XML=${xItem.base_calculo}`);
+            }
+            const valItemSped = parseBRLNumber(row['Valor Total Item']);
+            if (Math.abs(valItemSped - xItem.valor_item) > 0.05) {
+                diagObj.divergencias_comparaveis.push(`Valor do Item divergente: SPED=${valItemSped}, XML=${xItem.valor_item}`);
+            }
+        } else if (chaveNFe) {
+            diagObj.divergencias_comparaveis.push(`Item não reconciliado: chave/item não encontrados no XML`);
+        }
+
+        diagnosticoList.push(diagObj);
 
         const isOperacaoEspecial = CFOP_OPERACOES_ESPECIAIS.has(cfopOriginal) && !CFOP_EXCECOES_CREDITO.has(cfopOriginal);
         const isExcecaoAmarela = CFOP_EXCECAO_AMARELA.has(cfopOriginal);
         const isDevolucao = CFOP_DEVOLUCAO.has(cfopOriginal);
 
         // ─── Verificação de ST logo no início ─────────────────────────────
-        const ncmNaST = NCM_ST_LEI_6108_22.has(ncmLimpo)
+        let ncmNaST = NCM_ST_LEI_6108_22.has(ncmLimpo)
             || NCM_ST_LEI_6108_22.has(ncmLimpo.slice(0, 6))
             || NCM_ST_LEI_6108_22.has(ncmLimpo.slice(0, 4));
-
+            
+        if (ncmNaST && diagObj.icms_sem_encerramento) {
+            ncmNaST = false; // "Sem encerramento de tributação" está separado de ST com encerramento (substituição comum)
+            diagObj.conflito_regras_icms = true;
+            diagObj.regras_conflitantes = ["ICMS_ST", "ICMS_SEM_ENCERRAMENTO"];
+            diagObj.acao_conflito = "priorizado_sem_encerramento_para_evitar_correcao_ST_automatica";
+        } else if (diagObj.icms_sem_encerramento) {
+            ncmNaST = false;
+        }
+        
         const ncmCestaBasica = NCM_CESTA_BASICA_PREFIXOS.has(ncmLimpo.slice(0, 4));
+        
+        const xmlReconciled = chaveNFe ? xmlIndex.get(`${chaveNFe}|${numItem}`) : null;
+        const isStXmlRule = xmlReconciled && (xmlReconciled.cfop?.startsWith('14') || xmlReconciled.cfop?.startsWith('24'));
 
         // ════════════════════════════════════════════════════════════════════
         // OPERAÇÃO ESPECIAL — CST 90, zerar base/alíquota/ICMS
@@ -323,6 +464,9 @@ export const runAudit = (alterdataRows, eAuditoriaRows, perfil) => {
                 correcaoAplicada: null,
                 fonte: 'base_legal_local',
             });
+            diagObj.erro_fiscal_confirmado.push(`R03: NCM ST com CST ${cstOriginal} divergente do exigido (x60).`);
+            diagObj.base_legal_utilizada = `${blSt.ref} - ${blSt.desc} (Fonte: Base Local)`;
+            diagObj.icms_st = true;
 
             // Auto-correção: zerar base e ICMS para itens ST com base > 0
             if (bcInformada > 0) {
@@ -330,8 +474,7 @@ export const runAudit = (alterdataRows, eAuditoriaRows, perfil) => {
                 const campoVl = Object.keys(row).find(k => ['Valor ICMS','ICMS Valor','VL_ICMS','ICMS Valor item'].includes(k));
 
                 row['CST Antigo'] = cstOriginal;
-                const digitoOrigem = cstOriginal.charAt(0) || '0';
-                row['CST ICMS'] = digitoOrigem + '60';
+                row['CST ICMS'] = digitoOrigemCST + '60';
                 row['ICMS Base item'] = 0;
                 if (campoAliq) row[campoAliq] = 0;
                 if (campoVl) row[campoVl] = 0;
@@ -343,11 +486,64 @@ export const runAudit = (alterdataRows, eAuditoriaRows, perfil) => {
                 if (ap) ap.correcaoAplicada = {
                     campo: 'CST ICMS / ICMS Base item / Valor ICMS',
                     valorAntes: `CST: ${cstOriginal} | Base: R$ ${bcInformada.toFixed(2)}`,
-                    valorDepois: `CST: ${digitoOrigem}60 | Base: 0 | ICMS: 0`,
+                    valorDepois: `CST: ${digitoOrigemCST}60 | Base: 0 | ICMS: 0`,
                 };
             }
 
             return; // linha processada como ST — não auditar CST/alíquota normal
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // WAVE 3: REGRA CST x60 (Zerar Base e ICMS)
+        // ════════════════════════════════════════════════════════════════════
+        if (raizInformada === '60') {
+            const bcInformada = parseBRLNumber(row['ICMS Base item']);
+            const vlIcmsInformado = parseBRLNumber(row['Valor ICMS'] || row['ICMS Valor'] || row['VL_ICMS'] || row['ICMS Valor item']);
+
+            if (bcInformada > 0 || vlIcmsInformado > 0) {
+                const blCst = getBaseLegal('REGRA_CST_X60'); // placeholder for wave 3
+
+                report.push({
+                    linha: numLinha, ncm: ncmBruto, cst: cstOriginal, cfop: cfopOriginal,
+                    severidade: 'erro',
+                    motivo: 'Regra CST x60 — Base/ICMS Indevidos',
+                    detalhe: `CST informado é ${cstOriginal} (situação tributária 60). Base de cálculo e valor do ICMS devem ser zero.`,
+                    baseLegalRef: null,
+                    baseLegalDesc: null,
+                    baseLegalNome: null,
+                    creditoVedadoST: true,
+                    correcaoAplicada: null,
+                    fonte: 'regra_sintatica_cst',
+                });
+                diagObj.erro_fiscal_confirmado.push(`Regra x60: CST ${cstOriginal} com Base R$ ${bcInformada} ou ICMS R$ ${vlIcmsInformado} > 0.`);
+
+                const campoAliq = Object.keys(row).find(k => ['Alíquota ICMS','Aliquota ICMS','ICMS Aliquota','% ICMS NF'].includes(k));
+                const campoVl = Object.keys(row).find(k => ['Valor ICMS','ICMS Valor','VL_ICMS','ICMS Valor item'].includes(k));
+
+                row['CST Antigo'] = cstOriginal;
+                row['ICMS Base item'] = 0;
+                if (campoAliq) row[campoAliq] = 0;
+                if (campoVl) row[campoVl] = 0;
+
+                if (!modifiedCells.has(index)) modifiedCells.set(index, new Set());
+                ['ICMS Base item'].forEach(f => modifiedCells.get(index).add(f));
+
+                const ap = report[report.length - 1];
+                if (ap) ap.correcaoAplicada = {
+                    campo: 'ICMS Base item / Valor ICMS',
+                    valorAntes: `CST: ${cstOriginal} | Base: R$ ${bcInformada.toFixed(2)}`,
+                    valorDepois: `CST: ${cstOriginal} | Base: 0 | ICMS: 0`,
+                };
+            }
+            
+            // Note: even if it's x60, we might want to check if the ST is CORRECT based on NCM.
+            // If the NCM is NOT in ST list, and e-Auditoria says it's tributado, what happens?
+            // The user requested: "Salvaguarda contra ST virar tributado: Se item originalmente x60, auditor não pode transformar automaticamente para x00 sem base legal explícita."
+            // Wave 4: se não tiver base_legal_utilizada definida, definimos:
+            if (!diagObj.base_legal_utilizada) {
+                diagObj.base_legal_utilizada = 'Regra Sintática x60 (Sem Base Legal Local vinculada)';
+            }
+            diagObj.icms_st = true;
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -357,35 +553,56 @@ export const runAudit = (alterdataRows, eAuditoriaRows, perfil) => {
         const fonteRegra = regra?._fonte === 'base_legal_local' ? 'base_legal_local' : (eAuditoriaDisponivel ? 'e-auditoria' : 'sem_cobertura');
 
         // ════════════════════════════════════════════════════════════════════
-        // Sem cobertura
+        // Sem cobertura ou Salvaguarda ST -> Tributado
         // ════════════════════════════════════════════════════════════════════
-        if (!regra) {
-            // Verificar se há múltiplas candidatas para desambiguação
-            const candidatas = eAuditoriaDisponivel ? buscarRegrasCandidatas(baseMap, ncmLimpo, ncmBruto) : [];
-            if (candidatas.length > 1) {
-                pendingDisambiguation.push({ rowIndex: index, ncm: ncmBruto, descricaoLivrao, opcoes: candidatas });
-                return; // aguarda escolha humana
-            }
+        
+        let cstBase = regra ? String(regra['CST/CSOSN'] || '').padStart(3, '0') : null;
+        let raizEsperada = cstBase ? cstBase.slice(-2) : null;
 
-            if (!ncmSemCobertura.has(ncmBruto)) {
-                ncmSemCobertura.set(ncmBruto, { ncm: ncmBruto, linhas: [], descricao: descricaoLivrao });
-            }
-            ncmSemCobertura.get(ncmBruto).linhas.push(numLinha);
+        // Salvaguarda: Se o CST original era x60 e a regra manda tributar (ex: 00), 
+        // e a fonte não é base legal local explícita (apenas e-Auditoria), barramos a conversão.
+        const requiresSafeguard = raizInformada === '60' && raizEsperada !== '60' && raizEsperada !== '61' && fonteRegra !== 'base_legal_local';
 
-            report.push({
-                linha: numLinha, ncm: ncmBruto, cst: cstOriginal, cfop: cfopOriginal,
-                severidade: 'erro',
-                motivo: 'NCM não auditado — Análise Manual Obrigatória',
-                detalhe: 'Este NCM não consta nas bases legais locais nem no e-Auditoria. Auditoria manual obrigatória.',
-                baseLegalRef: null, baseLegalDesc: null, baseLegalNome: null,
-                correcaoAplicada: null,
-                fonte: 'sem_cobertura',
-            });
+        if (!regra || requiresSafeguard) {
+            if (requiresSafeguard) {
+                report.push({
+                    linha: numLinha, ncm: ncmBruto, cst: cstOriginal, cfop: cfopOriginal,
+                    severidade: 'alerta',
+                    motivo: 'Salvaguarda ST: Análise Manual Obrigatória',
+                    detalhe: `Item escriturado como ST (${cstOriginal}) mas regra sugerida é Tributado (${raizEsperada}). Para evitar conversão indevida sem base legal explícita, a escrituração original foi mantida.`,
+                    baseLegalRef: null, baseLegalDesc: null, baseLegalNome: null,
+                    correcaoAplicada: null,
+                    fonte: fonteRegra,
+                });
+                diagObj.erro_fiscal_confirmado.push(`Salvaguarda acionada: CST ${cstOriginal} sugerido para ${raizEsperada} sem base legal local.`);
+            } else {
+                // Verificar se há múltiplas candidatas para desambiguação
+                const candidatas = eAuditoriaDisponivel ? buscarRegrasCandidatas(baseMap, ncmNormalizado, ncmBruto) : [];
+                if (candidatas.length > 1) {
+                    pendingDisambiguation.push({ rowIndex: index, ncm: ncmBruto, descricaoLivrao, opcoes: candidatas });
+                    diagObj.base_legal_utilizada = "Ambiguidade no e-Auditoria";
+                    return; // aguarda escolha humana
+                }
+
+                if (!ncmSemCobertura.has(ncmBruto)) {
+                    ncmSemCobertura.set(ncmBruto, { ncm: ncmBruto, linhas: [], descricao: descricaoLivrao });
+                }
+                ncmSemCobertura.get(ncmBruto).linhas.push(numLinha);
+
+                report.push({
+                    linha: numLinha, ncm: ncmBruto, cst: cstOriginal, cfop: cfopOriginal,
+                    severidade: 'erro',
+                    motivo: 'NCM não auditado — Análise Manual Obrigatória',
+                    detalhe: 'Este NCM não consta nas bases legais locais nem no e-Auditoria. Auditoria manual obrigatória.',
+                    baseLegalRef: null, baseLegalDesc: null, baseLegalNome: null,
+                    correcaoAplicada: null,
+                    fonte: 'sem_cobertura',
+                });
+                diagObj.erro_fiscal_confirmado.push(`NCM sem cobertura: Análise manual.`);
+                diagObj.base_legal_utilizada = "Base legal não encontrada / fora da base configurada";
+            }
             return;
         }
-
-        const cstBase = String(regra['CST/CSOSN'] || '').padStart(3, '0');
-        const raizEsperada = cstBase.slice(-2);
 
         row['CST Antigo'] = cstOriginal;
         row['Desc_eAuditoria'] = regra['DESCRIÇÃO'] || regra['Descrição do Produto'] || regra['Descrição'] || regra['DESCRICAO'] || '';
@@ -577,5 +794,7 @@ export const runAudit = (alterdataRows, eAuditoriaRows, perfil) => {
         modifiedCells,
         ncmSemCobertura: [...ncmSemCobertura.values()],
         pendingDisambiguation,
+        report, // Erros e Alertas originais
+        diagnostico: diagnosticoList, // Diagnóstico por item da Wave 2
     };
 };

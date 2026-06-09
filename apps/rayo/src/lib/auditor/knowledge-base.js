@@ -25,12 +25,27 @@
  * Atualização semestral ou a cada alteração legislativa relevante.
  */
 
-import cfopsStData from './data/cfops_st.json';
-import aliquotasData from './data/aliquotas_interestaduais.json';
-import baseLegalDescricoesData from './data/base_legal_descricoes.json';
+import cfopsStData from './data/cfops_st.json' with { type: 'json' };
+import aliquotasData from './data/aliquotas_interestaduais.json' with { type: 'json' };
+import baseLegalDescricoesData from './data/base_legal_descricoes.json' with { type: 'json' };
+import ncmVigenteData from './data/ncm_vigente.json' with { type: 'json' };
 
 // ─── Exportar textos das bases legais ────────────────────────────────────────
 export const BASE_LEGAL_DESCRICOES = baseLegalDescricoesData;
+
+// ─── Catálogo de NCMs (Tabela Vigente Oficial) ───────────────────────────────
+export const NCM_CATALOGO = ncmVigenteData;
+
+// ─── NCMs Sem Encerramento de Tributação (Base Parcial/Configurável) ─────────
+// Fonte inicial parcial para a Wave 4.
+export const NCM_SEM_ENCERRAMENTO_CONFIG = {
+    '2204': 0.50, // Vinhos
+    '2205': 0.50, // Vermutes
+    '2206': 0.50, // Outras bebidas fermentadas
+    '2207': 0.50, // Álcool etílico
+    '2208': 0.50, // Bebidas espirituosas
+    '0901': 0.30, // Café
+};
 
 // ─── 1. NCMs sob Substituição Tributária no AM (Decreto 6.108/99) ─────────────
 // Extraídos dos Anexos I-XXVI. 585 NCMs oficiais.
