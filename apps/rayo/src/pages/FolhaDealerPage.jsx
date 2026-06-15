@@ -54,6 +54,18 @@ export default function FolhaDealerPage() {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val / 100);
   };
 
+  // Real engine totals based on entries
+  const engineTotals = useMemo(() => {
+    if (!run || !run.entries) return { debit: 0, credit: 0, difference: 0 };
+    let debit = 0;
+    let credit = 0;
+    run.entries.forEach(e => {
+      if (e.dc === 'D') debit += e.amountCents;
+      if (e.dc === 'C') credit += e.amountCents;
+    });
+    return { debit, credit, difference: Math.abs(debit - credit) };
+  }, [run]);
+
   // Build grid rows for the spreadsheet view
   const gridRows = useMemo(() => {
     if (!run || !run.consolidatedItems) return [];
@@ -159,11 +171,11 @@ export default function FolhaDealerPage() {
               <div className="h-8 w-px bg-slate-200"></div>
               <div className="flex gap-4 text-sm">
                 <div className="flex flex-col items-end"><span className="text-[10px] uppercase text-slate-400 font-bold">Líquido Folha</span><span className="font-semibold">{formatCurrency(metadata?.totalLiquido || 0)}</span></div>
-                <div className="flex flex-col items-end"><span className="text-[10px] uppercase text-slate-400 font-bold">Total Débito</span><span className="font-semibold text-red-600">{formatCurrency(summary?.unbalancedJournal?.totalDebitCents || 0)}</span></div>
-                <div className="flex flex-col items-end"><span className="text-[10px] uppercase text-slate-400 font-bold">Total Crédito</span><span className="font-semibold text-green-600">{formatCurrency(summary?.unbalancedJournal?.totalCreditCents || 0)}</span></div>
+                <div className="flex flex-col items-end"><span className="text-[10px] uppercase text-slate-400 font-bold">Total Débito</span><span className="font-semibold text-red-600">{formatCurrency(engineTotals.debit)}</span></div>
+                <div className="flex flex-col items-end"><span className="text-[10px] uppercase text-slate-400 font-bold">Total Crédito</span><span className="font-semibold text-green-600">{formatCurrency(engineTotals.credit)}</span></div>
                 <div className="flex flex-col items-end"><span className="text-[10px] uppercase text-slate-400 font-bold">Diferença</span>
-                  <span className={`font-bold ${summary?.unbalancedJournal?.differenceCents === 0 ? 'text-slate-600' : 'text-orange-500'}`}>
-                    {formatCurrency(summary?.unbalancedJournal?.differenceCents || 0)}
+                  <span className={`font-bold ${engineTotals.difference === 0 ? 'text-slate-600' : 'text-orange-500'}`}>
+                    {formatCurrency(engineTotals.difference)}
                   </span>
                 </div>
               </div>
