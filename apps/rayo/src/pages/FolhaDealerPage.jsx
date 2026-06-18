@@ -10,7 +10,7 @@ import {
 export default function FolhaDealerPage() {
   const { 
     run, error, metadata, summary, 
-    processRun, processCsvFortes, approveRun, downloadExcel, downloadTxt 
+    processRun, processCsvFortes, extractFromDatabase, approveRun, downloadExcel, downloadTxt 
   } = useFolhaDealer();
   
   const [origin, setOrigin] = useState('FIXTURE'); 
@@ -22,9 +22,9 @@ export default function FolhaDealerPage() {
   const [fortesCompanyId, setFortesCompanyId] = useState('9274');
   const [fortesCompetence, setFortesCompetence] = useState('2026-04');
   
-  const [dealerCompany, setDealerCompany] = useState('02');
+  const [dealerCompany, setDealerCompany] = useState('01');
   const [dealerBranch, setDealerBranch] = useState('001');
-  const [accountingDate, setAccountingDate] = useState(getLastDayOfCompetence('2023-10'));
+  const [accountingDate, setAccountingDate] = useState(getLastDayOfCompetence('2026-05'));
   const [approver, setApprover] = useState('Analista Contábil');
 
   const [activeTab, setActiveTab] = useState('lancamentos');
@@ -36,10 +36,12 @@ export default function FolhaDealerPage() {
     setAccountingDate(getLastDayOfCompetence(newVal));
   };
 
-  const handleProcess = (e) => {
+  const handleProcess = async (e) => {
     e.preventDefault();
     if (origin === 'FIXTURE') {
       processRun(companyId, competence);
+    } else if (origin === 'DB') {
+      await extractFromDatabase(fortesCompanyId, fortesCompetence);
     } else {
       if (!csvFile) return;
       const reader = new FileReader();
@@ -198,7 +200,8 @@ export default function FolhaDealerPage() {
                        onChange={e => setOrigin(e.target.value)}
                      >
                         <option value="FIXTURE">Fixture Braga (Teste)</option>
-                        <option value="CSV">CSV Fortes (Real)</option>
+                        <option value="CSV">CSV Fortes (Manual)</option>
+                        <option value="DB">Banco Fortes (Ao Vivo)</option>
                      </select>
                    </div>
 
@@ -221,7 +224,7 @@ export default function FolhaDealerPage() {
                      <>
                        <div className="grid grid-cols-2 gap-2">
                          <div>
-                           <label className="block text-xs font-semibold mb-1 text-slate-600">Empresa</label>
+                           <label className="block text-xs font-semibold mb-1 text-slate-600">Empresa Fortes</label>
                            <input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-md p-2 text-sm" value={fortesCompanyId} onChange={e => setFortesCompanyId(e.target.value)} />
                          </div>
                          <div>
@@ -241,6 +244,27 @@ export default function FolhaDealerPage() {
                             </div>
                             <input type="file" accept=".csv" className="hidden" onChange={e => setCsvFile(e.target.files[0])} />
                          </label>
+                       </div>
+                     </>
+                   )}
+
+                   {origin === 'DB' && (
+                     <>
+                       <div className="grid grid-cols-2 gap-2">
+                         <div>
+                           <label className="block text-xs font-semibold mb-1 text-slate-600">Empresa Fortes</label>
+                           <input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-md p-2 text-sm" value={fortesCompanyId} onChange={e => setFortesCompanyId(e.target.value)} />
+                         </div>
+                         <div>
+                           <label className="block text-xs font-semibold mb-1 text-slate-600">Competência</label>
+                           <input type="month" className="w-full bg-slate-50 border border-slate-200 rounded-md p-2 text-sm" value={fortesCompetence} onChange={e => {
+                             setFortesCompetence(e.target.value);
+                             setAccountingDate(getLastDayOfCompetence(e.target.value));
+                           }} />
+                         </div>
+                       </div>
+                       <div className="text-xs text-blue-700 bg-blue-50 border border-blue-100 p-2 rounded">
+                          Busca direta na base SQL Server configurada no servidor.
                        </div>
                      </>
                    )}

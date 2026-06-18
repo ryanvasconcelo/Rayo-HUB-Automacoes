@@ -8,6 +8,7 @@ import SubvencoesPage from './pages/SubvencoesPage';
 import ConciliacaoNotasPage from './pages/ConciliacaoNotasPage';
 import ConciliacaoBancariaPage from './pages/ConciliacaoBancariaPage';
 import RetificacaoCodigosPage from './pages/RetificacaoCodigosPage';
+import FolhaDealerPage from './pages/FolhaDealerPage';
 
 export default function App() {
     return (
@@ -22,6 +23,7 @@ export default function App() {
                 <Route path="/conciliacao-notas" element={<ConciliacaoNotasPage />} />
                 <Route path="/conciliacao-bancaria" element={<ConciliacaoBancariaPage />} />
                 <Route path="/retificacao-codigos" element={<RetificacaoCodigosPage />} />
+                <Route path="/folha-dealer" element={<FolhaDealerPage />} />
             </Routes>
         </BrowserRouter>
     );

@@ -154,6 +154,7 @@ export function buildJournal({ consolidatedItems, config, competence }) {
         history,
         dc: accountLine.dc.toUpperCase(),
         accountCode: accountLine.dealerAccountCode,
+        dealerLotAccountCode: accountLine.dealerLotAccountCode,
         centerCode,
         amountCents: item.amountCents,
         lotacaoCode: item.lotacaoCode,

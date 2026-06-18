@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+import { fortesApiPlugin } from './vite-plugin-fortes-api.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const require = createRequire(import.meta.url);
@@ -21,7 +22,7 @@ try {
 }
 
 export default defineConfig({
-    plugins: [react()],
+    plugins: [react(), fortesApiPlugin()],
     resolve: {
         alias: {
             'pdfjs-dist/build/pdf.mjs': pdfjsMain,

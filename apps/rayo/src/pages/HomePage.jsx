@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
-import { Moon, Sun, Zap, Search, LayoutDashboard, FileSpreadsheet, FileBox, Landmark, RefreshCcw } from 'lucide-react';
+import { Moon, Sun, Zap, Search, LayoutDashboard, FileSpreadsheet, FileBox, Landmark, RefreshCcw, Users } from 'lucide-react';
 
 export default function HomePage() {
     const { theme, toggle } = useTheme();
@@ -134,6 +134,20 @@ export default function HomePage() {
                              <p className="text-muted-foreground mb-6 text-sm">Razão Interno × Saldo da Conta com Netting automático de estornos.</p>
                          </div>
                          <div className="font-semibold text-sky-500 flex items-center gap-2 mt-auto text-sm uppercase tracking-wide">
+                            Acessar Módulo <Search size={14} className="group-hover:translate-x-1 transition-transform" />
+                         </div>
+                    </Link>
+
+                    <Link to="/folha-dealer" className="group rounded-xl border border-border bg-card hover:border-rose-500/50 transition-all p-6 shadow-sm hover:shadow-md col-span-1 md:col-span-2 lg:col-span-3 relative overflow-hidden flex flex-col justify-between">
+                         <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-700"></div>
+                         <div>
+                             <div className="w-12 h-12 bg-rose-500/10 text-rose-500 rounded-lg flex items-center justify-center mb-4 transition-transform group-hover:scale-110">
+                                <Users size={24} />
+                             </div>
+                             <h2 className="text-2xl font-bold font-display mb-2 text-foreground">Folha Fortes → Dealer</h2>
+                             <p className="text-muted-foreground mb-6">Orquestração contábil e conversão de arquivos de folha do sistema Fortes para o ERP Dealer (TXT/XLSX).</p>
+                         </div>
+                         <div className="font-semibold text-rose-500 flex items-center gap-2 mt-auto text-sm uppercase tracking-wide">
                             Acessar Módulo <Search size={14} className="group-hover:translate-x-1 transition-transform" />
                          </div>
                     </Link>
