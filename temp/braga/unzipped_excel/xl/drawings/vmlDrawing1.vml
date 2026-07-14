@@ -1,0 +1,31 @@
+<xml xmlns:v="urn:schemas-microsoft-com:vml"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel">
+ <o:shapelayout v:ext="edit">
+  <o:idmap v:ext="edit" data="3"/>
+ </o:shapelayout><v:shapetype id="_x0000_t201" coordsize="21600,21600" o:spt="201"
+  path="m,l,21600r21600,l21600,xe">
+  <v:stroke joinstyle="miter"/>
+  <v:path shadowok="f" o:extrusionok="f" strokeok="f" fillok="f" o:connecttype="rect"/>
+  <o:lock v:ext="edit" shapetype="t"/>
+ </v:shapetype><v:shape id="_x0000_s3073" type="#_x0000_t201" style='position:absolute;
+  margin-left:430.8pt;margin-top:19.8pt;width:109.8pt;height:29.4pt;z-index:1;
+  mso-wrap-style:tight' o:button="t" fillcolor="buttonFace [67]" strokecolor="windowText [64]"
+  o:insetmode="auto">
+  <v:fill color2="buttonFace [67]" o:detectmouseclick="t"/>
+  <o:lock v:ext="edit" rotation="t"/>
+  <v:textbox style='mso-direction-alt:auto' o:singleclick="f">
+   <div style='text-align:center'><font face="Calibri" size="200"
+   color="#000000"><b><i>LIMPAR<br />
+      </i></b></font><font face="Calibri" size="200" color="#000000"><b><i>LANÇAMENTOS</i></b></font></div>
+  </v:textbox>
+  <x:ClientData ObjectType="Button">
+   <x:SizeWithCells/>
+   <x:Anchor>
+    7, 8, 1, 1, 7, 191, 2, 0</x:Anchor>
+   <x:PrintObject>False</x:PrintObject>
+   <x:AutoFill>False</x:AutoFill>
+   <x:FmlaMacro>[0]!LIMPAR_LANÇAMENTOS</x:FmlaMacro>
+   <x:TextHAlign>Center</x:TextHAlign>
+  </x:ClientData>
+ </v:shape></xml>

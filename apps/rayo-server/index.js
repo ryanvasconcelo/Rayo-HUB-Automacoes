@@ -20,6 +20,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const { scrapeEAuditoria } = require('./scraper/eauditoria-scraper');
+const { extractFortesPayroll } = require('./fortes-extractor');
 
 const app = express();
 const PORT = process.env.PORT || 80;
@@ -173,6 +174,21 @@ app.post('/api/scrape-eauditoria', async (req, res) => {
                 sugestao: 'O layout do e-Auditoria pode ter mudado. Use o upload manual como fallback.'
             });
         }
+    }
+});
+
+// ── Extração do Fortes (Integração Direta) ───────────────────────────────────
+app.post('/api/fortes/extract', async (req, res) => {
+    try {
+        const payload = req.body;
+        const data = await extractFortesPayroll(payload);
+        res.json({ success: true, data });
+    } catch (err) {
+        console.error('[/api/fortes/extract] ❌ Erro:', err);
+        res.status(500).json({
+            success: false,
+            error: err.message || 'Internal Server Error'
+        });
     }
 });
 

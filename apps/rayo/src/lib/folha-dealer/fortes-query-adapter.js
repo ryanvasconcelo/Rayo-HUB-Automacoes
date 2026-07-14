@@ -2,6 +2,9 @@
  * Adapter para converter retorno bruto de query Fortes em PayrollSourceRow[].
  */
 
+import { calculateProvisions } from './provision-calculator.js';
+import { employeeLotacaoMap } from './employee-lotacao-map.js';
+
 export function mapFortesProvDesc(provDesc) {
   const descMap = {
     '1': 'PROVENTO',
@@ -27,13 +30,16 @@ export function buildFortesSourceLineId(row, options = {}) {
   return parts.join('-');
 }
 
-export function normalizeFortesQueryRows(rawRows, options = {}) {
+export function normalizeFortesQueryRows(rawRows, options = {}, provisionRates = null) {
   const normalized = [];
 
   for (let i = 0; i < rawRows.length; i++) {
     const raw = rawRows[i];
 
-    if (raw.lotacaoCode === undefined || raw.lotacaoCode === null) {
+    if (raw.employeeId && employeeLotacaoMap[raw.employeeId]) {
+      raw.lotacaoCode = employeeLotacaoMap[raw.employeeId];
+      raw.lotacaoName = employeeLotacaoMap[raw.employeeId];
+    } else if (raw.lotacaoCode === undefined || raw.lotacaoCode === null) {
       raw.lotacaoCode = '';
     }
     if (raw.eventCode === undefined || raw.eventCode === null || String(raw.eventCode).trim() === '') {
@@ -131,6 +137,12 @@ export function normalizeFortesQueryRows(rawRows, options = {}) {
         sourceLineId: `fortes-derived-liquido-${code}`,
       });
     }
+  }
+
+  // Sintetizar Provisões Trabalhistas por Lotação
+  if (provisionRates) {
+    const provisionRows = calculateProvisions(rawRows, provisionRates);
+    normalized.push(...provisionRows);
   }
 
   return normalized;

@@ -47,6 +47,7 @@ export {
 } from './folha-dealer-run-service.js';
 
 export { summarizeValidationIssues } from './validation-summarizer.js';
+export { calculateProvisions, DEFAULT_PROVISION_RATES } from './provision-calculator.js';
 
 // Imports internos para o pipeline
 import { normalizePayrollRows } from './fortes-normalizer.js';

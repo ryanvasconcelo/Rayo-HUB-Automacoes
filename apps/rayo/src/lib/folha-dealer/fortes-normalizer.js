@@ -8,6 +8,8 @@
  *   companyId, companyName, competence, lotacaoCode, eventCode, amountCents.
  */
 
+import { employeeLotacaoMap } from './employee-lotacao-map.js';
+
 /**
  * Normaliza um array de linhas de origem para PayrollSourceRow.
  * @param {object[]} rawRows — linhas brutas (fixture ou query Fortes).
@@ -25,6 +27,13 @@ export function normalizePayrollRows(rawRows) {
     // Garantir eventCode como string
     if (normalized.eventCode != null) {
       normalized.eventCode = String(normalized.eventCode);
+    }
+
+    // Override Lotação if we have an employee mapped from the XLS
+    if (normalized.employeeId && employeeLotacaoMap[normalized.employeeId]) {
+      normalized.lotacaoCode = employeeLotacaoMap[normalized.employeeId];
+      // Keep lotacaoName in sync for UI purposes
+      normalized.lotacaoName = employeeLotacaoMap[normalized.employeeId];
     }
 
     // Garantir lotacaoCode como string

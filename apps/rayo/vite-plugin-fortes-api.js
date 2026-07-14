@@ -80,10 +80,14 @@ export function fortesApiPlugin() {
                             EVE.NomeApr AS eventName,
                             EVE.ProvDesc AS ProvDesc,
                             CASE
-                                WHEN CAST(EVE.ProvDesc AS VARCHAR(10)) IN ('0', '1') THEN 'PROVENTO'
-                                WHEN CAST(EVE.ProvDesc AS VARCHAR(10)) IN ('2', '3') THEN 'DESCONTO'
-                                ELSE 'NAO_CLASSIFICADO'
+                                WHEN CAST(EVE.ProvDesc AS VARCHAR(10)) = '1' THEN 'PROVENTO'
+                                WHEN CAST(EVE.ProvDesc AS VARCHAR(10)) IN ('2', '-1') THEN 'DESCONTO'
+                                ELSE 'INFORMATIVO'
                             END AS TipoRegistro,
+                            CASE 
+                                WHEN ISNULL(CAST(EVE.IndicativoFGTSMensalFerias AS VARCHAR(10)), '0') <> '0' THEN '1' 
+                                ELSE '0' 
+                            END AS IncideFGTS,
                             CAST(ROUND(EFP.Valor * 100, 0) AS INT) AS amountCents,
                             EFP.Referencia AS sourceReference,
                             '' AS lotacaoCode,

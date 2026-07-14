@@ -4,7 +4,7 @@ import { useFolhaDealer } from '../hooks/useFolhaDealer';
 import { getLastDayOfCompetence } from '../lib/folha-dealer/date-helpers';
 import { 
   FileSpreadsheet, Check, Download, AlertTriangle, XCircle, 
-  FileText, Upload, Filter, List, AlertCircle, Info
+  FileText, Upload, Filter, List, AlertCircle, Info, Search
 } from 'lucide-react';
 
 export default function FolhaDealerPage() {
@@ -29,6 +29,7 @@ export default function FolhaDealerPage() {
 
   const [activeTab, setActiveTab] = useState('lancamentos');
   const [filterMode, setFilterMode] = useState('TODOS'); // TODOS, ERROS, AVISOS, PRONTOS, SEM_CENTRO, SEM_CONTA
+  const [searchTerm, setSearchTerm] = useState('');
 
   const handleCompetenceChange = (e) => {
     const newVal = e.target.value;
@@ -136,16 +137,29 @@ export default function FolhaDealerPage() {
   }, [run, accountingDate]);
 
   const filteredRows = useMemo(() => {
+    let result = gridRows;
     switch (filterMode) {
-      case 'ERROS': return gridRows.filter(r => r.status === 'ERRO');
-      case 'AVISOS': return gridRows.filter(r => r.status === 'AVISO');
-      case 'PRONTOS': return gridRows.filter(r => r.status === 'OK' && r.lancar);
-      case 'SEM_CENTRO': return gridRows.filter(r => r.issues.some(i => i.code === 'MISSING_CENTER_MAPPING' || i.code === 'MISSING_REQUIRED_CENTER'));
-      case 'SEM_CONTA': return gridRows.filter(r => r.issues.some(i => i.code === 'MISSING_ACCOUNT_MAPPING'));
+      case 'ERROS': result = result.filter(r => r.status === 'ERRO'); break;
+      case 'AVISOS': result = result.filter(r => r.status === 'AVISO'); break;
+      case 'PRONTOS': result = result.filter(r => r.lancar); break;
+      case 'SEM_CENTRO': result = result.filter(r => r.issues.some(i => i.code === 'MISSING_CENTER_MAPPING' || i.code === 'MISSING_REQUIRED_CENTER')); break;
+      case 'SEM_CONTA': result = result.filter(r => r.issues.some(i => i.code === 'MISSING_ACCOUNT_MAPPING')); break;
       case 'TODOS': 
-      default: return gridRows;
+      default: break;
     }
-  }, [gridRows, filterMode]);
+    
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(r => 
+        (r.lotacaoFortes || '').toLowerCase().includes(term) ||
+        (r.descricaoEvento || '').toLowerCase().includes(term) ||
+        (r.evento || '').toLowerCase().includes(term) ||
+        (r.conta || '').toLowerCase().includes(term)
+      );
+    }
+    
+    return result;
+  }, [gridRows, filterMode, searchTerm]);
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-slate-800 flex flex-col font-sans">
@@ -390,8 +404,20 @@ export default function FolhaDealerPage() {
                                  {f.label}
                               </button>
                            ))}
-                           <div className="ml-auto text-xs text-slate-500 font-medium px-2">
-                              Exibindo {filteredRows.length} de {gridRows.length}
+                           <div className="ml-auto flex items-center gap-4">
+                              <div className="relative">
+                                 <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                                 <input 
+                                   type="text" 
+                                   placeholder="Pesquisar (ex: Férias, 6110300)..." 
+                                   className="pl-8 pr-3 py-1.5 rounded-md border border-slate-200 text-xs w-64 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                   value={searchTerm}
+                                   onChange={e => setSearchTerm(e.target.value)}
+                                 />
+                              </div>
+                              <div className="text-xs text-slate-500 font-medium px-2">
+                                 Exibindo {filteredRows.length} de {gridRows.length}
+                              </div>
                            </div>
                         </div>
 

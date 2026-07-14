@@ -1,0 +1,105 @@
+const mssql = require('mssql');
+
+async function extractFortesPayroll({ companyId = '9274', competence = '2026-04' }) {
+    // Configurações do banco (fallback para os defaults usados no Vite)
+    const dbConfig = {
+        user: process.env.DB_USER || 'biprojecont',
+        password: process.env.DB_PASSWORD || 'proj@#2087!',
+        server: process.env.DB_HOST || '192.168.0.5',
+        port: parseInt(process.env.DB_PORT || '1433', 10),
+        database: process.env.DB_DATABASE || 'AC',
+        options: {
+            encrypt: false,
+            trustServerCertificate: true
+        },
+        requestTimeout: 300000
+    };
+
+    // Formatar competência (YYYY-MM para YYYYMM e extração de int)
+    const [anoStr, mesStr] = competence.split('-');
+    const ano = parseInt(anoStr, 10);
+    const mes = parseInt(mesStr, 10);
+    const anoMesStr = anoStr + (mesStr ? mesStr.padStart(2, '0') : '');
+
+    console.log(`[API Fortes] Conectando ao MSSQL... Empresa: ${companyId}, Competência: ${anoMesStr}`);
+    
+    let pool;
+    try {
+        pool = await mssql.connect(dbConfig);
+        
+        const query = `
+        DECLARE @EmpresaCodigo VARCHAR(4) = @Company;
+        DECLARE @Ano INT = @AnoParam;
+        DECLARE @Mes INT = @MesParam;
+        DECLARE @AnoMes VARCHAR(6) = @AnoMesParam;
+        
+        DECLARE @FolhaSeq INT = (
+            SELECT TOP 1 FOL.Seq
+            FROM FOL (NOLOCK)
+            INNER JOIN FPG (NOLOCK)
+                ON FOL.EMP_Codigo = FPG.EMP_Codigo
+               AND FOL.Seq = FPG.FOL_Seq
+            WHERE FOL.EMP_Codigo = @EmpresaCodigo
+              AND FPG.AnoMes = @AnoMes
+              AND FOL.Folha = 2
+              AND FPG.Tipo IN (1, 4)
+            ORDER BY FOL.Seq DESC
+        );
+        
+        SELECT
+            EFO.EMP_Codigo AS companyId,
+            EMP.Nome AS companyName,
+            @AnoMes AS competence,
+            EPG.Codigo AS employeeId,
+            EPG.Nome AS employeeName,
+            EFO.FOL_Seq AS sourcePayrollId,
+            EFP.EVE_Codigo AS eventCode,
+            EVE.NomeApr AS eventName,
+            EVE.ProvDesc AS ProvDesc,
+            CASE
+                WHEN CAST(EVE.ProvDesc AS VARCHAR(10)) = '1' THEN 'PROVENTO'
+                WHEN CAST(EVE.ProvDesc AS VARCHAR(10)) IN ('2', '-1') THEN 'DESCONTO'
+                ELSE 'INFORMATIVO'
+            END AS TipoRegistro,
+            CASE 
+                WHEN ISNULL(CAST(EVE.IndicativoFGTSMensalFerias AS VARCHAR(10)), '0') <> '0' THEN '1' 
+                ELSE '0' 
+            END AS IncideFGTS,
+            CAST(ROUND(EFP.Valor * 100, 0) AS INT) AS amountCents,
+            EFP.Referencia AS sourceReference,
+            '' AS lotacaoCode,
+            '' AS lotacaoName
+        FROM EFO (NOLOCK)
+        INNER JOIN EPG (NOLOCK)
+            ON EFO.EMP_Codigo = EPG.EMP_Codigo
+           AND EFO.EPG_Codigo = EPG.Codigo
+        LEFT JOIN EMP (NOLOCK)
+            ON EFO.EMP_Codigo = EMP.Codigo
+        LEFT JOIN EFP (NOLOCK)
+            ON EFO.EMP_Codigo = EFP.EMP_Codigo
+           AND EFO.FOL_Seq = EFP.EFO_FOL_Seq
+           AND EFO.EPG_Codigo = EFP.EFO_EPG_Codigo
+        LEFT JOIN EVE (NOLOCK)
+            ON EFP.EMP_Codigo = EVE.EMP_Codigo
+           AND EFP.EVE_Codigo = EVE.Codigo
+        WHERE EFO.EMP_Codigo = @EmpresaCodigo
+          AND EFO.FOL_Seq = @FolhaSeq
+        ORDER BY EPG.Nome, EFP.EVE_Codigo;
+        `;
+        
+        const result = await pool.request()
+            .input('Company', mssql.VarChar(4), companyId)
+            .input('AnoParam', mssql.Int, ano)
+            .input('MesParam', mssql.Int, mes)
+            .input('AnoMesParam', mssql.VarChar(6), anoMesStr)
+            .query(query);
+            
+        return result.recordset;
+    } finally {
+        if (pool) {
+            await pool.close();
+        }
+    }
+}
+
+module.exports = { extractFortesPayroll };

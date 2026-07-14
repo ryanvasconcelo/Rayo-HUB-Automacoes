@@ -55,7 +55,7 @@ export function useFolhaDealer() {
         throw new Error('Nenhuma linha encontrada para a empresa e competência informadas no CSV.');
       }
 
-      let payrollRows = normalizeFortesQueryRows(rawRows);
+      let payrollRows = normalizeFortesQueryRows(rawRows, {}, bragaVeiculosConfig.provisionRates);
       // Forçar 'braga-veiculos' para bater com as chaves do de-para do motor.
       payrollRows = payrollRows.map(row => ({
         ...row,
@@ -102,7 +102,7 @@ export function useFolhaDealer() {
         competencia: competence,
       });
 
-      let payrollRows = normalizeFortesQueryRows(rawRows);
+      let payrollRows = normalizeFortesQueryRows(rawRows, {}, bragaVeiculosConfig.provisionRates);
       
       // Forçar 'braga-veiculos' se for 9274 para bater com o de-para do mock atual
       if (companyId === '9274' || companyId === 'BRAGA_VEICULOS') {
