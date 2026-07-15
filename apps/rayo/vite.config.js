@@ -23,7 +23,8 @@ export default defineConfig(async ({ command }) => {
     const plugins = [react()];
 
     if (command === 'serve') {
-        const { fortesApiPlugin } = await import('./vite-plugin-fortes-api.js');
+        const pluginPath = './vite-plugin-fortes-api.js';
+        const { fortesApiPlugin } = await import(pluginPath);
         plugins.push(fortesApiPlugin());
     }
 
