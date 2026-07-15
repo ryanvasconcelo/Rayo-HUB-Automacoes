@@ -90,7 +90,7 @@ const SUBVENCOES_DIST = (SUBVENCOES_DIST_ENV && fs.existsSync(SUBVENCOES_DIST_EN
 if (fs.existsSync(SUBVENCOES_DIST)) {
     app.use('/subvencoes-app', express.static(SUBVENCOES_DIST));
     app.get('/subvencoes-app/*', (req, res) => {
-        res.sendFile(path.join(SUBVENCOES_DIST, 'index.html'));
+        res.sendFile('index.html', { root: path.resolve(SUBVENCOES_DIST) });
     });
     console.log(`   📦 Subvenções ZFM: http://localhost:${process.env.PORT || 80}/subvencoes-app/`);
     if (SUBVENCOES_DIST_ENV && !fs.existsSync(SUBVENCOES_DIST_ENV)) {
@@ -198,7 +198,7 @@ app.post('/api/fortes/extract', async (req, res) => {
 app.get('*', (req, res) => {
     const index = path.join(RAYO_DIST, 'index.html');
     if (fs.existsSync(index)) {
-        res.sendFile(index);
+        res.sendFile('index.html', { root: path.resolve(RAYO_DIST) });
     } else {
         res.status(404).send('Execute: cd apps/rayo && npm run build');
     }
