@@ -3,8 +3,6 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
-import { fortesApiPlugin } from './vite-plugin-fortes-api.js';
-
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const require = createRequire(import.meta.url);
 
@@ -21,8 +19,16 @@ try {
     pdfjsWorker = path.resolve(__dirname, '../../node_modules/pdfjs-dist/build/pdf.worker.mjs');
 }
 
-export default defineConfig({
-    plugins: [react(), fortesApiPlugin()],
+export default defineConfig(async ({ command }) => {
+    const plugins = [react()];
+
+    if (command === 'serve') {
+        const { fortesApiPlugin } = await import('./vite-plugin-fortes-api.js');
+        plugins.push(fortesApiPlugin());
+    }
+
+    return {
+        plugins,
     resolve: {
         alias: {
             'pdfjs-dist/build/pdf.mjs': pdfjsMain,
