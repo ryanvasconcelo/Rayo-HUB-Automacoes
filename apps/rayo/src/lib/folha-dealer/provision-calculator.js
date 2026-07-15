@@ -31,16 +31,13 @@ export const DEFAULT_PROVISION_RATES = Object.freeze({
 // ---------------------------------------------------------------------------
 
 /**
- * Calcula a BC-FGTS por lotação a partir dos raw rows do Fortes.
- *
- * A base é calculada somando proventos com incidência FGTS e subtraindo
- * descontos com incidência FGTS que reduzem a base remuneratória
- * (ex: faltas, atrasos, DSR desconto).
+/**
+ * Calcula a BC-FGTS por empregado a partir dos raw rows do Fortes.
  *
  * @param {object[]} rawRows — linhas brutas do CSV/DB Fortes
- * @returns {Map<string, { base: number, lotacaoName: string, companyId: string, competence: string }>}
+ * @returns {Map<string, { base: number, lotacaoCode: string, lotacaoName: string, companyId: string, competence: string, employeeId: string, employeeName: string }>}
  */
-function calculateFgtsBasePerLotacao(rawRows) {
+function calculateFgtsBasePerEmployee(rawRows) {
   const bases = new Map();
 
   for (const row of rawRows) {
@@ -50,19 +47,29 @@ function calculateFgtsBasePerLotacao(rawRows) {
     const tipo = String(row.TipoRegistro || row.tipoRegistro || '').toUpperCase();
     if (tipo !== 'PROVENTO' && tipo !== 'DESCONTO') continue;
 
-    const lotacao = String(row.lotacaoCode || '');
+    const employeeId = String(row.employeeId || '');
+    if (!employeeId) continue;
+    
+    // Create a composite key just in case an employee changes lotação, 
+    // but typically employeeId is enough. Let's use employeeId + lotacaoCode
+    const lotacaoCode = String(row.lotacaoCode || '');
+    const key = `${employeeId}|${lotacaoCode}`;
+
     const amount = Math.abs(parseInt(row.amountCents || '0', 10));
 
-    if (!bases.has(lotacao)) {
-      bases.set(lotacao, {
+    if (!bases.has(key)) {
+      bases.set(key, {
         base: 0,
+        lotacaoCode: lotacaoCode,
         lotacaoName: row.lotacaoName || '',
         companyId: row.companyId,
         competence: row.competence,
+        employeeId: employeeId,
+        employeeName: row.employeeName || ''
       });
     }
 
-    const entry = bases.get(lotacao);
+    const entry = bases.get(key);
     if (tipo === 'PROVENTO') {
       entry.base += amount;
     } else {
@@ -78,10 +85,10 @@ function calculateFgtsBasePerLotacao(rawRows) {
  *
  * @param {object[]} rawRows — linhas brutas do Fortes (com IncideFGTS, TipoRegistro)
  * @param {object} [rates] — alíquotas personalizadas (DEFAULT_PROVISION_RATES se omitido)
- * @returns {object[]} — PayrollSourceRow[] sintéticas (6 por lotação com base > 0)
+ * @returns {object[]} — PayrollSourceRow[] sintéticas (6 por empregado com base > 0)
  */
 export function calculateProvisions(rawRows, rates = DEFAULT_PROVISION_RATES) {
-  const basesPerLotacao = calculateFgtsBasePerLotacao(rawRows);
+  const basesPerEmployee = calculateFgtsBasePerEmployee(rawRows);
   const provisionRows = [];
 
   const provisionDefs = [
@@ -93,7 +100,7 @@ export function calculateProvisions(rawRows, rates = DEFAULT_PROVISION_RATES) {
     { eventCode: 'PROV_FGTS_13',   eventName: 'Provisão FGTS s/ 13º',      rateKey: 'fgts',           baseMultiplier: 'decimoTerceiro' },
   ];
 
-  for (const [lotacaoCode, data] of basesPerLotacao) {
+  for (const [key, data] of basesPerEmployee) {
     if (data.base <= 0) continue;
 
     // Normalizar competência
@@ -122,7 +129,7 @@ export function calculateProvisions(rawRows, rates = DEFAULT_PROVISION_RATES) {
         companyId: data.companyId != null ? String(data.companyId) : '',
         companyName: '',
         competence: comp || '',
-        lotacaoCode,
+        lotacaoCode: data.lotacaoCode,
         lotacaoName: data.lotacaoName || '',
         eventCode: def.eventCode,
         eventName: def.eventName,
@@ -130,9 +137,9 @@ export function calculateProvisions(rawRows, rates = DEFAULT_PROVISION_RATES) {
         sourceReference: `BC-FGTS: ${data.base}`,
         sourceRecordType: 'PROVISAO',
         amountCents,
-        employeeId: null,
-        employeeName: null,
-        sourceLineId: `provision-${def.eventCode}-${lotacaoCode}`,
+        employeeId: data.employeeId,
+        employeeName: data.employeeName,
+        sourceLineId: `provision-${def.eventCode}-${data.employeeId}-${data.lotacaoCode}`,
       });
     }
   }
