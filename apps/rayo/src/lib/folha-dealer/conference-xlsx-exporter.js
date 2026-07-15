@@ -125,5 +125,25 @@ export function exportConferenceXlsx(run, config) {
   const wsAccounts = XLSX.utils.json_to_sheet(accountsData);
   XLSX.utils.book_append_sheet(wb, wsAccounts, 'De-Para Contas');
 
+  // 7. Aba Provisões
+  const provisionsData = (run.sourceRows || [])
+    .filter((r) => r.sourceOrigin === 'provision-derived' || (r.eventCode && r.eventCode.startsWith('PROV_')))
+    .map((p) => ({
+      'Empresa': run.companyId,
+      'Competência': run.competence,
+      'Matrícula': p.employeeId,
+      'Nome Colaborador': p.employeeName,
+      'Lotação Fortes': p.lotacaoCode,
+      'Código Evento': p.eventCode,
+      'Descrição Evento': p.eventName,
+      'Valor (R$)': formatReais(p.amountCents),
+      'Referência / Base': p.sourceReference,
+    }));
+  
+  if (provisionsData.length > 0) {
+    const wsProvisions = XLSX.utils.json_to_sheet(provisionsData);
+    XLSX.utils.book_append_sheet(wb, wsProvisions, 'Provisões');
+  }
+
   return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 }
