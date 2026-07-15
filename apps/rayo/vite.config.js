@@ -45,4 +45,5 @@ export default defineConfig(async ({ command }) => {
     build: {
         target: 'esnext',
     },
+    };
 });
