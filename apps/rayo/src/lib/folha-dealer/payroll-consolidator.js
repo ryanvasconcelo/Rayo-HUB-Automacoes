@@ -21,6 +21,11 @@ export function consolidatePayrollRows(rows) {
       const item = map.get(key);
       item.amountCents += row.amountCents;
       item.sourceCount += 1;
+      // Após agregar mais de uma origem, perde identidade de um único empregado
+      if (item.sourceCount > 1) {
+        item.employeeId = null;
+        item.employeeName = null;
+      }
     } else {
       map.set(key, {
         companyId: row.companyId,
@@ -31,6 +36,8 @@ export function consolidatePayrollRows(rows) {
         eventName: row.eventName || null,
         amountCents: row.amountCents,
         sourceCount: 1,
+        employeeId: row.employeeId != null ? String(row.employeeId) : null,
+        employeeName: row.employeeName || null,
       });
     }
   }

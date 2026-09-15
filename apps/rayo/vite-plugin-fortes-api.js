@@ -1,141 +1,61 @@
-import mssql from 'mssql';
-import dotenv from 'dotenv';
+import { createRequire } from 'module';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 
-// Carregar variáveis de ambiente (se existirem)
+const require = createRequire(import.meta.url);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
-const dbConfig = {
-    user: process.env.DB_USER || 'biprojecont',
-    password: process.env.DB_PASSWORD || 'proj@#2087!',
-    server: process.env.DB_HOST || '192.168.0.5',
-    port: parseInt(process.env.DB_PORT || '1433', 10),
-    database: process.env.DB_DATABASE || 'AC',
-    options: {
-        encrypt: false,
-        trustServerCertificate: true
-    },
-    requestTimeout: 300000
-};
+const { extractFortesPayroll } = require(path.resolve(__dirname, '../rayo-server/fortes-extractor.js'));
 
 export function fortesApiPlugin() {
-    return {
-        name: 'vite-plugin-fortes-api',
-        configureServer(server) {
-            server.middlewares.use('/api/fortes/extract', async (req, res) => {
-                if (req.method !== 'POST') {
-                    res.statusCode = 405;
-                    res.end('Method Not Allowed');
-                    return;
-                }
-
-                let body = '';
-                req.on('data', chunk => {
-                    body += chunk.toString();
-                });
-
-                req.on('end', async () => {
-                    try {
-                        const payload = JSON.parse(body);
-                        const companyId = payload.companyId || '9274'; // Padrão Braga
-                        
-                        // Parse competence "YYYY-MM" to "YYYYMM"
-                        const competence = payload.competence || '2026-04';
-                        const [anoStr, mesStr] = competence.split('-');
-                        const ano = parseInt(anoStr, 10);
-                        const mes = parseInt(mesStr, 10);
-                        const anoMesStr = anoStr + mesStr.padStart(2, '0');
-
-                        console.log(`[API] Conectando ao Fortes para extrair Folha. Empresa: ${companyId}, Competência: ${anoMesStr}`);
-                        
-                        const pool = await mssql.connect(dbConfig);
-                        
-                        // Braga segmenta a competência em várias folhas (FOL.Seq).
-                        // Buscamos TODAS as sequências mensais da competência e
-                        // deixamos a consolidação por lotação+evento no motor.
-                        const query = `
-                        DECLARE @EmpresaCodigo VARCHAR(4) = @Company;
-                        DECLARE @Ano INT = @AnoParam;
-                        DECLARE @Mes INT = @MesParam;
-                        DECLARE @AnoMes VARCHAR(6) = @AnoMesParam;
-
-                        SELECT
-                            EFO.EMP_Codigo AS companyId,
-                            EMP.Nome AS companyName,
-                            @AnoMes AS competence,
-                            EPG.Codigo AS employeeId,
-                            EPG.Nome AS employeeName,
-                            EFO.FOL_Seq AS sourcePayrollId,
-                            EFP.EVE_Codigo AS eventCode,
-                            EVE.NomeApr AS eventName,
-                            EVE.ProvDesc AS ProvDesc,
-                            CASE
-                                WHEN CAST(EVE.ProvDesc AS VARCHAR(10)) = '1' THEN 'PROVENTO'
-                                WHEN CAST(EVE.ProvDesc AS VARCHAR(10)) IN ('2', '-1') THEN 'DESCONTO'
-                                ELSE 'INFORMATIVO'
-                            END AS TipoRegistro,
-                            CASE 
-                                WHEN ISNULL(CAST(EVE.IndicativoFGTSMensalFerias AS VARCHAR(10)), '0') <> '0' THEN '1' 
-                                ELSE '0' 
-                            END AS IncideFGTS,
-                            CAST(ROUND(EFP.Valor * 100, 0) AS INT) AS amountCents,
-                            EFP.Referencia AS sourceReference,
-                            '' AS lotacaoCode,
-                            '' AS lotacaoName
-                        FROM EFO (NOLOCK)
-                        INNER JOIN EPG (NOLOCK)
-                            ON EFO.EMP_Codigo = EPG.EMP_Codigo
-                           AND EFO.EPG_Codigo = EPG.Codigo
-                        LEFT JOIN EMP (NOLOCK)
-                            ON EFO.EMP_Codigo = EMP.Codigo
-                        LEFT JOIN EFP (NOLOCK)
-                            ON EFO.EMP_Codigo = EFP.EMP_Codigo
-                           AND EFO.FOL_Seq = EFP.EFO_FOL_Seq
-                           AND EFO.EPG_Codigo = EFP.EFO_EPG_Codigo
-                        LEFT JOIN EVE (NOLOCK)
-                            ON EFP.EMP_Codigo = EVE.EMP_Codigo
-                           AND EFP.EVE_Codigo = EVE.Codigo
-                        WHERE EFO.EMP_Codigo = @EmpresaCodigo
-                          AND EFO.FOL_Seq IN (
-                              SELECT FOL.Seq
-                              FROM FOL (NOLOCK)
-                              INNER JOIN FPG (NOLOCK)
-                                  ON FOL.EMP_Codigo = FPG.EMP_Codigo
-                                 AND FOL.Seq = FPG.FOL_Seq
-                              WHERE FOL.EMP_Codigo = @EmpresaCodigo
-                                AND FPG.AnoMes = @AnoMes
-                                AND FOL.Folha = 2
-                                AND FPG.Tipo IN (1, 4)
-                          )
-                        ORDER BY EFO.FOL_Seq, EPG.Nome, EFP.EVE_Codigo;
-                        `;
-                        
-                        const result = await pool.request()
-                            .input('Company', mssql.VarChar(4), companyId)
-                            .input('AnoParam', mssql.Int, ano)
-                            .input('MesParam', mssql.Int, mes)
-                            .input('AnoMesParam', mssql.VarChar(6), anoMesStr)
-                            .query(query);
-                            
-                        pool.close();
-                        
-                        res.setHeader('Content-Type', 'application/json');
-                        res.end(JSON.stringify({
-                            success: true,
-                            data: result.recordset
-                        }));
-                        
-                    } catch (err) {
-                        console.error('[API] Erro ao extrair:', err);
-                        res.statusCode = 500;
-                        res.setHeader('Content-Type', 'application/json');
-                        res.end(JSON.stringify({
-                            success: false,
-                            error: err.message || 'Internal Server Error'
-                        }));
-                    }
-                });
-            });
+  return {
+    name: 'vite-plugin-fortes-api',
+    configureServer(server) {
+      server.middlewares.use('/api/fortes/extract', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.end('Method Not Allowed');
+          return;
         }
-    };
+
+        let body = '';
+        req.on('data', (chunk) => {
+          body += chunk.toString();
+        });
+
+        req.on('end', async () => {
+          try {
+            const payload = JSON.parse(body || '{}');
+            const companyId = payload.companyId || '9274';
+            const competence = payload.competence || '2026-04';
+
+            console.log(`[API] Extract Fortes. Empresa: ${companyId}, Competência: ${competence}`);
+            const extracted = await extractFortesPayroll({ companyId, competence });
+
+            res.setHeader('Content-Type', 'application/json');
+            res.end(
+              JSON.stringify({
+                success: true,
+                data: extracted.payroll,
+                provisions: extracted.provisions,
+              })
+            );
+          } catch (err) {
+            console.error('[API] Erro ao extrair:', err);
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(
+              JSON.stringify({
+                success: false,
+                error: err.message || 'Internal Server Error',
+              })
+            );
+          }
+        });
+      });
+    },
+  };
 }

@@ -163,6 +163,12 @@ conta, natureza e observacao, nao o valor total.
 | PROVISAO_FGTS_13 | FGTS s/ provisão de 13º | 6.1.1.03.006 | 2.1.1.03.006 |  |
 | PROVISAO_FGTS_FERIAS | FGTS s/ provisão de férias | 6.1.1.03.005 | 2.1.1.03.003 |  |
 
+### Fonte das provisões (Fortes)
+
+No extract por banco, `PROV_*` vêm de `PRD`/`PRF` (coluna **Provisao** = relatório RH **Provisionar**), não de `taxa × BC-FGTS`. Encargos DCTF (`ENCARGO_*`) continuam calculados na folha mensal.
+
+Validação de referência: `PRV.AnoMes = 202604` → total `PROV_13` = R$ 17.935,11.
+
 ## Premissas de encargos no fixture
 
 Fonte: Analítico DCTFWeb + FGTS (Braga) e `temp/braga/mid-result.xlsx` (Parâmetros).

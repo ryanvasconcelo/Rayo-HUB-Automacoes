@@ -115,12 +115,15 @@ export function useFolhaDealer() {
         folhaSeq: folhaSeqList[0] || null,
         folhaSeqs: folhaSeqList,
         quantidadeFolhas: folhaSeqList.length,
+        provisoesFortes: Array.isArray(result.provisions) ? result.provisions.length : 0,
       });
 
+      // DB extract: PROV_* vêm do Fortes (PRD/PRF). Sem taxa×BC-FGTS sintético.
+      const hasFortesProvisions = Array.isArray(result.provisions);
       let payrollRows = normalizeFortesQueryRows(
         rawRows,
-        {},
-        bragaVeiculosConfig.provisionRates,
+        hasFortesProvisions ? { fortesProvisions: result.provisions } : {},
+        hasFortesProvisions ? null : bragaVeiculosConfig.provisionRates,
         bragaVeiculosConfig.encargoRates
       );
       

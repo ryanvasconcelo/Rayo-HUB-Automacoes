@@ -35,6 +35,7 @@ describe('Folha Dealer - Conference XLSX Exporter', () => {
     const { workbook } = generateTestWorkbook();
     const expectedSheets = [
       'Resumo',
+      'Analítico',
       'Lançamentos',
       'Consolidado',
       'Validações',
@@ -42,6 +43,45 @@ describe('Folha Dealer - Conference XLSX Exporter', () => {
       'De-Para Contas',
     ];
     expect(workbook.SheetNames).toEqual(expectedSheets);
+  });
+
+  it('aba Analítico exibe nome do evento e linhas segmentadas (não consolidadas)', () => {
+    const { workbook, runResult } = generateTestWorkbook();
+    const ws = workbook.Sheets['Analítico'];
+    const rows = XLSX.utils.sheet_to_json(ws);
+
+    expect(rows.length).toBe(runResult.sourceRows.length);
+    expect(rows[0]).toHaveProperty('Código Evento');
+    expect(rows[0]).toHaveProperty('Nome do Evento');
+
+    const withName = rows.filter((r) => r['Nome do Evento'] && String(r['Nome do Evento']).trim() !== '');
+    expect(withName.length).toBeGreaterThan(0);
+  });
+
+  it('aba Lançamentos é segmentada e inclui Nome do Evento', () => {
+    const { workbook, runResult } = generateTestWorkbook();
+    const ws = workbook.Sheets['Lançamentos'];
+    const rows = XLSX.utils.sheet_to_json(ws);
+
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows[0]).toHaveProperty('Código Evento');
+    expect(rows[0]).toHaveProperty('Nome do Evento');
+    expect(rows[0]).toHaveProperty('Lotação Fortes');
+    expect(rows[0]).toHaveProperty('Matrícula');
+
+    const withName = rows.filter((r) => r['Nome do Evento'] && String(r['Nome do Evento']).trim() !== '');
+    expect(withName.length).toBeGreaterThan(0);
+
+    // Segmentado: Lançamentos do Excel ≥ partidas do TXT consolidado
+    expect(rows.length).toBeGreaterThanOrEqual(runResult.entries.length);
+  });
+
+  it('aba Consolidado também exibe Nome do Evento', () => {
+    const { workbook } = generateTestWorkbook();
+    const ws = workbook.Sheets['Consolidado'];
+    const rows = XLSX.utils.sheet_to_json(ws);
+    expect(rows[0]).toHaveProperty('Nome do Evento');
+    expect(rows[0]).toHaveProperty('Código Evento');
   });
 
   it('aba Resumo tem total débito igual ao total crédito em execução válida', () => {

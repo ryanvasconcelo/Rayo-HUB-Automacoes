@@ -14,7 +14,7 @@ const company = {
   companyId: 'braga-veiculos',
   companyName: 'BRAGA VEICULOS LTDA',
   cnpj: '04.011.946/0001-04',
-  fortesCompanyCode: 'PENDENTE', // confirmar no banco Fortes
+  fortesCompanyCode: '9274',
   dealerCompanyField: '01',
   dealerBranch: '001',
 };

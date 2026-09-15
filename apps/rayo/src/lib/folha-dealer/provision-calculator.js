@@ -1,7 +1,10 @@
 /**
- * provision-calculator.js — Calcula provisões trabalhistas a partir dos dados Fortes.
+ * provision-calculator.js — Fallback sintético de provisões (taxa × BC-FGTS).
  *
- * Provisões geradas por lotação:
+ * No fluxo Braga com extract do banco, as provisões vêm de PRD/PRF no Fortes
+ * (`sourceOrigin: fortes-provision`) e este módulo NÃO é chamado.
+ *
+ * Provisões geradas por lotação (fallback CSV / sem Fortes):
  *   PROV_FERIAS    → Férias + 1/3 de Férias
  *   PROV_13        → 13º Salário
  *   PROV_INSS_FER  → INSS Patronal s/ Férias

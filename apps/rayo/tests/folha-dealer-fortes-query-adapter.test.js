@@ -92,14 +92,17 @@ describe('Fortes Query Adapter', () => {
     expect(typeof result[0].sourceLineId).toBe('string');
   });
 
-  it('12. bloqueia ou reporta erro quando faltar lotacaoCode', () => {
-    const raw = [{ eventCode: '1' }];
-    expect(() => normalizeFortesQueryRows(raw)).toThrow(/Lotação ausente/);
+  it('12. aceita lotacao vazia quando não houver mapeamento de empregado', () => {
+    const raw = [{ eventCode: '1', amountCents: 100 }];
+    const result = normalizeFortesQueryRows(raw);
+    expect(result[0].lotacaoCode).toBe('');
+    expect(result[0].eventCode).toBe('1');
   });
 
-  it('13. bloqueia ou reporta erro quando faltar eventCode', () => {
-    const raw = [{ lotacaoCode: '1' }];
-    expect(() => normalizeFortesQueryRows(raw)).toThrow(/Evento ausente/);
+  it('13. ignora linhas sem eventCode', () => {
+    const raw = [{ lotacaoCode: '1', amountCents: 100 }];
+    const result = normalizeFortesQueryRows(raw);
+    expect(result.filter((r) => r.sourceOrigin === 'folha-mensal')).toHaveLength(0);
   });
 
   it('14. sintetiza a linha LIQUIDO_FOLHA por lotação quando há proventos e descontos', () => {
@@ -122,5 +125,127 @@ describe('Fortes Query Adapter', () => {
     expect(derived.amountCents).toBe(400000); // 500k - 100k
     expect(derived.sourceOrigin).toBe('fortes-query-derived');
     expect(derived.sourceRecordType).toBe('DESCONTO'); // Para ser consistente com algo que é a pagar (embora o D/C venha da config)
+  });
+
+  it('15. usa provisões Fortes (PRD/PRF) e não sintetiza taxa×BC-FGTS', () => {
+    const raw = [
+      {
+        companyId: '9274',
+        competence: '202604',
+        lotacaoCode: 'DEPT. VENDAS VEICULOS',
+        lotacaoName: 'DEPT. VENDAS VEICULOS',
+        eventCode: '011',
+        amountCents: 10000000,
+        ProvDesc: 1,
+        TipoRegistro: 'PROVENTO',
+        IncideFGTS: '1',
+        employeeId: '000015',
+      },
+    ];
+    const fortesProvisions = [
+      {
+        companyId: '9274',
+        competence: '202604',
+        lotacaoCode: 'DEPT. VENDAS VEICULOS',
+        lotacaoName: 'DEPT. VENDAS VEICULOS',
+        employeeId: '000015',
+        eventCode: 'PROV_13',
+        eventName: 'Provisão 13º Salário (Fortes)',
+        amountCents: 207638,
+        sourceOrigin: 'fortes-provision',
+        TipoRegistro: 'PROVISAO',
+      },
+      {
+        companyId: '9274',
+        competence: '202604',
+        lotacaoCode: 'DEPT. DE VENDA DIRETA MATRIZ',
+        lotacaoName: 'DEPT. DE VENDA DIRETA MATRIZ',
+        employeeId: '000001',
+        eventCode: 'PROV_13',
+        eventName: 'Provisão 13º Salário (Fortes)',
+        amountCents: -11867,
+        sourceOrigin: 'fortes-provision',
+        TipoRegistro: 'PROVISAO',
+      },
+    ];
+
+    const result = normalizeFortesQueryRows(
+      raw,
+      { fortesProvisions },
+      { feriasTerco: 11.11, decimoTerceiro: 8.33, inssPatronal: 28.8, fgts: 8 },
+      null
+    );
+
+    const provRows = result.filter((r) => r.eventCode === 'PROV_13');
+    expect(provRows).toHaveLength(2);
+    expect(provRows.every((r) => r.sourceOrigin === 'fortes-provision')).toBe(true);
+    expect(provRows.find((r) => r.lotacaoCode === 'DEPT. VENDAS VEICULOS').amountCents).toBe(207638);
+    expect(provRows.find((r) => r.lotacaoCode === 'DEPT. DE VENDA DIRETA MATRIZ').amountCents).toBe(-11867);
+
+    // Sem linhas sintéticas provision-derived
+    expect(result.some((r) => r.sourceOrigin === 'provision-derived')).toBe(false);
+  });
+
+  it('16. total PROV_13 por lotação bate com RH Provisionar abr/2026 (17.935,11)', () => {
+    // Totais por lotação do relatório Fortes RH (coluna Provisionar) — competência PRV.AnoMes=202604
+    const rhByLot = {
+      'RECURSOS HUMANOS': 99199,
+      FINANCEIRO: 205169,
+      FISCAL: 158786,
+      DIRETORIA: 46836,
+      TI: 28619,
+      'DEPARTAMENTO DE PEÇAS': 202902,
+      'DEPT. DE ACESSORIOS': 27500,
+      'DEPT. SERVIÇOS MECANICA MATRIZ': 119500,
+      'DEPT. FUNILARIA / PINTURA': 0,
+      'DEPT. PRODUTIVOS': 123750,
+      AGENDAMENTOS: 111471,
+      'DEPT. MECANICA FILIAL': 55000,
+      'DEPT. PEÇAS FILIAL': 6754,
+      'DEPTO. ACESSORIOS FILIAL': 13750,
+      'DEPT. VENDAS VEICULOS': 207638,
+      'DEPT. DE VENDA DIRETA MATRIZ': -11867,
+      'DEPT. DE LEADS MATRIZ': 55000,
+      'DEPT. DE FINANCIAMENTO MATRIZ': 48416,
+      'BRAGA VEICULOS FILIAL NOVOS': 78747,
+      'DEPT. FINANCIAMENTO FILIAL': 33722,
+      'DEPTO VENDA DIRETA FILIAL': 34570,
+      'BRAGA MULTIMARCAS': 134299,
+      'DEPT. DE LEADS FILIAL': 13750,
+    };
+
+    const fortesProvisions = Object.entries(rhByLot)
+      .filter(([, cents]) => cents !== 0)
+      .map(([lot, cents]) => ({
+        companyId: '9274',
+        competence: '202604',
+        lotacaoCode: lot,
+        lotacaoName: lot,
+        eventCode: 'PROV_13',
+        amountCents: cents,
+        sourceOrigin: 'fortes-provision',
+        TipoRegistro: 'PROVISAO',
+      }));
+
+    const result = normalizeFortesQueryRows(
+      [{ lotacaoCode: 'FINANCEIRO', eventCode: '011', amountCents: 100, ProvDesc: 1 }],
+      { fortesProvisions },
+      null,
+      { inssPatronal: 0.2, ratFap: 0.02, terceiros: 0.058, fgts: 0.08 }
+    );
+
+    const byLot = {};
+    for (const row of result.filter((r) => r.eventCode === 'PROV_13')) {
+      byLot[row.lotacaoCode] = (byLot[row.lotacaoCode] || 0) + row.amountCents;
+    }
+
+    let total = 0;
+    for (const [lot, cents] of Object.entries(rhByLot)) {
+      if (cents === 0) continue;
+      expect(byLot[lot]).toBe(cents);
+      total += cents;
+    }
+    expect(total).toBe(1793511);
+    expect(result.some((r) => r.sourceOrigin === 'provision-derived')).toBe(false);
   });
 });

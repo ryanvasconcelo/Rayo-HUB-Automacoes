@@ -63,15 +63,24 @@ export function buildJournal({ consolidatedItems, config, competence }) {
       continue;
     }
 
-    // ------ Negative value without policy → blocker ------
-    if (item.amountCents < 0) {
-      issues.push({
-        code: ValidationCodes.NEGATIVE_VALUE_WITHOUT_POLICY,
-        severity: 'blocker',
-        message: `Valor negativo sem política definida: lotação ${item.lotacaoCode}, evento ${item.eventCode}.`,
-        context: { lotacaoCode: item.lotacaoCode, eventCode: item.eventCode, amountCents: item.amountCents, competence },
-      });
-      continue;
+    // ------ Negative value ------
+    // PROV_* do Fortes (coluna Provisionar) pode ser negativo = estorno → abs + inverte D/C.
+    const isProvisionEvent = String(item.eventCode || '').startsWith('PROV_');
+    let signedAmount = item.amountCents;
+    let invertDc = false;
+    if (signedAmount < 0) {
+      if (isProvisionEvent) {
+        invertDc = true;
+        signedAmount = Math.abs(signedAmount);
+      } else {
+        issues.push({
+          code: ValidationCodes.NEGATIVE_VALUE_WITHOUT_POLICY,
+          severity: 'blocker',
+          message: `Valor negativo sem política definida: lotação ${item.lotacaoCode}, evento ${item.eventCode}.`,
+          context: { lotacaoCode: item.lotacaoCode, eventCode: item.eventCode, amountCents: item.amountCents, competence },
+        });
+        continue;
+      }
     }
 
     // ------ Account mapping ------
@@ -147,18 +156,25 @@ export function buildJournal({ consolidatedItems, config, competence }) {
         centerCode = undefined;
       }
 
+      const dc = accountLine.dc.toUpperCase();
+      const finalDc = invertDc ? (dc === 'D' ? 'C' : 'D') : dc;
       entries.push({
         companyId: item.companyId,
         competence,
         batchType: BATCH_TYPE,
         history,
-        dc: accountLine.dc.toUpperCase(),
+        dc: finalDc,
         accountCode: accountLine.dealerAccountCode,
         dealerLotAccountCode: accountLine.dealerLotAccountCode,
         centerCode,
-        amountCents: item.amountCents,
+        amountCents: signedAmount,
         lotacaoCode: item.lotacaoCode,
+        lotacaoName: item.lotacaoName || null,
         eventCode: item.eventCode,
+        eventName: item.eventName || null,
+        employeeId: item.employeeId != null ? String(item.employeeId) : null,
+        employeeName: item.employeeName || null,
+        description: accountLine.description || item.eventName || null,
       });
     }
   }

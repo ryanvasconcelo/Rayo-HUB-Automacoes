@@ -689,3 +689,16 @@ No ambiente consultado, os codigos encontrados foram:
 - Eventos `600`, `601`, `602`, `603`, `604` sao tratados pelo auditor como informativos/base. Nao misturar automaticamente em total de proventos/descontos sem regra de negocio.
 - A aplicacao soma as ferias ao contexto da auditoria quando o periodo de gozo cruza a competencia, por isso o BI deve manter `OrigemEvento`.
 - Todas as queries acima sao somente leitura.
+## 10. Provisões 13º e férias (relatório Provisionar)
+
+Fonte descoberta no banco `AC` (empresa Braga `9274`):
+
+| Movimento | `FOL.Folha` | Header | Detail | Coluna = Provisionar |
+| --- | --- | --- | --- | --- |
+| Provisão 13º | `14` | `PRV` (`AnoMes`, `FOL_Seq`) | `PRD` | `PRD.Provisao` |
+| Provisão férias | `15` | `PRV` no mesmo `FOL_Seq` (grava `AnoMes`) | `PRF` | `PRF.Provisao` |
+
+Encargos sobre a provisão: `INSSProvisao`, `FGTSProvisao`.
+Lotação: `EFO → SEP → LOT`.
+
+Validação: `PRV.AnoMes = 202604` → `SUM(PRD.Provisao) = 17935.11` (relatório RH Provisionar). Em `202605` com remuneração variável o total Fortes é `52856.23`.

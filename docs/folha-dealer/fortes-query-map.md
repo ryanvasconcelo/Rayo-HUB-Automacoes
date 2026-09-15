@@ -272,3 +272,18 @@ A query Fortes esta pronta para o adapter quando:
 - reconcilia totais por lotacao com o fixture de conferencia;
 - separa eventos financeiros de eventos informativos/base;
 - preserva dados suficientes para auditoria do analista contabil.
+
+## Provisões 13º / férias (Fortes → PROV_*)
+
+Descoberta em `INFORMATION_SCHEMA` + validação no banco `AC`:
+
+| Tipo | FOL.Folha | Header | Detail | Coluna Provisionar |
+| --- | --- | --- | --- | --- |
+| 13º | 14 | `PRV` | `PRD` | `PRD.Provisao` |
+| Férias | 15 | `PRV` (mesmo `FOL_Seq`, traz `AnoMes`) | `PRF` | `PRF.Provisao` |
+
+Também extrair: `INSSProvisao`, `FGTSProvisao`.
+
+O extract (`fortes-extractor.js`) devolve `provisions[]` com `eventCode` `PROV_13` / `PROV_FERIAS` / `PROV_INSS_*` / `PROV_FGTS_*` e `sourceOrigin: fortes-provision`. O adapter **não** chama `calculateProvisions` (taxa×BC-FGTS) quando essa lista vem do Fortes.
+
+Conferência: `202604` total `PROV_13` = **R$ 17.935,11** (ex.: Vendas **2.076,38**). A competência do relatório RH bate com `PRV.AnoMes`, não com a folha mensal `FOL.Folha=2` isolada.

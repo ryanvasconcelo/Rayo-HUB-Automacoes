@@ -181,8 +181,13 @@ app.post('/api/scrape-eauditoria', async (req, res) => {
 app.post('/api/fortes/extract', async (req, res) => {
     try {
         const payload = req.body;
-        const data = await extractFortesPayroll(payload);
-        res.json({ success: true, data });
+        const extracted = await extractFortesPayroll(payload);
+        // data = folha mensal (compat); provisions = PROV_* do Fortes (PRD/PRF)
+        res.json({
+            success: true,
+            data: extracted.payroll,
+            provisions: extracted.provisions,
+        });
     } catch (err) {
         console.error('[/api/fortes/extract] ❌ Erro:', err);
         res.status(500).json({
