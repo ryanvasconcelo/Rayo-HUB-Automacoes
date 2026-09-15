@@ -172,7 +172,7 @@ describe('Folha Dealer engine', () => {
     it('evento informativo configurado no config é ignorado e não gera MISSING_ACCOUNT_MAPPING', () => {
         const config = {
             ...bragaVeiculosConfig,
-            informativeEventCodes: ['999'] // Evento fictício 999
+            informativeEventCodes: ['8888'] // Evento fictício sem de-para real
         };
 
         const result = runEngine({
@@ -182,27 +182,27 @@ describe('Folha Dealer engine', () => {
                 {
                     ...baseRows()[0],
                     sourceLineId: 'info-configurado',
-                    eventCode: '999',
+                    eventCode: '8888',
                     eventName: 'Evento Informativo Custom',
                     amountCents: 10000
                 }
             ]
         });
 
-        // Não deve gerar entry para 999
-        expect(result.entries.some((entry) => entry.eventCode === '999')).toBe(false);
+        // Não deve gerar entry para 8888
+        expect(result.entries.some((entry) => entry.eventCode === '8888')).toBe(false);
         
         // Deve avisar que foi ignorado
         expect(result.issues).toEqual(expect.arrayContaining([
             expect.objectContaining({
                 code: 'INFORMATIVE_EVENT_IGNORED',
                 severity: 'warning',
-                context: expect.objectContaining({ eventCode: '999' })
+                context: expect.objectContaining({ eventCode: '8888' })
             })
         ]));
 
         // NÃO deve bloquear reclamando de MISSING_ACCOUNT_MAPPING
-        const missingAccount = result.issues.find(i => i.code === 'MISSING_ACCOUNT_MAPPING' && i.context?.eventCode === '999');
+        const missingAccount = result.issues.find(i => i.code === 'MISSING_ACCOUNT_MAPPING' && i.context?.eventCode === '8888');
         expect(missingAccount).toBeUndefined();
 
         // O run ainda deve ser ready (assumindo que o baseRows seja balanceado)
@@ -216,7 +216,7 @@ describe('Folha Dealer engine', () => {
                 {
                     ...baseRows()[0],
                     sourceLineId: 'event-sem-conta',
-                    eventCode: '999',
+                    eventCode: '8888',
                     eventName: 'Evento sem de-para',
                     amountCents: 10000
                 }
@@ -230,6 +230,30 @@ describe('Folha Dealer engine', () => {
                 severity: 'blocker'
             })
         ]));
+    });
+
+    it('aplica de-para do contador para comissões e prêmios de maio/2026', () => {
+        const commission = bragaVeiculosConfig.accountMappings.find(
+            (m) => m.eventCode === '980' && m.active
+        );
+        const premioFi = bragaVeiculosConfig.accountMappings.find(
+            (m) => m.eventCode === '997' && m.active
+        );
+        const descMeta = bragaVeiculosConfig.accountMappings.find(
+            (m) => m.eventCode === '999' && m.active
+        );
+        const difPiso = bragaVeiculosConfig.accountMappings.find(
+            (m) => m.eventCode === '996' && m.active
+        );
+
+        expect(commission.dealerAccountCode).toBe('6.1.1.01.005');
+        expect(commission.dc).toBe('D');
+        expect(premioFi.dealerAccountCode).toBe('6.1.1.01.003');
+        expect(premioFi.dc).toBe('D');
+        expect(descMeta.dealerAccountCode).toBe('6.1.1.01.003');
+        expect(descMeta.dc).toBe('C');
+        expect(difPiso.dealerAccountCode).toBe('6.1.1.01.002');
+        expect(difPiso.dc).toBe('D');
     });
 
     it('bloqueia lotacao sem centro quando a conta exige centro', () => {

@@ -74,15 +74,32 @@ conta, natureza e observacao, nao o valor total.
 | 011 | Salário-Base | 6.1.1.01.002 |  | Ger./Superv. podem ir p/ 6.1.1.01.001 |
 | 030 | Comissões | 6.1.1.01.005 |  |  |
 | 049 | Descanso Semanal Remunerado | 6.1.1.01.005 |  | DSR sobre comissões |
+| 054 | Comissão acessórios | 6.1.1.01.005 |  | De-para contador maio/2026 |
+| 055 | Comissão s/ Serv e mão de obra | 6.1.1.01.005 |  | De-para contador maio/2026 |
+| 056 | Comissão s/ peças | 6.1.1.01.005 |  | De-para contador maio/2026 |
+| 057 | Comissão SDR | 6.1.1.01.005 |  | De-para contador maio/2026 |
+| 058 | Prêmio SDR | 6.1.1.01.003 |  | De-para contador maio/2026 |
+| 059 | Prêmio Campanha | 6.1.1.01.003 |  | De-para contador maio/2026 |
+| 069 | Prêmio Empenho | 6.1.1.01.003 |  | De-para contador maio/2026 |
+| 071 | Prêmio vendas digitais | 6.1.1.01.003 |  | De-para contador maio/2026 |
+| 074 | Prêmio Agregados | 6.1.1.01.003 |  | De-para contador maio/2026 |
 | 075 | Quebra de Caixa | 6.1.1.01.002 |  | Quebra de caixa — sem conta específica; sugerido Outros Salários |
+| 076 | Prêmio GMAC | 6.1.1.01.003 |  | De-para contador maio/2026 |
+| 077 | Prêmio Captação | 6.1.1.01.003 |  | De-para contador maio/2026 |
 | 090 | Líquido Negativo | 6.1.1.01.002 |  | Líquido negativo tratado como salário (orientação do cliente) |
 | 100 | Provisão Cred. Trab.- Provento | 2.1.1.03.001 |  | Conta fechada para o evento 100; por iniciar com 2, nao leva centro no TXT |
 | 956 | Premio Meta - CCT | 6.1.1.01.003 |  | Prêmio Meta/CCT |
 | 975 | Bonificação | 6.1.1.01.013 |  |  |
+| 978 | Comissão s/ pcs e mão de obra | 6.1.1.01.005 |  | De-para contador maio/2026 |
 | 979 | Comissão F&I | 6.1.1.01.005 |  | Comissão F&I (remuneração do vendedor) |
+| 980 | Comissão s/ vendas | 6.1.1.01.005 |  | De-para contador maio/2026 |
 | 981 | Comissão Venda Leadss | 6.1.1.01.005 |  | Comissão venda leads |
 | 988 | Bonificação Mes Anterior | 6.1.1.01.013 |  | Bonificação mês anterior |
 | 991 | Premio Captacao Semi Novos | 6.1.1.01.003 |  | Prêmio captação seminovos |
+| 993 | Prêmio Acessórios - CCT | 6.1.1.01.003 |  | De-para contador maio/2026 |
+| 996 | Dif. do Piso da Categoria | 6.1.1.01.002 |  | De-para contador maio/2026 |
+| 997 | Prêmio F&I | 6.1.1.01.003 |  | De-para contador maio/2026 (distinto de 979 Comissão F&I) |
+| 998 | Prêmio Meta CCT - Mês anterior | 6.1.1.01.003 |  | De-para contador maio/2026 |
 | **DESCONTOS / RETENÇÕES** |  |  |  |  |
 | 127 | Consignado Crédito Trabalhador |  | 2.1.1.02.007 | Crédito do Trabalhador (consignado) — confirmar se repasse a banco |
 | 302 | Assistência Médica Amil |  | 6.1.1.04.001 | Coparticipação Amil — abate despesa Assistência Médica; confirmar |
@@ -92,6 +109,7 @@ conta, natureza e observacao, nao o valor total.
 | 321 | Falta |  | 6.1.1.01.002 | Faltas — redutor de salário |
 | 340 | Pensão Alimentícia - Mensal |  | 2.1.1.02.006 | Pensão alimentícia retida |
 | 349 | DSR Desconto |  | 6.1.1.01.002 | DSR sobre faltas — redutor |
+| 390 | Líquido Negativo Compensação |  | 6.1.1.01.002 | De-para contador maio/2026 |
 | 909 | Assistencia Odontologica |  | 6.1.1.04.001 | Coparticipação odonto — sem conta odonto específica; confirmar |
 | 947 | Des. Refeição |  | 6.1.1.04.003 | Coparticipação refeição |
 | 962 | Atrasos |  | 6.1.1.01.002 | Atrasos — redutor de salário |
@@ -107,6 +125,7 @@ conta, natureza e observacao, nao o valor total.
 | 986 | Emprestimo |  | 1.1.4.01.004 | Empréstimo a funcionário (recupera ativo 1.1.4.01.004) — confirmar |
 | 987 | Debito de Cracha |  | 6.1.1.01.002 | Débito de crachá — confirmar conta de recuperação |
 | 989 | Des. Bonificação Mes Anterior |  | 6.1.1.01.013 | Estorno de bonificação — redutor |
+| 999 | Desc. Prêmio Meta CCT - Mês ant |  | 6.1.1.01.003 | De-para contador maio/2026 |
 | **ENCARGOS PATRONAIS E PROVISÕES** |  |  |  |  |
 | ENCARGO_INSS_PATRONAL | INSS Patronal (20%) | 6.1.1.02.001 | 2.1.1.02.001 |  |
 | ENCARGO_RAT_FAP | RAT/FAP | 6.1.1.02.001 | 2.1.1.02.001 | RAT compõe a GPS |
