@@ -48,6 +48,7 @@ export {
 
 export { summarizeValidationIssues } from './validation-summarizer.js';
 export { calculateProvisions, DEFAULT_PROVISION_RATES } from './provision-calculator.js';
+export { calculateEncargos, DEFAULT_ENCARGO_RATES } from './encargo-calculator.js';
 
 // Imports internos para o pipeline
 import { normalizePayrollRows } from './fortes-normalizer.js';

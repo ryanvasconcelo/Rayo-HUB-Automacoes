@@ -104,11 +104,12 @@ export default function FolhaDealerPage() {
 
          const hasBlocker = itemIssues.some(i => i.severity === 'blocker');
          const hasWarning = itemIssues.some(i => i.severity === 'warning');
-         const isProvisao = item.eventCode.startsWith('PROV_');
+         const isProvisao = item.eventCode.startsWith('PROV_') || item.eventCode.startsWith('ENCARGO_');
 
          let status = 'OK';
          if (hasBlocker) status = 'ERRO';
-         else if (isProvisao) status = 'PROVISAO';
+         else if (item.eventCode.startsWith('ENCARGO_')) status = 'ENCARGO';
+         else if (item.eventCode.startsWith('PROV_')) status = 'PROVISAO';
          else if (hasWarning) status = 'AVISO';
          else if (item.amountCents === 0 || ['600', '601', '602', '603', '604', '605'].includes(item.eventCode)) status = 'IGNORADO';
 
@@ -197,7 +198,7 @@ export default function FolhaDealerPage() {
       switch (filterMode) {
          case 'ERROS': result = result.filter(r => r.status === 'ERRO'); break;
          case 'AVISOS': result = result.filter(r => r.status === 'AVISO'); break;
-         case 'PRONTOS': result = result.filter(r => r.lancar || r.status === 'PROVISAO'); break;
+         case 'PRONTOS': result = result.filter(r => r.lancar || r.status === 'PROVISAO' || r.status === 'ENCARGO'); break;
          case 'SEM_CENTRO': result = result.filter(r => r.issues.some(i => i.code === 'MISSING_CENTER_MAPPING' || i.code === 'MISSING_REQUIRED_CENTER')); break;
          case 'SEM_CONTA': result = result.filter(r => r.issues.some(i => i.code === 'MISSING_ACCOUNT_MAPPING')); break;
          case 'TODOS':
@@ -473,6 +474,7 @@ export default function FolhaDealerPage() {
                                           if (row.status === 'ERRO') borderClass = 'border-rose-500';
                                           if (row.status === 'AVISO') borderClass = 'border-amber-400';
                                           if (row.status === 'PROVISAO') borderClass = 'border-slate-400';
+                                          if (row.status === 'ENCARGO') borderClass = 'border-indigo-400';
                                           if (row.status === 'OK') borderClass = 'border-emerald-500';
 
                                           // RENDERIZAÇÃO DE BLOCO AGRUPADO (PARTIDA DOBRADA)
@@ -491,7 +493,7 @@ export default function FolhaDealerPage() {
                                                                </button>
                                                             </>
                                                          ) : (
-                                                            <span className="flex items-center gap-1.5 px-2 py-1 bg-slate-200 text-slate-700 text-xs font-semibold rounded-md border border-slate-300 shadow-sm"><Info size={12} /> Provisão</span>
+                                                            <span className="flex items-center gap-1.5 px-2 py-1 bg-slate-200 text-slate-700 text-xs font-semibold rounded-md border border-slate-300 shadow-sm"><Info size={12} /> {row.status === 'ENCARGO' ? 'Encargo' : 'Provisão'}</span>
                                                          )}
                                                       </div>
                                                       <div role="cell" className="text-right">
@@ -565,6 +567,7 @@ export default function FolhaDealerPage() {
                                                       {row.status === 'ERRO' && <span className="flex items-center gap-1.5 px-2 py-1 bg-rose-50 text-rose-700 text-xs font-semibold rounded-md border border-rose-100 shadow-sm"><XCircle size={12} /> Erro</span>}
                                                       {row.status === 'AVISO' && <span className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 text-amber-700 text-xs font-semibold rounded-md border border-amber-100 shadow-sm"><AlertTriangle size={12} /> Aviso</span>}
                                                       {row.status === 'PROVISAO' && <span className="flex items-center gap-1.5 px-2 py-1 bg-slate-200 text-slate-700 text-xs font-semibold rounded-md border border-slate-300 shadow-sm"><Info size={12} /> Provisão</span>}
+                                                      {row.status === 'ENCARGO' && <span className="flex items-center gap-1.5 px-2 py-1 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-md border border-indigo-100 shadow-sm"><Info size={12} /> Encargo</span>}
                                                       {row.status === 'OK' && <span className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-md border border-emerald-100 shadow-sm"><Check size={12} /> Pronto</span>}
                                                       {row.status === 'IGNORADO' && <span className="flex items-center gap-1.5 px-2 py-1 bg-slate-100 text-slate-500 text-xs font-semibold rounded-md shadow-sm"><Info size={12} /> Ignorado</span>}
                                                       

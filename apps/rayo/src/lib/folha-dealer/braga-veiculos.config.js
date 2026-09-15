@@ -211,6 +211,17 @@ const accountMappings = [
   { companyId: company.companyId, eventCode: 'PROV_INSS_13',  dealerAccountCode: '2.1.1.03.005', dealerLotAccountCode: null, dc: 'C', description: 'Provisão INSS 13º a Pagar', active: true },
   { companyId: company.companyId, eventCode: 'PROV_FGTS_FER', dealerAccountCode: '2.1.1.03.003', dealerLotAccountCode: null, dc: 'C', description: 'Provisão FGTS Férias a Pagar', active: true },
   { companyId: company.companyId, eventCode: 'PROV_FGTS_13',  dealerAccountCode: '2.1.1.03.006', dealerLotAccountCode: null, dc: 'C', description: 'Provisão FGTS 13º a Pagar', active: true },
+
+  // ---- ENCARGOS PATRONAIS (DCTFWeb / FGTS mensal) — D despesa + C passivo ----
+  // INSS patronal, GILRAT e Terceiros → mesma conta INSS (exceto 1082-01 / evento 310)
+  { companyId: company.companyId, eventCode: 'ENCARGO_INSS_PATRONAL', dealerAccountCode: '6.1.1.02.001', dealerLotAccountCode: null, dc: 'D', description: 'INSS Patronal (1138-01)', active: true },
+  { companyId: company.companyId, eventCode: 'ENCARGO_INSS_PATRONAL', dealerAccountCode: '2.1.1.02.001', dealerLotAccountCode: null, dc: 'C', description: 'INSS a Recolher', active: true },
+  { companyId: company.companyId, eventCode: 'ENCARGO_RAT_FAP', dealerAccountCode: '6.1.1.02.001', dealerLotAccountCode: null, dc: 'D', description: 'GILRAT / RAT-FAP (1646-01)', active: true },
+  { companyId: company.companyId, eventCode: 'ENCARGO_RAT_FAP', dealerAccountCode: '2.1.1.02.001', dealerLotAccountCode: null, dc: 'C', description: 'INSS a Recolher', active: true },
+  { companyId: company.companyId, eventCode: 'ENCARGO_TERCEIROS', dealerAccountCode: '6.1.1.02.001', dealerLotAccountCode: null, dc: 'D', description: 'Terceiros Sistema S (DCTFWeb)', active: true },
+  { companyId: company.companyId, eventCode: 'ENCARGO_TERCEIROS', dealerAccountCode: '2.1.1.02.001', dealerLotAccountCode: null, dc: 'C', description: 'INSS a Recolher', active: true },
+  { companyId: company.companyId, eventCode: 'ENCARGO_FGTS_FOLHA', dealerAccountCode: '6.1.1.02.002', dealerLotAccountCode: null, dc: 'D', description: 'FGTS mensal (tipo 11)', active: true },
+  { companyId: company.companyId, eventCode: 'ENCARGO_FGTS_FOLHA', dealerAccountCode: '2.1.1.02.002', dealerLotAccountCode: null, dc: 'C', description: 'FGTS a Recolher', active: true },
 ];
 
 // ---------------------------------------------------------------------------
@@ -220,8 +231,16 @@ const accountMappings = [
 const provisionRates = {
   feriasTerco: 11.11,   // 1/12 × 4/3 ≈ 11,11%
   decimoTerceiro: 8.33,  // 1/12 ≈ 8,33%
-  inssPatronal: 28.80,   // 20% + RAT + Terceiros ≈ 28,80%
+  inssPatronal: 28.80,   // 20% + RAT + Terceiros ≈ 28,80% (só sobre provisões)
   fgts: 8.00,            // 8,00%
+};
+
+// Alíquotas encargos mensais (Analítico DCTFWeb + FGTS) — não inclui 1082-01
+const encargoRates = {
+  inssEmpresa: 20.0, // 1138-01
+  gilrat: 2.0, // 1646-01 (RAT 2% × FAP 1)
+  terceiros: 5.8, // 1170+1176+1191+1196+1200
+  fgts: 8.0, // FGTS mensal tipo 11
 };
 
 // ---------------------------------------------------------------------------
@@ -240,4 +259,5 @@ export const bragaVeiculosConfig = Object.freeze({
   accountMappings,
   informativeEventCodes,
   provisionRates,
+  encargoRates,
 });

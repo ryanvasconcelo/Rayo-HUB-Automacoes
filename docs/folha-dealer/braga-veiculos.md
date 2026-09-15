@@ -149,10 +149,11 @@ conta, natureza e observacao, nao o valor total.
 | 995 | Consignado Crédito Trabalhador |  | 2.1.1.02.007 | Mesmo evento, código distinto (127/963–970) |
 | 999 | Desc. Prêmio Meta CCT - Mês ant |  | 6.1.1.01.003 | De-para contador maio/2026 |
 | **ENCARGOS PATRONAIS E PROVISÕES** |  |  |  |  |
-| ENCARGO_INSS_PATRONAL | INSS Patronal (20%) | 6.1.1.02.001 | 2.1.1.02.001 |  |
-| ENCARGO_RAT_FAP | RAT/FAP | 6.1.1.02.001 | 2.1.1.02.001 | RAT compõe a GPS |
-| ENCARGO_TERCEIROS | Terceiros (Sistema S) | 6.1.1.02.005 | 2.1.1.02.003 | Confirmar conta para SESC/SENAC/etc. |
-| ENCARGO_FGTS_FOLHA | FGTS s/ folha (8%) | 6.1.1.02.002 | 2.1.1.02.002 |  |
+| ENCARGO_INSS_PATRONAL | INSS Patronal 20% (DCTF 1138-01) | 6.1.1.02.001 | 2.1.1.02.001 | Analítico DCTFWeb; exclui 1082-01 (evento 310) |
+| ENCARGO_RAT_FAP | GILRAT / RAT-FAP (DCTF 1646-01) | 6.1.1.02.001 | 2.1.1.02.001 | Compõe GPS / INSS a Recolher |
+| ENCARGO_TERCEIROS | Terceiros Sistema S (1170/1176/1191/1196/1200) | 6.1.1.02.001 | 2.1.1.02.001 | Mesma conta INSS (diretriz DCTFWeb) |
+| ENCARGO_FGTS_FOLHA | FGTS mensal 8% (tipo 11) | 6.1.1.02.002 | 2.1.1.02.002 | Analítico FGTS |
+| 310 | INSS descontado do segurado (1082-01) |  | 2.1.1.02.001 | Já mapeado — não gera encargo patronal |
 | PROVISAO_13 | Provisão 13º salário | 6.1.1.03.002 | 2.1.1.03.004 |  |
 | PROVISAO_FERIAS | Provisão de férias (+1/3) | 6.1.1.03.001 | 2.1.1.03.001 |  |
 | PROVISAO_INSS_13 | INSS s/ provisão de 13º | 6.1.1.03.004 | 2.1.1.03.005 |  |
@@ -162,15 +163,19 @@ conta, natureza e observacao, nao o valor total.
 
 ## Premissas de encargos no fixture
 
-Fonte: `temp/braga/mid-result.xlsx`, aba `Parâmetros`.
+Fonte: Analítico DCTFWeb + FGTS (Braga) e `temp/braga/mid-result.xlsx` (Parâmetros).
 
-| Parametro | Valor |
-| --- | --- |
-| INSS Patronal (CPP) | 20% |
-| RAT (SAT) | 2% |
-| FAP | 1 |
-| Terceiros (Sistema S) | 5,8% |
-| FGTS | 8% |
-| Fator 13º | 1/12 |
-| Fator Férias | 1/11 |
-| Adicional 1/3 | 1/3 |
+| Parametro | Valor | Receita DCTF/FGTS |
+| --- | --- | --- |
+| INSS Patronal (CPP) | 20% | 1138-01 |
+| GILRAT (RAT × FAP) | 2% × 1 | 1646-01 |
+| Salário Educação | 2,50% | 1170-01 |
+| INCRA | 0,20% | 1176-01 |
+| SENAC | 1,00% | 1191-01 |
+| SESC | 1,50% | 1196-01 |
+| SEBRAE | 0,60% | 1200-01 |
+| Terceiros (soma) | 5,8% | — |
+| FGTS | 8% | tipo 11 |
+| Fator 13º | 1/12 |  |
+| Fator Férias | 1/11 |  |
+| Adicional 1/3 | 1/3 |  |

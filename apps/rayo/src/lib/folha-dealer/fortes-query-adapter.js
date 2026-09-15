@@ -3,6 +3,7 @@
  */
 
 import { calculateProvisions } from './provision-calculator.js';
+import { calculateEncargos, DEFAULT_ENCARGO_RATES } from './encargo-calculator.js';
 import { employeeLotacaoMap } from './employee-lotacao-map.js';
 
 export function mapFortesProvDesc(provDesc) {
@@ -30,7 +31,7 @@ export function buildFortesSourceLineId(row, options = {}) {
   return parts.join('-');
 }
 
-export function normalizeFortesQueryRows(rawRows, options = {}, provisionRates = null) {
+export function normalizeFortesQueryRows(rawRows, options = {}, provisionRates = null, encargoRates = null) {
   const normalized = [];
 
   for (let i = 0; i < rawRows.length; i++) {
@@ -143,6 +144,13 @@ export function normalizeFortesQueryRows(rawRows, options = {}, provisionRates =
   if (provisionRates) {
     const provisionRows = calculateProvisions(rawRows, provisionRates);
     normalized.push(...provisionRows);
+  }
+
+  // Sintetizar Encargos Patronais (DCTFWeb INSS/Terceiros + FGTS mensal)
+  // Habilitado junto com provisões, ou quando encargoRates for passado explicitamente.
+  if (provisionRates || encargoRates) {
+    const encargoRows = calculateEncargos(rawRows, encargoRates || DEFAULT_ENCARGO_RATES);
+    normalized.push(...encargoRows);
   }
 
   return normalized;

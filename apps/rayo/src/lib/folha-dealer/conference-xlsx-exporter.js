@@ -125,9 +125,14 @@ export function exportConferenceXlsx(run, config) {
   const wsAccounts = XLSX.utils.json_to_sheet(accountsData);
   XLSX.utils.book_append_sheet(wb, wsAccounts, 'De-Para Contas');
 
-  // 7. Aba Provisões
+  // 7. Aba Provisões / Encargos
   const provisionsData = (run.sourceRows || [])
-    .filter((r) => r.sourceOrigin === 'provision-derived' || (r.eventCode && r.eventCode.startsWith('PROV_')))
+    .filter(
+      (r) =>
+        r.sourceOrigin === 'provision-derived' ||
+        r.sourceOrigin === 'encargo-derived' ||
+        (r.eventCode && (r.eventCode.startsWith('PROV_') || r.eventCode.startsWith('ENCARGO_')))
+    )
     .map((p) => ({
       'Empresa': run.companyId,
       'Competência': run.competence,
