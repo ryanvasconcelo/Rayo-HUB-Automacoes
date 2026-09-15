@@ -81,6 +81,7 @@ conta, natureza e observacao, nao o valor total.
 | 057 | Comissão SDR | 6.1.1.01.005 |  | De-para contador maio/2026 |
 | 058 | Prêmio SDR | 6.1.1.01.003 |  | De-para contador maio/2026 |
 | 059 | Prêmio Campanha | 6.1.1.01.003 |  | De-para contador maio/2026 |
+| 067 | Crédito banco de horas | 6.1.1.01.006 |  | Contador: Dealer 6099 → Horas Extras |
 | 069 | Prêmio Empenho | 6.1.1.01.003 |  | De-para contador maio/2026 |
 | 071 | Prêmio vendas digitais | 6.1.1.01.003 |  | De-para contador maio/2026 |
 | 074 | Prêmio Agregados | 6.1.1.01.003 |  | De-para contador maio/2026 |
@@ -121,6 +122,7 @@ conta, natureza e observacao, nao o valor total.
 | **DESCONTOS / RETENÇÕES** |  |  |  |  |
 | 093 | Desconto Assist. Médica Amil |  | 6.1.1.04.001 | Variante Assist. Médica Amil (302) |
 | 101 | Desconto de vale |  | 6.1.1.04.006 | Variante Vale-Transporte (320) |
+| 102 | Desc. pagamentos indevidos |  | 6.1.1.01.002 | Contador: Dealer 6095 → Salários e Ord. |
 | 127 | Consignado Crédito Trabalhador |  | 2.1.1.02.007 | Crédito do Trabalhador (consignado) — confirmar se repasse a banco |
 | 302 | Assistência Médica Amil |  | 6.1.1.04.001 | Coparticipação Amil — abate despesa Assistência Médica; confirmar |
 | 310 | INSS |  | 2.1.1.02.001 | INSS retido |
