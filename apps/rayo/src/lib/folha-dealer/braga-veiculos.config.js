@@ -74,12 +74,12 @@ const centerMappings = [
   { companyId: company.companyId, lotacaoCode: 'BRAGA MULTIMARCAS', dealerCenterCode: '002000', dealerCenterName: 'Veíc. Usados', allocationMode: 'activity', active: true },
   { companyId: company.companyId, lotacaoCode: 'DEPT. DE LEADS FILIAL', dealerCenterCode: '001100', dealerCenterName: 'Veíc. Novos – Filial', allocationMode: 'activity', active: true },
 
-  // ---- Lotações Fortes de provisão sem centro operacional → 999 ----
+  // ---- Lotações Fortes adicionais (provisão / cadastro) ----
   { companyId: company.companyId, lotacaoCode: 'GERAL', dealerCenterCode: '000999', dealerCenterName: 'Geral', allocationMode: 'direct', active: true },
-  { companyId: company.companyId, lotacaoCode: 'DEPTO. SEMINOVOS', dealerCenterCode: '000999', dealerCenterName: 'Geral', allocationMode: 'direct', active: true },
-  { companyId: company.companyId, lotacaoCode: 'DEPTO. VENDAS', dealerCenterCode: '000999', dealerCenterName: 'Geral', allocationMode: 'direct', active: true },
-  { companyId: company.companyId, lotacaoCode: 'BRAGA VEICULOS DEPTO AGENDAMENTO', dealerCenterCode: '000999', dealerCenterName: 'Geral', allocationMode: 'direct', active: true },
-  { companyId: company.companyId, lotacaoCode: 'BRAGA VEICULOS DEPTO MECANICA FILIAL', dealerCenterCode: '000999', dealerCenterName: 'Geral', allocationMode: 'direct', active: true },
+  { companyId: company.companyId, lotacaoCode: 'DEPTO. SEMINOVOS', dealerCenterCode: '002000', dealerCenterName: 'Veíc. Usados', allocationMode: 'activity', active: true },
+  { companyId: company.companyId, lotacaoCode: 'DEPTO. VENDAS', dealerCenterCode: '001000', dealerCenterName: 'Veíc. Novos', allocationMode: 'activity', active: true },
+  { companyId: company.companyId, lotacaoCode: 'BRAGA VEICULOS DEPTO AGENDAMENTO', dealerCenterCode: '000300', dealerCenterName: 'Mecânica', allocationMode: 'activity', active: true },
+  { companyId: company.companyId, lotacaoCode: 'BRAGA VEICULOS DEPTO MECANICA FILIAL', dealerCenterCode: '000300', dealerCenterName: 'Mecânica', allocationMode: 'direct', active: true },
 
   // ---- Códigos Reais Fortes extraídos do CSV ----
   { companyId: company.companyId, lotacaoCode: '015', dealerCenterCode: '001000', dealerCenterName: 'Veíc. Novos', allocationMode: 'activity', active: true },

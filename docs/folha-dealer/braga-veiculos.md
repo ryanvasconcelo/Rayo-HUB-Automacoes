@@ -60,10 +60,10 @@ o processamento.
 | BRAGA MULTIMARCAS | 200 | 002000 | Veíc. Usados | Por atividade |
 | DEPT. DE LEADS FILIAL | 800 | 001100 | Veíc. Novos – Filial | Por atividade |
 | GERAL | 999 | 000999 | Geral | Direta |
-| DEPTO. SEMINOVOS | 999 | 000999 | Geral | Direta |
-| DEPTO. VENDAS | 999 | 000999 | Geral | Direta |
-| BRAGA VEICULOS DEPTO AGENDAMENTO | 999 | 000999 | Geral | Direta |
-| BRAGA VEICULOS DEPTO MECANICA FILIAL | 999 | 000999 | Geral | Direta |
+| DEPTO. SEMINOVOS | 200 | 002000 | Veíc. Usados | Por atividade |
+| DEPTO. VENDAS | 100 | 001000 | Veíc. Novos | Por atividade |
+| BRAGA VEICULOS DEPTO AGENDAMENTO | 300 | 000300 | Mecânica | Por atividade |
+| BRAGA VEICULOS DEPTO MECANICA FILIAL | 300 | 000300 | Mecânica | Direta |
 
 ## De-para de eventos e contas
 
