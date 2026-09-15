@@ -74,6 +74,13 @@ const centerMappings = [
   { companyId: company.companyId, lotacaoCode: 'BRAGA MULTIMARCAS', dealerCenterCode: '002000', dealerCenterName: 'Veíc. Usados', allocationMode: 'activity', active: true },
   { companyId: company.companyId, lotacaoCode: 'DEPT. DE LEADS FILIAL', dealerCenterCode: '001100', dealerCenterName: 'Veíc. Novos – Filial', allocationMode: 'activity', active: true },
 
+  // ---- Lotações Fortes de provisão sem centro operacional → 999 ----
+  { companyId: company.companyId, lotacaoCode: 'GERAL', dealerCenterCode: '000999', dealerCenterName: 'Geral', allocationMode: 'direct', active: true },
+  { companyId: company.companyId, lotacaoCode: 'DEPTO. SEMINOVOS', dealerCenterCode: '000999', dealerCenterName: 'Geral', allocationMode: 'direct', active: true },
+  { companyId: company.companyId, lotacaoCode: 'DEPTO. VENDAS', dealerCenterCode: '000999', dealerCenterName: 'Geral', allocationMode: 'direct', active: true },
+  { companyId: company.companyId, lotacaoCode: 'BRAGA VEICULOS DEPTO AGENDAMENTO', dealerCenterCode: '000999', dealerCenterName: 'Geral', allocationMode: 'direct', active: true },
+  { companyId: company.companyId, lotacaoCode: 'BRAGA VEICULOS DEPTO MECANICA FILIAL', dealerCenterCode: '000999', dealerCenterName: 'Geral', allocationMode: 'direct', active: true },
+
   // ---- Códigos Reais Fortes extraídos do CSV ----
   { companyId: company.companyId, lotacaoCode: '015', dealerCenterCode: '001000', dealerCenterName: 'Veíc. Novos', allocationMode: 'activity', active: true },
   { companyId: company.companyId, lotacaoCode: '010', dealerCenterCode: '000300', dealerCenterName: 'Mecânica', allocationMode: 'activity', active: true },
@@ -97,6 +104,7 @@ const centerMappings = [
   { companyId: company.companyId, lotacaoCode: '014', dealerCenterCode: '003100', dealerCenterName: 'Acessórios', allocationMode: 'direct', active: true },
   { companyId: company.companyId, lotacaoCode: '024', dealerCenterCode: '001100', dealerCenterName: 'Veíc. Novos – Filial', allocationMode: 'activity', active: true },
   { companyId: company.companyId, lotacaoCode: '013', dealerCenterCode: '000500', dealerCenterName: 'Peças', allocationMode: 'direct', active: true },
+  { companyId: company.companyId, lotacaoCode: '999', dealerCenterCode: '000999', dealerCenterName: 'Geral', allocationMode: 'direct', active: true },
 
   // ---- Fallback (Lotação Vazia temporária enquanto ajustamos o SQL) ----
   { companyId: company.companyId, lotacaoCode: '', dealerCenterCode: '000600', dealerCenterName: 'Administração', allocationMode: 'direct', active: true },

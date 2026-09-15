@@ -59,6 +59,11 @@ o processamento.
 | DEPTO VENDA DIRETA FILIAL | 101 | 000101 | Venda Direta | Por atividade |
 | BRAGA MULTIMARCAS | 200 | 002000 | Veíc. Usados | Por atividade |
 | DEPT. DE LEADS FILIAL | 800 | 001100 | Veíc. Novos – Filial | Por atividade |
+| GERAL | 999 | 000999 | Geral | Direta |
+| DEPTO. SEMINOVOS | 999 | 000999 | Geral | Direta |
+| DEPTO. VENDAS | 999 | 000999 | Geral | Direta |
+| BRAGA VEICULOS DEPTO AGENDAMENTO | 999 | 000999 | Geral | Direta |
+| BRAGA VEICULOS DEPTO MECANICA FILIAL | 999 | 000999 | Geral | Direta |
 
 ## De-para de eventos e contas
 
