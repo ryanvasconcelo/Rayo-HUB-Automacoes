@@ -12,7 +12,7 @@ export function parseFortesCsv(csvContent, targetCompanyId, targetCompetence) {
   let totalInformativos = 0;
   const uniqueEmployees = new Set();
   
-  let folhaSeq = null;
+  const folhaSeqs = new Set();
 
   for (let i = 1; i < lines.length; i++) {
     const values = lines[i].split(';');
@@ -39,7 +39,7 @@ export function parseFortesCsv(csvContent, targetCompanyId, targetCompetence) {
       else totalInformativos += amountCents;
       
       if (row.employeeId) uniqueEmployees.add(row.employeeId);
-      if (!folhaSeq && row.sourcePayrollId) folhaSeq = row.sourcePayrollId;
+      if (row.sourcePayrollId) folhaSeqs.add(String(row.sourcePayrollId));
       
       rawRows.push({
         companyId: row.companyId,
@@ -60,11 +60,15 @@ export function parseFortesCsv(csvContent, targetCompanyId, targetCompetence) {
   }
   
   const totalLiquido = totalProventos - totalDescontos;
+  const folhaSeqList = Array.from(folhaSeqs).sort((a, b) => Number(a) - Number(b));
   
   const metadata = {
     empresa: targetCompanyId,
     competencia: targetCompetence,
-    folhaSeq: folhaSeq,
+    // Compat: primeira sequência; preferir folhaSeqs para competências segmentadas
+    folhaSeq: folhaSeqList[0] || null,
+    folhaSeqs: folhaSeqList,
+    quantidadeFolhas: folhaSeqList.length,
     quantidadeLinhas: rawRows.length,
     quantidadeFuncionarios: uniqueEmployees.size,
     totalProventos: totalProventos,

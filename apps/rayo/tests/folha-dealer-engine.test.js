@@ -55,6 +55,35 @@ describe('Folha Dealer engine', () => {
         expect(salaryAdm.sourceCount).toBe(2);
     });
 
+    it('consolida a mesma lotacao+evento de sequencias de folha distintas', () => {
+        const [salaryRow] = baseRows();
+        const rows = normalizePayrollRows([
+            {
+                ...salaryRow,
+                sourcePayrollId: '93',
+                sourceLineId: 'folha-93',
+                amountCents: 100000,
+            },
+            {
+                ...salaryRow,
+                sourcePayrollId: '94',
+                sourceLineId: 'folha-94',
+                amountCents: 45000,
+            },
+        ]);
+
+        const consolidated = consolidatePayrollRows(rows);
+        const salaryAdm = consolidated.find((item) =>
+            item.lotacaoCode === 'ADM' && item.eventCode === '011'
+        );
+
+        expect(salaryAdm.amountCents).toBe(145000);
+        expect(salaryAdm.sourceCount).toBe(2);
+        expect(consolidated.filter((item) =>
+            item.lotacaoCode === 'ADM' && item.eventCode === '011'
+        )).toHaveLength(1);
+    });
+
     it('mantem separados eventos diferentes na mesma lotacao', () => {
         const [salaryRow] = baseRows();
         const consolidated = consolidatePayrollRows([

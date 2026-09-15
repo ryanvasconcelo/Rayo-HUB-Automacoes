@@ -9,13 +9,14 @@ describe('Fortes Data Fetcher', () => {
   const mockCsv = `companyId;companyName;competence;sourcePayrollId;employeeId;employeeName;lotacaoCode;lotacaoName;eventCode;eventName;sourceEventNature;sourceReference;amountCents;TipoRegistro;IncideINSS;IncideIRRF;IncideFGTS;sourceOrigin;sourceAdapter;sourceLineId
 9274;BRAGA VEÍCULOS;202604;93;000009;ADALBERTO;008;MECANICA;600;Salário;0;0.0;114000;INFORMATIVO;1;1;1;folha-mensal;fortes-query;linha1
 9274;BRAGA VEÍCULOS;202604;93;000538;ADRIANA;011;AGENDAMENTOS;011;Salário-Base;1;30.0;165000;PROVENTO;1;1;1;folha-mensal;fortes-query;linha2
-9274;BRAGA VEÍCULOS;202604;93;000538;ADRIANA;011;AGENDAMENTOS;310;INSS;-1;9.0;19942;DESCONTO;1;1;1;folha-mensal;fortes-query;linha3`;
+9274;BRAGA VEÍCULOS;202604;93;000538;ADRIANA;011;AGENDAMENTOS;310;INSS;-1;9.0;19942;DESCONTO;1;1;1;folha-mensal;fortes-query;linha3
+9274;BRAGA VEÍCULOS;202604;94;000700;BRUNO;011;AGENDAMENTOS;011;Salário-Base;1;30.0;100000;PROVENTO;1;1;1;folha-mensal;fortes-query;linha4`;
 
   it('1. função monta payload bruto esperado e empresa 9274 aceita', async () => {
     fs.readFile.mockResolvedValue(mockCsv);
     const { rawRows } = await fetchFortesDataMock('9274', '202604');
     
-    expect(rawRows).toHaveLength(3);
+    expect(rawRows).toHaveLength(4);
     expect(rawRows[1].companyId).toBe('9274');
     expect(rawRows[1].competence).toBe('202604');
     expect(rawRows[1].ProvDesc).toBe(1); // PROVENTO = 1
@@ -29,11 +30,13 @@ describe('Fortes Data Fetcher', () => {
     expect(metadata.empresa).toBe('9274');
     expect(metadata.competencia).toBe('202604');
     expect(metadata.folhaSeq).toBe('93');
-    expect(metadata.quantidadeLinhas).toBe(3);
-    expect(metadata.quantidadeFuncionarios).toBe(2); // ADALBERTO e ADRIANA
-    expect(metadata.totalProventos).toBe(165000);
+    expect(metadata.folhaSeqs).toEqual(['93', '94']);
+    expect(metadata.quantidadeFolhas).toBe(2);
+    expect(metadata.quantidadeLinhas).toBe(4);
+    expect(metadata.quantidadeFuncionarios).toBe(3); // ADALBERTO, ADRIANA, BRUNO
+    expect(metadata.totalProventos).toBe(265000);
     expect(metadata.totalDescontos).toBe(19942);
-    expect(metadata.totalLiquido).toBe(165000 - 19942);
+    expect(metadata.totalLiquido).toBe(265000 - 19942);
     expect(metadata.totalInformativos).toBe(114000);
   });
 
@@ -46,11 +49,21 @@ describe('Fortes Data Fetcher', () => {
     const names = rawRows.map(r => r.employeeName);
     expect(names).toContain('ADALBERTO');
     expect(names).toContain('ADRIANA');
+    expect(names).toContain('BRUNO');
   });
-  
+
   it('4. retorna vazio se empresa/competência não baterem', async () => {
     fs.readFile.mockResolvedValue(mockCsv);
     const { rawRows } = await fetchFortesDataMock('9999', '202604');
     expect(rawRows).toHaveLength(0);
+  });
+
+  it('5. mantém linhas de todas as sequências de folha da competência', async () => {
+    fs.readFile.mockResolvedValue(mockCsv);
+    const { rawRows, metadata } = await fetchFortesDataMock('9274', '202604');
+
+    const payrollIds = [...new Set(rawRows.map((r) => String(r.sourcePayrollId)))];
+    expect(payrollIds.sort()).toEqual(['93', '94']);
+    expect(metadata.quantidadeFolhas).toBe(2);
   });
 });

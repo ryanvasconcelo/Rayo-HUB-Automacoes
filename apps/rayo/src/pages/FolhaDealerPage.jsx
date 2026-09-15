@@ -290,6 +290,18 @@ export default function FolhaDealerPage() {
                      className="flex items-center gap-6"
                   >
                      <div className="flex gap-8">
+                        {metadata?.quantidadeFolhas > 0 && (
+                           <>
+                              <div className="flex flex-col items-end">
+                                 <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-0.5">Folhas Fortes</span>
+                                 <span className="font-mono text-sm font-medium text-slate-700" title={(metadata.folhaSeqs || []).join(', ')}>
+                                    {metadata.quantidadeFolhas}
+                                    {metadata.folhaSeqs?.length ? ` (${metadata.folhaSeqs.join(', ')})` : ''}
+                                 </span>
+                              </div>
+                              <div className="w-px h-8 bg-slate-200/60"></div>
+                           </>
+                        )}
                         <div className="flex flex-col items-end">
                            <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-0.5">Líquido Folha</span>
                            <span className="font-mono text-sm font-medium text-slate-700">{formatCurrency(metadata?.totalLiquido || 0)}</span>

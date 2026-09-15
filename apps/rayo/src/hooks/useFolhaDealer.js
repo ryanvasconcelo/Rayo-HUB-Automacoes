@@ -96,10 +96,20 @@ export function useFolhaDealer() {
         throw new Error('Nenhuma linha encontrada no banco para esta competência.');
       }
 
+      const folhaSeqList = [...new Set(
+        rawRows
+          .map((row) => row.sourcePayrollId)
+          .filter((id) => id !== null && id !== undefined && String(id).trim() !== '')
+          .map((id) => String(id))
+      )].sort((a, b) => Number(a) - Number(b));
+
       setMetadata({
         totalLinhasFortes: rawRows.length,
         empresa: rawRows[0]?.companyName || companyId,
         competencia: competence,
+        folhaSeq: folhaSeqList[0] || null,
+        folhaSeqs: folhaSeqList,
+        quantidadeFolhas: folhaSeqList.length,
       });
 
       let payrollRows = normalizeFortesQueryRows(rawRows, {}, bragaVeiculosConfig.provisionRates);

@@ -36,7 +36,7 @@ O adapter Fortes futuro deve:
 | Query no arquivo | Uso para o modulo | Status |
 | --- | --- | --- |
 | `1. Empresas ativas` | Lista empresas ativas no Fortes. Serve para configuracao e selecao futura de empresa. | Aproveitavel. |
-| `2. Identificar folha mensal da competencia` | Resolve `FolhaSeq` para a folha mensal por empresa e competencia. | Aproveitavel para o adapter Fortes. |
+| `2. Identificar folha mensal da competencia` | Lista **todas** as `FolhaSeq` mensais da competencia (Braga pode segmentar em varias folhas). A extracao operacional usa `FOL_Seq IN (...)` e o motor consolida por lotacao+evento. | Aproveitavel para o adapter Fortes. |
 | `3. Cadastro de funcionarios da folha` | Traz matricula, nome, CPF, PIS, admissao, rescisao, carga horaria, escolaridade, raca/cor, e dependentes. | Aproveitavel como dimensao/enriquecimento, nao como fato contabil principal. |
 | `4. Eventos da folha mensal` | Traz uma linha por evento por funcionario, com evento, natureza Fortes, valor, referencia, e incidencias. | Principal candidata para gerar `PayrollSourceRow`; deve ser estendida com lotacao via `EFO -> SEP -> LOT`. |
 | `5. Resumo mensal por funcionario` | Consolida proventos, descontos, liquido estimado, bases Fortes, INSS, IRRF, e quantidade de eventos. | Aproveitavel para conferencia e validacao, nao para lancamento por evento. |

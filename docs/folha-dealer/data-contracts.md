@@ -21,7 +21,7 @@ teste tambem devem gerar este contrato.
 | `sourceSystem` | Sim | Origem dos dados, como `fortes`. |
 | `sourceAdapter` | Sim | Adapter usado, como `fortes-query`, `fixture`, ou `nbs`. |
 | `sourceOrigin` | Sim | Origem funcional, como `folha-mensal`, `ferias`, `rescisao`, ou `complemento`. |
-| `sourcePayrollId` | Nao | Identificador da folha/processamento na origem, como `FolhaSeq`. |
+| `sourcePayrollId` | Nao | Identificador da folha/processamento na origem, como `FolhaSeq`. Pode haver **varias** folhas por competencia; o consolidator ignora este campo na chave e soma todas as sequencias. |
 | `companyId` | Sim | Identificador interno da empresa. |
 | `companyName` | Sim | Nome da empresa. |
 | `competence` | Sim | Competencia em `YYYY-MM`. |

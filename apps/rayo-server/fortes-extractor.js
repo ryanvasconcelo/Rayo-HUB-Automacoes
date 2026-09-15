@@ -27,25 +27,15 @@ async function extractFortesPayroll({ companyId = '9274', competence = '2026-04'
     try {
         pool = await mssql.connect(dbConfig);
         
+        // Braga segmenta a competência em várias folhas (FOL.Seq).
+        // Buscamos TODAS as sequências mensais da competência e
+        // deixamos a consolidação por lotação+evento no motor.
         const query = `
         DECLARE @EmpresaCodigo VARCHAR(4) = @Company;
         DECLARE @Ano INT = @AnoParam;
         DECLARE @Mes INT = @MesParam;
         DECLARE @AnoMes VARCHAR(6) = @AnoMesParam;
-        
-        DECLARE @FolhaSeq INT = (
-            SELECT TOP 1 FOL.Seq
-            FROM FOL (NOLOCK)
-            INNER JOIN FPG (NOLOCK)
-                ON FOL.EMP_Codigo = FPG.EMP_Codigo
-               AND FOL.Seq = FPG.FOL_Seq
-            WHERE FOL.EMP_Codigo = @EmpresaCodigo
-              AND FPG.AnoMes = @AnoMes
-              AND FOL.Folha = 2
-              AND FPG.Tipo IN (1, 4)
-            ORDER BY FOL.Seq DESC
-        );
-        
+
         SELECT
             EFO.EMP_Codigo AS companyId,
             EMP.Nome AS companyName,
@@ -83,8 +73,18 @@ async function extractFortesPayroll({ companyId = '9274', competence = '2026-04'
             ON EFP.EMP_Codigo = EVE.EMP_Codigo
            AND EFP.EVE_Codigo = EVE.Codigo
         WHERE EFO.EMP_Codigo = @EmpresaCodigo
-          AND EFO.FOL_Seq = @FolhaSeq
-        ORDER BY EPG.Nome, EFP.EVE_Codigo;
+          AND EFO.FOL_Seq IN (
+              SELECT FOL.Seq
+              FROM FOL (NOLOCK)
+              INNER JOIN FPG (NOLOCK)
+                  ON FOL.EMP_Codigo = FPG.EMP_Codigo
+                 AND FOL.Seq = FPG.FOL_Seq
+              WHERE FOL.EMP_Codigo = @EmpresaCodigo
+                AND FPG.AnoMes = @AnoMes
+                AND FOL.Folha = 2
+                AND FPG.Tipo IN (1, 4)
+          )
+        ORDER BY EFO.FOL_Seq, EPG.Nome, EFP.EVE_Codigo;
         `;
         
         const result = await pool.request()

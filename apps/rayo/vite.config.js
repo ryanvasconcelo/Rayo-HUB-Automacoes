@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { createRequire } from 'module';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const require = createRequire(import.meta.url);
@@ -23,8 +23,9 @@ export default defineConfig(async ({ command }) => {
     const plugins = [react()];
 
     if (command === 'serve') {
-        const pluginPath = './vite-plugin-fortes-api.js';
-        const { fortesApiPlugin } = await import(pluginPath);
+        // Absolute file URL evita falha quando o Vite materializa o config em .vite-temp
+        const pluginUrl = pathToFileURL(path.resolve(__dirname, 'vite-plugin-fortes-api.js')).href;
+        const { fortesApiPlugin } = await import(pluginUrl);
         plugins.push(fortesApiPlugin());
     }
 

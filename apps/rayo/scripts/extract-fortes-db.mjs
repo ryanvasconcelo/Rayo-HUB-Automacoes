@@ -26,19 +26,6 @@ DECLARE @Mes INT = 4;
 DECLARE @AnoMes VARCHAR(6);
 SET @AnoMes = CAST(@Ano AS VARCHAR(4)) + RIGHT('00' + CAST(@Mes AS VARCHAR(2)), 2);
 
-DECLARE @FolhaSeq INT = (
-    SELECT TOP 1 FOL.Seq
-    FROM FOL (NOLOCK)
-    INNER JOIN FPG (NOLOCK)
-        ON FOL.EMP_Codigo = FPG.EMP_Codigo
-       AND FOL.Seq = FPG.FOL_Seq
-    WHERE FOL.EMP_Codigo = @EmpresaCodigo
-      AND FPG.AnoMes = @AnoMes
-      AND FOL.Folha = 2
-      AND FPG.Tipo IN (1, 4)
-    ORDER BY FOL.Seq DESC
-);
-
 SELECT
     EFO.EMP_Codigo AS companyId,
     EMP.Nome AS companyName,
@@ -75,8 +62,18 @@ LEFT JOIN LTA LOT (NOLOCK)
     ON EPG.EMP_Codigo = LOT.EMP_Codigo
    AND EPG.LTA_Codigo = LOT.Codigo
 WHERE EFO.EMP_Codigo = @EmpresaCodigo
-  AND EFO.FOL_Seq = @FolhaSeq
-ORDER BY EPG.Nome, EFP.EVE_Codigo;
+  AND EFO.FOL_Seq IN (
+      SELECT FOL.Seq
+      FROM FOL (NOLOCK)
+      INNER JOIN FPG (NOLOCK)
+          ON FOL.EMP_Codigo = FPG.EMP_Codigo
+         AND FOL.Seq = FPG.FOL_Seq
+      WHERE FOL.EMP_Codigo = @EmpresaCodigo
+        AND FPG.AnoMes = @AnoMes
+        AND FOL.Folha = 2
+        AND FPG.Tipo IN (1, 4)
+  )
+ORDER BY EFO.FOL_Seq, EPG.Nome, EFP.EVE_Codigo;
 `;
 
 async function extract() {

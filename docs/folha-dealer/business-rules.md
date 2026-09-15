@@ -12,6 +12,9 @@
    - competencia;
    - codigo da lotacao Fortes;
    - codigo do evento Fortes.
+   A chave **nao** inclui `FolhaSeq`/`sourcePayrollId`: quando a competencia
+   tiver varias sequencias de folha mensal no Fortes, todas entram na mesma
+   consolidacao da competencia.
 6. Valores consolidados iguais a zero nao devem gerar lancamento.
 7. Eventos informativos/base, como `600`, `601`, `602`, `603`, e `604`, nao
    devem gerar lancamento contabil.
