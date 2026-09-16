@@ -1,0 +1,506 @@
+{
+  "companyId": "braga-veiculos",
+  "centers": [
+    {
+      "code": "000600",
+      "name": "Administração",
+      "active": true
+    },
+    {
+      "code": "008000",
+      "name": "Diretoria",
+      "active": true
+    },
+    {
+      "code": "000500",
+      "name": "Peças",
+      "active": true
+    },
+    {
+      "code": "003100",
+      "name": "Acessórios",
+      "active": true
+    },
+    {
+      "code": "000300",
+      "name": "Mecânica",
+      "active": true
+    },
+    {
+      "code": "000400",
+      "name": "Funil./Pintura",
+      "active": true
+    },
+    {
+      "code": "001000",
+      "name": "Veíc. Novos",
+      "active": true
+    },
+    {
+      "code": "000101",
+      "name": "Venda Direta",
+      "active": true
+    },
+    {
+      "code": "001100",
+      "name": "Veíc. Novos – Filial",
+      "active": true
+    },
+    {
+      "code": "002000",
+      "name": "Veíc. Usados",
+      "active": true
+    },
+    {
+      "code": "000999",
+      "name": "Geral",
+      "active": true
+    }
+  ],
+  "lotacaoMappings": [
+    {
+      "lotacaoCode": "ADM",
+      "dealerCenterCode": "000600",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "RH",
+      "dealerCenterCode": "000600",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "FIN",
+      "dealerCenterCode": "000600",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "FISCAL",
+      "dealerCenterCode": "000600",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "TI",
+      "dealerCenterCode": "000600",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DIR",
+      "dealerCenterCode": "008000",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "PEC",
+      "dealerCenterCode": "000500",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "ACES",
+      "dealerCenterCode": "003100",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "MEC",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "FUN",
+      "dealerCenterCode": "000400",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "PROD",
+      "dealerCenterCode": "000300",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "AGEND",
+      "dealerCenterCode": "000300",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "MEC_FIL",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "PEC_FIL",
+      "dealerCenterCode": "000500",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "ACES_FIL",
+      "dealerCenterCode": "003100",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "VEN",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "VD_MAT",
+      "dealerCenterCode": "000101",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "LEADS_MAT",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "FINANC_MAT",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "FIL_NOVOS",
+      "dealerCenterCode": "001100",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "FINANC_FIL",
+      "dealerCenterCode": "001100",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "VD_FIL",
+      "dealerCenterCode": "000101",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "MULTI",
+      "dealerCenterCode": "002000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "LEADS_FIL",
+      "dealerCenterCode": "001100",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "RECURSOS HUMANOS",
+      "dealerCenterCode": "000600",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "FINANCEIRO",
+      "dealerCenterCode": "000600",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DIRETORIA",
+      "dealerCenterCode": "008000",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPARTAMENTO DE PEÇAS",
+      "dealerCenterCode": "000500",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPT. DE ACESSORIOS",
+      "dealerCenterCode": "003100",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPT. SERVIÇOS MECANICA MATRIZ",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPT. FUNILARIA / PINTURA",
+      "dealerCenterCode": "000400",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPT. PRODUTIVOS",
+      "dealerCenterCode": "000300",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "AGENDAMENTOS",
+      "dealerCenterCode": "000300",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPT. MECANICA FILIAL",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPT. PEÇAS FILIAL",
+      "dealerCenterCode": "000500",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPTO. ACESSORIOS FILIAL",
+      "dealerCenterCode": "003100",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPT. VENDAS VEICULOS",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPT. DE VENDA DIRETA MATRIZ",
+      "dealerCenterCode": "000101",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPT. DE LEADS MATRIZ",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPT. DE FINANCIAMENTO MATRIZ",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA VEICULOS FILIAL NOVOS",
+      "dealerCenterCode": "001100",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPT. FINANCIAMENTO FILIAL",
+      "dealerCenterCode": "001100",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPTO VENDA DIRETA FILIAL",
+      "dealerCenterCode": "000101",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MULTIMARCAS",
+      "dealerCenterCode": "002000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPT. DE LEADS FILIAL",
+      "dealerCenterCode": "001100",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "GERAL",
+      "dealerCenterCode": "000999",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPTO. SEMINOVOS",
+      "dealerCenterCode": "002000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPTO. VENDAS",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA VEICULOS DEPTO AGENDAMENTO",
+      "dealerCenterCode": "000300",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA VEICULOS DEPTO MECANICA FILIAL",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "015",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "010",
+      "dealerCenterCode": "000300",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "020",
+      "dealerCenterCode": "001100",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "016",
+      "dealerCenterCode": "000101",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "006",
+      "dealerCenterCode": "000500",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "023",
+      "dealerCenterCode": "002000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "002",
+      "dealerCenterCode": "000600",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "011",
+      "dealerCenterCode": "000300",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "012",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "008",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "003",
+      "dealerCenterCode": "000600",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "022",
+      "dealerCenterCode": "000101",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "001",
+      "dealerCenterCode": "000600",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "017",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "019",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "021",
+      "dealerCenterCode": "001100",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "004",
+      "dealerCenterCode": "008000",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "007",
+      "dealerCenterCode": "003100",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "005",
+      "dealerCenterCode": "000600",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "014",
+      "dealerCenterCode": "003100",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "024",
+      "dealerCenterCode": "001100",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "013",
+      "dealerCenterCode": "000500",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "999",
+      "dealerCenterCode": "000999",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "",
+      "dealerCenterCode": "000600",
+      "allocationMode": "direct",
+      "active": true
+    }
+  ]
+}

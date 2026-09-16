@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   createFolhaDealerRun,
   approveFolhaDealerRun,
@@ -10,42 +10,75 @@ import {
 } from '../lib/folha-dealer';
 import { normalizeFortesQueryRows } from '../lib/folha-dealer/fortes-query-adapter';
 import { parseFortesCsv } from '../lib/folha-dealer/fortes-csv-parser';
+import { fetchCentersConfig } from '../lib/folha-dealer/centers-config-api';
+import { mergeCenterMappings } from '../lib/folha-dealer/merge-center-config';
+
+const COMPANY_ID = 'braga-veiculos';
+
+async function resolveRuntimeConfig() {
+  let centersWarning = null;
+  let stored = null;
+
+  try {
+    stored = await fetchCentersConfig(COMPANY_ID);
+  } catch (err) {
+    centersWarning = `Cadastro de centros indisponível (${err.message}). Usando seed do config.`;
+  }
+
+  const centerMappings = mergeCenterMappings(
+    bragaVeiculosConfig.centerMappings,
+    stored,
+    COMPANY_ID
+  );
+
+  return {
+    config: { ...bragaVeiculosConfig, centerMappings },
+    centersWarning,
+  };
+}
 
 export function useFolhaDealer() {
   const [runData, setRunData] = useState(null);
   const [config, setConfig] = useState(null);
   const [error, setError] = useState(null);
+  const [warning, setWarning] = useState(null);
   const [metadata, setMetadata] = useState(null);
+  const [lastSourceRows, setLastSourceRows] = useState(null);
+  const [lastCompetence, setLastCompetence] = useState(null);
 
-  const processRun = (companyId, competence) => {
+  const runWithConfig = useCallback((sourceRows, competence, runtimeConfig, centersWarning) => {
+    setConfig(runtimeConfig);
+    setWarning(centersWarning);
+    setLastSourceRows(sourceRows);
+    setLastCompetence(competence);
+
+    const newRun = createFolhaDealerRun(sourceRows, {
+      config: runtimeConfig,
+      competence,
+    });
+    setRunData(newRun);
+  }, []);
+
+  const processRun = async (companyId, competence) => {
     try {
       setError(null);
-      
-      let sourceRows = [];
-      let currentConfig = null;
 
+      let sourceRows = [];
       if (companyId === 'BRAGA_VEICULOS') {
         sourceRows = buildBragaRowsFortes(competence);
-        currentConfig = bragaVeiculosConfig;
       } else {
         throw new Error(`A empresa ${companyId} não possui configuração/fixtures implementados ainda.`);
       }
 
-      setConfig(currentConfig);
-
-      const newRun = createFolhaDealerRun(sourceRows, {
-        config: currentConfig,
-        competence
-      });
-
-      setRunData(newRun);
+      const { config: runtimeConfig, centersWarning } = await resolveRuntimeConfig();
+      runWithConfig(sourceRows, competence, runtimeConfig, centersWarning);
       setMetadata(null);
     } catch (err) {
       setError(err.message);
     }
   };
 
-  const processCsvFortes = (csvContent, targetCompanyId, targetCompetence) => {
+  const processCsvFortes = async (csvContent, targetCompanyId, targetCompetence) => {
     try {
       setError(null);
       const { metadata: newMetadata, rawRows } = parseFortesCsv(csvContent, targetCompanyId, targetCompetence);
@@ -61,20 +94,13 @@ export function useFolhaDealer() {
         bragaVeiculosConfig.provisionRates,
         bragaVeiculosConfig.encargoRates
       );
-      // Forçar 'braga-veiculos' para bater com as chaves do de-para do motor.
       payrollRows = payrollRows.map(row => ({
         ...row,
-        companyId: 'braga-veiculos'
+        companyId: COMPANY_ID
       }));
 
-      setConfig(bragaVeiculosConfig);
-
-      const newRun = createFolhaDealerRun(payrollRows, {
-        config: bragaVeiculosConfig,
-        competence: targetCompetence
-      });
-
-      setRunData(newRun);
+      const { config: runtimeConfig, centersWarning } = await resolveRuntimeConfig();
+      runWithConfig(payrollRows, targetCompetence, runtimeConfig, centersWarning);
     } catch (err) {
       setError(err.message);
     }
@@ -84,18 +110,18 @@ export function useFolhaDealer() {
     try {
       setError(null);
       setMetadata(null);
-      
+
       const response = await fetch('/api/fortes/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ companyId, competence })
       });
-      
+
       const result = await response.json();
       if (!result.success) {
         throw new Error(result.error || 'Erro na extração do banco de dados.');
       }
-      
+
       const rawRows = result.data;
       if (!rawRows || rawRows.length === 0) {
         throw new Error('Nenhuma linha encontrada no banco para esta competência.');
@@ -118,7 +144,6 @@ export function useFolhaDealer() {
         provisoesFortes: Array.isArray(result.provisions) ? result.provisions.length : 0,
       });
 
-      // DB extract: PROV_* vêm do Fortes (PRD/PRF). Sem taxa×BC-FGTS sintético.
       const hasFortesProvisions = Array.isArray(result.provisions);
       let payrollRows = normalizeFortesQueryRows(
         rawRows,
@@ -126,26 +151,35 @@ export function useFolhaDealer() {
         hasFortesProvisions ? null : bragaVeiculosConfig.provisionRates,
         bragaVeiculosConfig.encargoRates
       );
-      
-      // Forçar 'braga-veiculos' se for 9274 para bater com o de-para do mock atual
+
       if (companyId === '9274' || companyId === 'BRAGA_VEICULOS') {
         payrollRows = payrollRows.map(row => ({
           ...row,
-          companyId: 'braga-veiculos'
+          companyId: COMPANY_ID
         }));
-        setConfig(bragaVeiculosConfig);
       } else {
         throw new Error(`Empresa ${companyId} não suportada pelos mocks atuais.`);
       }
 
-      const newRun = createFolhaDealerRun(payrollRows, {
-        config: bragaVeiculosConfig,
-        competence
-      });
-
-      setRunData(newRun);
+      const { config: runtimeConfig, centersWarning } = await resolveRuntimeConfig();
+      runWithConfig(payrollRows, competence, runtimeConfig, centersWarning);
     } catch (err) {
       setError(err.message);
+    }
+  };
+
+  const reprocessLastRun = async () => {
+    if (!lastSourceRows || !lastCompetence) {
+      throw new Error('Não há lote anterior para reprocessar. Extraia a folha novamente.');
+    }
+    try {
+      setError(null);
+      const { config: runtimeConfig, centersWarning } = await resolveRuntimeConfig();
+      runWithConfig(lastSourceRows, lastCompetence, runtimeConfig, centersWarning);
+      return true;
+    } catch (err) {
+      setError(err.message);
+      throw err;
     }
   };
 
@@ -165,8 +199,7 @@ export function useFolhaDealer() {
     try {
       setError(null);
       const buffer = exportRunConferenceXlsx(runData, { config });
-      
-      // Converte o buffer gerado pelo XLSX (que no navegador pode ser um Uint8Array) em Blob
+
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -183,7 +216,7 @@ export function useFolhaDealer() {
     if (!runData) return;
     try {
       setError(null);
-      
+
       if (!dealerCompanyField || !dealerBranchField || !accountingDate) {
         throw new Error('Empresa Dealer, Filial Dealer e Data Contábil são obrigatórios para exportar o TXT.');
       }
@@ -198,7 +231,7 @@ export function useFolhaDealer() {
       if (normBranch.length !== 3) {
         throw new Error(`A Filial Dealer deve ter exatamente 3 caracteres. Atual: ${normBranch}`);
       }
-      
+
       if (accountingDate.includes('undefined') || accountingDate.includes('null')) {
         throw new Error('Data contábil possui formato inválido.');
       }
@@ -208,11 +241,11 @@ export function useFolhaDealer() {
         dealerBranchField: normBranch,
         accountingDate
       });
-      
+
       if (content.includes('undefined') || content.includes('null') || content.includes('Invalid Date')) {
         throw new Error('A exportação gerou dados inválidos (undefined, null ou Invalid Date). Verifique as parametrizações.');
       }
-      
+
       const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -220,7 +253,7 @@ export function useFolhaDealer() {
       a.download = `lote_dealer_${runData.companyId}_${runData.competence}.txt`;
       a.click();
       URL.revokeObjectURL(url);
-      
+
       setRunData(newRun);
     } catch (err) {
       setError(err.message);
@@ -231,11 +264,13 @@ export function useFolhaDealer() {
     run: runData,
     config,
     error,
+    warning,
     metadata,
     summary: runData ? summarizeValidationIssues(runData) : null,
     processRun,
     processCsvFortes,
     extractFromDatabase,
+    reprocessLastRun,
     approveRun,
     downloadExcel,
     downloadTxt

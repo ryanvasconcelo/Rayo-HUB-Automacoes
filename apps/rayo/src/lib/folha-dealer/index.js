@@ -47,6 +47,12 @@ export {
 } from './folha-dealer-run-service.js';
 
 export { summarizeValidationIssues } from './validation-summarizer.js';
+export {
+  padCenterCode,
+  mergeCenterMappings,
+  seedPayloadFromCenterMappings,
+  normalizeCentersPayload,
+} from './merge-center-config.js';
 export { calculateProvisions, DEFAULT_PROVISION_RATES } from './provision-calculator.js';
 export { calculateEncargos, DEFAULT_ENCARGO_RATES } from './encargo-calculator.js';
 
