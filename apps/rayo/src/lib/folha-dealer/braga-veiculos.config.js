@@ -248,9 +248,9 @@ const provisionRates = {
 // Alíquotas encargos mensais (Analítico DCTFWeb + FGTS) — não inclui 1082-01
 const encargoRates = {
   inssEmpresa: 20.0, // 1138-01
-  gilrat: 2.0, // 1646-01 (RAT 2% × FAP 1)
+  gilrat: 1.0, // 1646-01 (RAT × FAP Braga = 1% no Analítico DCTFWeb)
   terceiros: 5.8, // 1170+1176+1191+1196+1200
-  fgts: 8.0, // FGTS mensal tipo 11
+  fgts: 8.0, // FGTS mensal tipo 11 (fallback; extract usa VALORDEPO)
 };
 
 // ---------------------------------------------------------------------------

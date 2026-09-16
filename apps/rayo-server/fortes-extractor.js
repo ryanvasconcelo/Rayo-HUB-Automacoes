@@ -212,6 +212,94 @@ WHERE PRV.EMP_Codigo = @EmpresaCodigo
 ORDER BY LOT.Nome, EPG.Nome;
 `;
 
+/**
+ * Bases oficiais eSocial para encargos DCTF/FGTS (mensal, TipoValor 11).
+ * Lotação via SEP/LOT da folha mensal; de-para Braga usa LOT.Nome.
+ */
+const ENCARGO_BASE_QUERY = `
+DECLARE @EmpresaCodigo VARCHAR(4) = @Company;
+DECLARE @AnoMes VARCHAR(6) = @AnoMesParam;
+
+;WITH empLot AS (
+    SELECT
+        EPG.EMP_Codigo AS companyId,
+        EMP.Nome AS companyName,
+        EPG.Codigo AS employeeId,
+        EPG.Nome AS employeeName,
+        EPG.MatriculaESocial AS esMat,
+        ISNULL(MAX(SEP.LOT_Codigo), '') AS lotacaoCode,
+        ISNULL(MAX(LOT.Nome), '') AS lotacaoName
+    FROM EFO (NOLOCK)
+    INNER JOIN EPG (NOLOCK)
+        ON EFO.EMP_Codigo = EPG.EMP_Codigo
+       AND EFO.EPG_Codigo = EPG.Codigo
+    INNER JOIN FOL (NOLOCK)
+        ON EFO.EMP_Codigo = FOL.EMP_Codigo
+       AND EFO.FOL_Seq = FOL.Seq
+       AND FOL.Folha = 2
+    INNER JOIN FPG (NOLOCK)
+        ON FOL.EMP_Codigo = FPG.EMP_Codigo
+       AND FOL.Seq = FPG.FOL_Seq
+       AND FPG.AnoMes = @AnoMes
+       AND FPG.Tipo IN (1, 4)
+    LEFT JOIN EMP (NOLOCK)
+        ON EPG.EMP_Codigo = EMP.Codigo
+    LEFT JOIN SEP (NOLOCK)
+        ON EFO.EMP_Codigo = SEP.EMP_Codigo
+       AND EFO.EPG_Codigo = SEP.EPG_Codigo
+       AND EFO.SEP_Data = SEP.Data
+    LEFT JOIN LOT (NOLOCK)
+        ON SEP.EMP_Codigo = LOT.EMP_Codigo
+       AND SEP.LOT_Codigo = LOT.Codigo
+    WHERE EFO.EMP_Codigo = @EmpresaCodigo
+    GROUP BY
+        EPG.EMP_Codigo,
+        EMP.Nome,
+        EPG.Codigo,
+        EPG.Nome,
+        EPG.MatriculaESocial
+),
+cp AS (
+    SELECT
+        LTRIM(RTRIM(Matricula)) AS esMat,
+        SUM(TRY_CAST(Valor AS FLOAT)) AS bcCp
+    FROM ES_CS_CP_Base (NOLOCK)
+    WHERE EMP_Codigo = @EmpresaCodigo
+      AND PeriodoApuracao = @AnoMes
+      AND TipoValor = 11
+      AND ISNULL(Indicativo13Salario, 0) = 0
+    GROUP BY LTRIM(RTRIM(Matricula))
+),
+fg AS (
+    SELECT
+        LTRIM(RTRIM(MATRICULA)) AS esMat,
+        SUM(TRY_CAST(VALORDEPO AS FLOAT)) AS fgtsDepo
+    FROM ES_FGTS_SEGURADO (NOLOCK)
+    WHERE EMP_CODIGO = @EmpresaCodigo
+      AND PERIODOAPURACAO = @AnoMes
+      AND TIPOVALOR = 11
+    GROUP BY LTRIM(RTRIM(MATRICULA))
+)
+SELECT
+    el.companyId,
+    el.companyName,
+    @AnoMes AS competence,
+    el.employeeId,
+    el.employeeName,
+    el.lotacaoCode,
+    el.lotacaoName,
+    CAST(ROUND(ISNULL(cp.bcCp, 0) * 100, 0) AS INT) AS bcCpCents,
+    CAST(ROUND(ISNULL(fg.fgtsDepo, 0) * 100, 0) AS INT) AS fgtsDepoCents
+FROM empLot el
+LEFT JOIN cp
+    ON cp.esMat = LTRIM(RTRIM(el.esMat))
+LEFT JOIN fg
+    ON fg.esMat = LTRIM(RTRIM(el.esMat))
+WHERE ISNULL(cp.bcCp, 0) > 0
+   OR ISNULL(fg.fgtsDepo, 0) > 0
+ORDER BY el.lotacaoName, el.employeeName;
+`;
+
 async function extractFortesPayroll({ companyId = '9274', competence = '2026-04' }) {
   const dbConfig = buildDbConfig();
   const [anoStr, mesStr] = competence.split('-');
@@ -232,10 +320,11 @@ async function extractFortesPayroll({ companyId = '9274', competence = '2026-04'
         .input('MesParam', mssql.Int, mes)
         .input('AnoMesParam', mssql.VarChar(6), anoMesStr);
 
-    const [payrollResult, prov13Result, provFerResult] = await Promise.all([
+    const [payrollResult, prov13Result, provFerResult, encargoBaseResult] = await Promise.all([
       request().query(PAYROLL_QUERY),
       request().query(PROV_13_QUERY),
       request().query(PROV_FER_QUERY),
+      request().query(ENCARGO_BASE_QUERY),
     ]);
 
     const provisions = [];
@@ -249,13 +338,26 @@ async function extractFortesPayroll({ companyId = '9274', competence = '2026-04'
       provisions.push(...expandProvisionAmounts(row, PROV_FER_DEFS));
     }
 
+    const encargoBases = encargoBaseResult.recordset.map((row) => {
+      const lotacaoName = row.lotacaoName || '';
+      return {
+        ...row,
+        // de-para Braga usa o nome da lotação
+        lotacaoCode: lotacaoName || row.lotacaoCode || '',
+        lotacaoName,
+      };
+    });
+
     console.log(
-      `[API Fortes] Folha=${payrollResult.recordset.length} linhas; Provisões Fortes=${provisions.length} (13º+férias)`
+      `[API Fortes] Folha=${payrollResult.recordset.length} linhas; ` +
+        `Provisões Fortes=${provisions.length} (13º+férias); ` +
+        `Bases encargo eSocial=${encargoBases.length}`
     );
 
     return {
       payroll: payrollResult.recordset,
       provisions,
+      encargoBases,
     };
   } finally {
     if (pool) {
@@ -267,9 +369,11 @@ async function extractFortesPayroll({ companyId = '9274', competence = '2026-04'
 module.exports = {
   extractFortesPayroll,
   expandProvisionAmounts,
+  buildDbConfig,
   PROV_13_DEFS,
   PROV_FER_DEFS,
   PAYROLL_QUERY,
   PROV_13_QUERY,
   PROV_FER_QUERY,
+  ENCARGO_BASE_QUERY,
 };

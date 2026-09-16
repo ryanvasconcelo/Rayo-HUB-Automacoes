@@ -9,7 +9,7 @@
  *   1191-01 SENAC 1,00%                       → ENCARGO_TERCEIROS (soma 5,80%)
  *   1196-01 SESC 1,50%
  *   1200-01 SEBRAE 0,60%
- *   FGTS mensal (tipo 11) 8%                  → ENCARGO_FGTS_FOLHA
+ *   FGTS mensal (tipo 11)                     → ENCARGO_FGTS_FOLHA
  *
  * Excluído: 1082-01 INSS descontado do segurado (evento Fortes 310, já mapeado).
  *
@@ -17,55 +17,206 @@
  *   INSS / GILRAT / Terceiros → D 6.1.1.02.001 / C 2.1.1.02.001
  *   FGTS                      → D 6.1.1.02.002 / C 2.1.1.02.002
  *
- * Base: BC-FGTS por empregado|lotação (IncideFGTS=1), mesma base das provisões.
+ * Preferência de base (fluxo extract DB):
+ *   ES_CS_CP_Base (TipoValor 11) + ES_FGTS_SEGURADO.VALORDEPO → calculateEncargosFromBases
+ *
+ * Fallback sintético (CSV / sem eSocial):
+ *   1) eventos informativos 602 (BC CPP) e 605 (FGTS)
+ *   2) senão: Σ proventos IncideFGTS=1 (sem subtrair descontos — base DCTF ≠ líquido FGTS)
  */
 
 export const DEFAULT_ENCARGO_RATES = Object.freeze({
   inssEmpresa: 20.0, // 1138-01
-  gilrat: 2.0, // 1646-01 (RAT 2% × FAP 1)
+  gilrat: 1.0, // 1646-01 (RAT × FAP da empresa; Braga = 1%)
   terceiros: 5.8, // 1170+1176+1191+1196+1200
-  fgts: 8.0, // FGTS mensal
+  fgts: 8.0, // FGTS mensal (só no fallback sintético)
 });
 
-function calculateFgtsBasePerEmployee(rawRows) {
+const CPP_DEFS = Object.freeze([
+  {
+    eventCode: 'ENCARGO_INSS_PATRONAL',
+    eventName: 'INSS Patronal (1138-01 Empresa 20%)',
+    rateKey: 'inssEmpresa',
+    dctfRef: '1138-01',
+  },
+  {
+    eventCode: 'ENCARGO_RAT_FAP',
+    eventName: 'GILRAT / RAT-FAP (1646-01)',
+    rateKey: 'gilrat',
+    dctfRef: '1646-01',
+  },
+  {
+    eventCode: 'ENCARGO_TERCEIROS',
+    eventName: 'Terceiros Sistema S (1170/1176/1191/1196/1200)',
+    rateKey: 'terceiros',
+    dctfRef: '1170-01+1176-01+1191-01+1196-01+1200-01',
+  },
+]);
+
+function normalizeCompetence(comp) {
+  if (comp && typeof comp === 'string' && !comp.includes('-') && comp.length === 6) {
+    return `${comp.substring(0, 4)}-${comp.substring(4, 6)}`;
+  }
+  return comp || '';
+}
+
+function pushEncargoRow(encargoRows, data, def, amountCents, sourceReference, sourceAdapter) {
+  if (amountCents <= 0) return;
+  encargoRows.push({
+    sourceSystem: 'fortes',
+    sourceAdapter,
+    sourceOrigin: sourceAdapter === 'fortes-encargo' ? 'fortes-encargo' : 'encargo-derived',
+    sourcePayrollId: null,
+    companyId: data.companyId != null ? String(data.companyId) : '',
+    companyName: data.companyName || '',
+    competence: normalizeCompetence(data.competence),
+    lotacaoCode: data.lotacaoCode,
+    lotacaoName: data.lotacaoName || '',
+    eventCode: def.eventCode,
+    eventName: def.eventName,
+    sourceEventNature: 'ENCARGO',
+    sourceReference,
+    sourceRecordType: 'ENCARGO',
+    amountCents,
+    employeeId: data.employeeId != null ? String(data.employeeId) : null,
+    employeeName: data.employeeName || '',
+    sourceLineId: `encargo-${def.eventCode}-${data.employeeId}-${data.lotacaoCode}`,
+  });
+}
+
+/**
+ * Encargos a partir das bases oficiais eSocial (extract Fortes).
+ *
+ * @param {object[]} baseRows — { bcCpCents, fgtsDepoCents, employeeId, lotacaoCode, ... }
+ * @param {object} [rates]
+ * @returns {object[]}
+ */
+export function calculateEncargosFromBases(baseRows, rates = DEFAULT_ENCARGO_RATES) {
+  const merged = { ...DEFAULT_ENCARGO_RATES, ...rates };
+  const encargoRows = [];
+
+  for (const row of baseRows || []) {
+    const bcCpCents = Math.round(Number(row.bcCpCents) || 0);
+    const fgtsDepoCents = Math.round(Number(row.fgtsDepoCents) || 0);
+    if (bcCpCents <= 0 && fgtsDepoCents <= 0) continue;
+
+    const lotacaoCode = row.lotacaoName
+      ? String(row.lotacaoName)
+      : String(row.lotacaoCode || '');
+    const data = {
+      companyId: row.companyId,
+      companyName: row.companyName || '',
+      competence: row.competence,
+      employeeId: row.employeeId,
+      employeeName: row.employeeName || '',
+      lotacaoCode,
+      lotacaoName: row.lotacaoName || lotacaoCode,
+    };
+
+    if (bcCpCents > 0) {
+      for (const def of CPP_DEFS) {
+        const amountCents = Math.round(bcCpCents * (merged[def.rateKey] / 100));
+        pushEncargoRow(
+          encargoRows,
+          data,
+          def,
+          amountCents,
+          `ES_CS_CP_Base: ${bcCpCents}; DCTF: ${def.dctfRef}`,
+          'fortes-encargo'
+        );
+      }
+    }
+
+    if (fgtsDepoCents > 0) {
+      pushEncargoRow(
+        encargoRows,
+        data,
+        {
+          eventCode: 'ENCARGO_FGTS_FOLHA',
+          eventName: 'FGTS mensal (tipo 11)',
+          dctfRef: 'FGTS-11',
+        },
+        fgtsDepoCents,
+        `ES_FGTS_SEGURADO.VALORDEPO: ${fgtsDepoCents}`,
+        'fortes-encargo'
+      );
+    }
+  }
+
+  return encargoRows;
+}
+
+/**
+ * Base sintético por empregado|lotação.
+ * Prefere informativos 602/605; senão só proventos IncideFGTS=1.
+ */
+function calculateBasesPerEmployee(rawRows) {
   const bases = new Map();
 
-  for (const row of rawRows) {
-    const incideFgts = String(row.IncideFGTS || row.incideFGTS || '0');
-    if (incideFgts !== '1') continue;
-
-    const tipo = String(row.TipoRegistro || row.tipoRegistro || '').toUpperCase();
-    if (tipo !== 'PROVENTO' && tipo !== 'DESCONTO') continue;
-
-    const employeeId = String(row.employeeId || '');
-    if (!employeeId) continue;
-
-    const lotacaoCode = String(row.lotacaoCode || '');
-    const key = `${employeeId}|${lotacaoCode}`;
-    const amount = Math.abs(parseInt(row.amountCents || '0', 10));
-
+  function ensure(key, row, lotacaoCode) {
     if (!bases.has(key)) {
       bases.set(key, {
-        base: 0,
+        bcCpCents: 0,
+        fgtsCents: 0,
+        hasInformative: false,
         lotacaoCode,
         lotacaoName: row.lotacaoName || '',
         companyId: row.companyId,
         competence: row.competence,
-        employeeId,
+        employeeId: String(row.employeeId || ''),
         employeeName: row.employeeName || '',
       });
     }
+    return bases.get(key);
+  }
 
+  for (const row of rawRows) {
+    const employeeId = String(row.employeeId || '');
+    if (!employeeId) continue;
+    const lotacaoCode = String(row.lotacaoCode || '');
+    const key = `${employeeId}|${lotacaoCode}`;
+    const eventCode = String(row.eventCode || '');
+    const amount = Math.abs(parseInt(row.amountCents || '0', 10));
+
+    if (eventCode === '602' && amount > 0) {
+      const entry = ensure(key, row, lotacaoCode);
+      entry.bcCpCents += amount;
+      entry.hasInformative = true;
+      continue;
+    }
+    if (eventCode === '605' && amount > 0) {
+      const entry = ensure(key, row, lotacaoCode);
+      entry.fgtsCents += amount;
+      entry.hasInformative = true;
+      continue;
+    }
+  }
+
+  for (const row of rawRows) {
+    const employeeId = String(row.employeeId || '');
+    if (!employeeId) continue;
+    const lotacaoCode = String(row.lotacaoCode || '');
+    const key = `${employeeId}|${lotacaoCode}`;
     const entry = bases.get(key);
-    if (tipo === 'PROVENTO') entry.base += amount;
-    else entry.base -= amount;
+    if (entry?.hasInformative) continue;
+
+    const incideFgts = String(row.IncideFGTS || row.incideFGTS || '0');
+    if (incideFgts !== '1') continue;
+    const tipo = String(row.TipoRegistro || row.tipoRegistro || '').toUpperCase();
+    // Só proventos: descontos IncideFGTS (INSS, VT…) não reduzem a BC da DCTF
+    if (tipo !== 'PROVENTO') continue;
+
+    const amount = Math.abs(parseInt(row.amountCents || '0', 10));
+    const slot = ensure(key, row, lotacaoCode);
+    slot.bcCpCents += amount;
+    slot.fgtsCents += amount;
   }
 
   return bases;
 }
 
 /**
- * Gera encargos patronais como PayrollSourceRow[] sintéticas.
+ * Fallback sintético (CSV / sem bases eSocial).
  *
  * @param {object[]} rawRows
  * @param {object} [rates]
@@ -73,68 +224,44 @@ function calculateFgtsBasePerEmployee(rawRows) {
  */
 export function calculateEncargos(rawRows, rates = DEFAULT_ENCARGO_RATES) {
   const merged = { ...DEFAULT_ENCARGO_RATES, ...rates };
-  const basesPerEmployee = calculateFgtsBasePerEmployee(rawRows);
+  const basesPerEmployee = calculateBasesPerEmployee(rawRows);
   const encargoRows = [];
 
-  const defs = [
-    {
-      eventCode: 'ENCARGO_INSS_PATRONAL',
-      eventName: 'INSS Patronal (1138-01 Empresa 20%)',
-      rateKey: 'inssEmpresa',
-      dctfRef: '1138-01',
-    },
-    {
-      eventCode: 'ENCARGO_RAT_FAP',
-      eventName: 'GILRAT / RAT-FAP (1646-01)',
-      rateKey: 'gilrat',
-      dctfRef: '1646-01',
-    },
-    {
-      eventCode: 'ENCARGO_TERCEIROS',
-      eventName: 'Terceiros Sistema S (1170/1176/1191/1196/1200)',
-      rateKey: 'terceiros',
-      dctfRef: '1170-01+1176-01+1191-01+1196-01+1200-01',
-    },
-    {
-      eventCode: 'ENCARGO_FGTS_FOLHA',
-      eventName: 'FGTS mensal (tipo 11)',
-      rateKey: 'fgts',
-      dctfRef: 'FGTS-11',
-    },
-  ];
-
   for (const [, data] of basesPerEmployee) {
-    if (data.base <= 0) continue;
+    if (data.bcCpCents <= 0 && data.fgtsCents <= 0) continue;
 
-    let comp = data.competence;
-    if (comp && typeof comp === 'string' && !comp.includes('-') && comp.length === 6) {
-      comp = `${comp.substring(0, 4)}-${comp.substring(4, 6)}`;
+    if (data.bcCpCents > 0) {
+      for (const def of CPP_DEFS) {
+        const amountCents = Math.round(data.bcCpCents * (merged[def.rateKey] / 100));
+        pushEncargoRow(
+          encargoRows,
+          data,
+          def,
+          amountCents,
+          `BC-CPP: ${data.bcCpCents}; DCTF: ${def.dctfRef}`,
+          'encargo-calculator'
+        );
+      }
     }
 
-    for (const def of defs) {
-      const amountCents = Math.round(data.base * (merged[def.rateKey] / 100));
-      if (amountCents <= 0) continue;
-
-      encargoRows.push({
-        sourceSystem: 'fortes',
-        sourceAdapter: 'encargo-calculator',
-        sourceOrigin: 'encargo-derived',
-        sourcePayrollId: null,
-        companyId: data.companyId != null ? String(data.companyId) : '',
-        companyName: '',
-        competence: comp || '',
-        lotacaoCode: data.lotacaoCode,
-        lotacaoName: data.lotacaoName || '',
-        eventCode: def.eventCode,
-        eventName: def.eventName,
-        sourceEventNature: 'ENCARGO',
-        sourceReference: `BC-FGTS: ${data.base}; DCTF/FGTS: ${def.dctfRef}`,
-        sourceRecordType: 'ENCARGO',
+    if (data.fgtsCents > 0) {
+      const amountCents = data.hasInformative
+        ? data.fgtsCents
+        : Math.round(data.fgtsCents * (merged.fgts / 100));
+      pushEncargoRow(
+        encargoRows,
+        data,
+        {
+          eventCode: 'ENCARGO_FGTS_FOLHA',
+          eventName: 'FGTS mensal (tipo 11)',
+          dctfRef: 'FGTS-11',
+        },
         amountCents,
-        employeeId: data.employeeId,
-        employeeName: data.employeeName,
-        sourceLineId: `encargo-${def.eventCode}-${data.employeeId}-${data.lotacaoCode}`,
-      });
+        data.hasInformative
+          ? `EFP 605: ${data.fgtsCents}`
+          : `BC-FGTS: ${data.fgtsCents}; DCTF/FGTS: FGTS-11`,
+        'encargo-calculator'
+      );
     }
   }
 

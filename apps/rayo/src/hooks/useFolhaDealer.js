@@ -142,12 +142,17 @@ export function useFolhaDealer() {
         folhaSeqs: folhaSeqList,
         quantidadeFolhas: folhaSeqList.length,
         provisoesFortes: Array.isArray(result.provisions) ? result.provisions.length : 0,
+        encargosBases: Array.isArray(result.encargoBases) ? result.encargoBases.length : 0,
       });
 
       const hasFortesProvisions = Array.isArray(result.provisions);
+      const hasFortesEncargoBases = Array.isArray(result.encargoBases) && result.encargoBases.length > 0;
       let payrollRows = normalizeFortesQueryRows(
         rawRows,
-        hasFortesProvisions ? { fortesProvisions: result.provisions } : {},
+        {
+          ...(hasFortesProvisions ? { fortesProvisions: result.provisions } : {}),
+          ...(hasFortesEncargoBases ? { fortesEncargoBases: result.encargoBases } : {}),
+        },
         hasFortesProvisions ? null : bragaVeiculosConfig.provisionRates,
         bragaVeiculosConfig.encargoRates
       );
