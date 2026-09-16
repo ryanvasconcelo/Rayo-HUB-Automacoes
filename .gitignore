@@ -64,3 +64,6 @@ base-conhecimento/*.pdf
 # Pastas temp com exemplos/dados de clientes
 docs/*/temp/
 docs/**/temp/
+
+# Cadastro Folha Dealer (runtime no servidor)
+apps/rayo-server/data/

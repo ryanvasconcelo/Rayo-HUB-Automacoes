@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { TableVirtuoso } from 'react-virtuoso';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion as Motion } from 'framer-motion';
 import { useFolhaDealer } from '../hooks/useFolhaDealer';
+import { useFolhaDealerCenters } from '../hooks/useFolhaDealerCenters';
 import { getLastDayOfCompetence } from '../lib/folha-dealer/date-helpers';
 import { generateProvisionsReport } from '../lib/folha-dealer/pdf-report-generator';
+import FolhaDealerCadastrosPanel, { QuickLotacaoMappingModal } from '../components/FolhaDealerCadastrosPanel';
 import { FileSpreadsheet, Check, Download, AlertTriangle, XCircle,
    Upload, Filter, AlertCircle, Info, Search, CornerDownRight,
-   Database, RefreshCw, ChevronRight, ChevronDown, AlignJustify, List
+   Database, RefreshCw, ChevronRight, ChevronDown, AlignJustify, List, Settings2
 } from 'lucide-react';
 
 const VirtuosoTableComponents = {
@@ -18,9 +20,10 @@ const VirtuosoTableComponents = {
 
 export default function FolhaDealerPage() {
    const {
-      run, error, metadata, summary,
-      extractFromDatabase, approveRun, downloadExcel, downloadTxt
+      run, error, warning, metadata, summary,
+      extractFromDatabase, reprocessLastRun, approveRun, downloadExcel, downloadTxt
    } = useFolhaDealer();
+   const { stored: centersStored, upsertLotacao } = useFolhaDealerCenters('braga-veiculos');
 
    const [fortesCompanyId, setFortesCompanyId] = useState('9274');
    const [fortesCompetence, setFortesCompetence] = useState('04-2026');
@@ -37,6 +40,7 @@ export default function FolhaDealerPage() {
    const [isGroupedMode, setIsGroupedMode] = useState(true);
 
    const [expandedRows, setExpandedRows] = useState({});
+   const [quickMapping, setQuickMapping] = useState(null);
 
    const toggleRow = (id) => {
       setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }));
@@ -65,6 +69,7 @@ export default function FolhaDealerPage() {
 
    const handleProcess = async (e) => {
       e.preventDefault();
+      setActiveTab('lancamentos');
       await extractFromDatabase(fortesCompanyId, fortesCompetence);
 
       const realLastDay = getLastDayOfCompetence(fortesCompetence).split('-')[2];
@@ -244,7 +249,7 @@ export default function FolhaDealerPage() {
       return (
          <AnimatePresence>
             {isExpanded && hasIssues && (
-               <motion.div
+               <Motion.div
                   key={`expanded-${row.id}`}
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
@@ -262,7 +267,7 @@ export default function FolhaDealerPage() {
                         </div>
                      ))}
                   </div>
-               </motion.div>
+               </Motion.div>
             )}
          </AnimatePresence>
       );
@@ -284,8 +289,22 @@ export default function FolhaDealerPage() {
                   </div>
                </div>
 
+               <div className="flex items-center gap-4">
+                  <button
+                     type="button"
+                     onClick={() => setActiveTab(activeTab === 'cadastros' ? 'lancamentos' : 'cadastros')}
+                     className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border transition-all ${
+                        activeTab === 'cadastros'
+                           ? 'bg-slate-900 text-white border-slate-900'
+                           : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                     }`}
+                  >
+                     <Settings2 size={16} />
+                     Cadastros
+                  </button>
+
                {run && (
-                  <motion.div
+                  <Motion.div
                      initial={{ opacity: 0, y: -10 }}
                      animate={{ opacity: 1, y: 0 }}
                      className="flex items-center gap-6"
@@ -323,16 +342,27 @@ export default function FolhaDealerPage() {
                            </span>
                         </div>
                      </div>
-                  </motion.div>
+                  </Motion.div>
                )}
+               </div>
             </div>
          </header>
 
          <main className="max-w-[1600px] mx-auto px-6 pt-8 flex gap-6 items-start">
             <div className="flex-1 min-w-0">
                <AnimatePresence mode="wait">
-                  {!run ? (
-                     <motion.div
+                  {activeTab === 'cadastros' ? (
+                     <Motion.div
+                        key="cadastros"
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="bg-white border border-slate-200/80 rounded-[2rem] shadow-sm overflow-hidden min-h-[calc(100dvh-180px)] flex flex-col"
+                     >
+                        <FolhaDealerCadastrosPanel companyId="braga-veiculos" />
+                     </Motion.div>
+                  ) : !run ? (
+                     <Motion.div
                         key="setup"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -376,15 +406,15 @@ export default function FolhaDealerPage() {
                            </form>
 
                            {error && (
-                              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6 bg-rose-50 border border-rose-100 text-rose-700 p-4 rounded-xl flex items-start gap-3 text-sm">
+                              <Motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6 bg-rose-50 border border-rose-100 text-rose-700 p-4 rounded-xl flex items-start gap-3 text-sm">
                                  <AlertTriangle size={18} className="shrink-0 mt-0.5" />
                                  <p className="leading-relaxed">{error}</p>
-                              </motion.div>
+                              </Motion.div>
                            )}
                         </div>
-                     </motion.div>
+                     </Motion.div>
                   ) : (
-                     <motion.div
+                     <Motion.div
                         key="grid"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -392,12 +422,16 @@ export default function FolhaDealerPage() {
                         className="flex flex-col gap-6 h-[calc(100dvh-140px)]"
                      >
                         {/* FILTER BAR */}
-                        <motion.div className="flex items-center justify-between bg-white border border-slate-200/80 rounded-2xl p-2 shadow-sm">
+                        <Motion.div className="flex items-center justify-between bg-white border border-slate-200/80 rounded-2xl p-2 shadow-sm">
                            <div className="flex gap-1 p-1 bg-slate-50 rounded-xl border border-slate-200/50">
                               <button onClick={() => setActiveTab('lancamentos')} className={`px-5 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'lancamentos' ? 'bg-white shadow-sm border border-slate-200/80 text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}>Lançamentos</button>
                               <button onClick={() => setActiveTab('pendencias')} className={`px-5 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-2 ${activeTab === 'pendencias' ? 'bg-white shadow-sm border border-slate-200/80 text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}>
                                  Pendências
                                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md leading-none flex items-center justify-center ${pendenciasCount > 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-600'}`}>{pendenciasCount}</span>
+                              </button>
+                              <button onClick={() => setActiveTab('cadastros')} className={`px-5 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-2 ${activeTab === 'cadastros' ? 'bg-white shadow-sm border border-slate-200/80 text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}>
+                                 <Settings2 size={14} />
+                                 Cadastros
                               </button>
                            </div>
 
@@ -446,10 +480,16 @@ export default function FolhaDealerPage() {
                                  </div>
                               </div>
                            )}
-                        </motion.div>
+                        </Motion.div>
 
                         {/* MAIN CONTENT AREA */}
-                        <motion.div className="flex-1 bg-white border border-slate-200/80 rounded-[2rem] shadow-sm overflow-hidden flex flex-col min-h-0">
+                        <Motion.div className="flex-1 bg-white border border-slate-200/80 rounded-[2rem] shadow-sm overflow-hidden flex flex-col min-h-0">
+                           {warning && (
+                              <div className="mx-6 mt-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                                 <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                                 <p>{warning}</p>
+                              </div>
+                           )}
                            {activeTab === 'lancamentos' ? (
                               <div className="flex-1 relative overflow-x-auto">
                                  {filteredRows.length > 0 ? (
@@ -510,7 +550,6 @@ export default function FolhaDealerPage() {
 
                                                    {/* PERNAS D E C */}
                                                    {row.entries.map((entry, eIdx) => {
-                                                      const isPassivo = entry.conta && (entry.conta.startsWith('1') || entry.conta.startsWith('2'));
                                                       return (
                                                          <div role="row" key={eIdx} className={`grid ${GRID_COLS} gap-x-12 px-6 py-2.5 items-center ${eIdx !== row.entries.length - 1 ? 'border-b border-slate-200/40' : ''} border-l-4 border-l-transparent`}>
                                                             <div role="cell" className="pl-6 text-slate-300">
@@ -649,6 +688,69 @@ export default function FolhaDealerPage() {
                                        </div>
                                     ) : (
                                        <>
+                                          {summary?.missingCenters?.length > 0 && (
+                                             <div className="bg-white rounded-2xl p-6 border border-rose-100 shadow-sm relative overflow-hidden">
+                                                <div className="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>
+                                                <div className="flex items-center gap-3 mb-4">
+                                                   <AlertCircle className="text-rose-500" size={20} />
+                                                   <h3 className="text-lg font-bold text-slate-900">Centros sem de-para</h3>
+                                                </div>
+                                                <ul className="space-y-3">
+                                                   {summary.missingCenters.map((item) => (
+                                                      <li
+                                                         key={item.lotacaoCode || 'empty'}
+                                                         className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+                                                      >
+                                                         <div className="min-w-0">
+                                                            <p className="font-semibold text-slate-900 truncate">
+                                                               {item.lotacaoCode || '(lotação vazia)'}
+                                                               {item.lotacaoName ? ` — ${item.lotacaoName}` : ''}
+                                                            </p>
+                                                            <p className="text-xs text-slate-500 mt-0.5">
+                                                               {item.count} ocorrência(s) · {formatCurrency(item.totalCents)}
+                                                            </p>
+                                                         </div>
+                                                         <button
+                                                            type="button"
+                                                            onClick={() => setQuickMapping({
+                                                               lotacaoCode: item.lotacaoCode,
+                                                               lotacaoName: item.lotacaoName,
+                                                            })}
+                                                            className="shrink-0 px-3 py-2 rounded-lg bg-slate-900 text-white text-xs font-medium hover:bg-slate-800"
+                                                         >
+                                                            Cadastrar de-para
+                                                         </button>
+                                                      </li>
+                                                   ))}
+                                                </ul>
+                                             </div>
+                                          )}
+
+                                          {summary?.missingAccounts?.length > 0 && (
+                                             <div className="bg-white rounded-2xl p-6 border border-amber-100 shadow-sm relative overflow-hidden">
+                                                <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
+                                                <div className="flex items-center gap-3 mb-4">
+                                                   <AlertTriangle className="text-amber-500" size={20} />
+                                                   <h3 className="text-lg font-bold text-slate-900">Eventos sem de-para de conta</h3>
+                                                </div>
+                                                <ul className="space-y-2">
+                                                   {summary.missingAccounts.map((item) => (
+                                                      <li
+                                                         key={item.eventCode}
+                                                         className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
+                                                      >
+                                                         <span className="font-mono font-semibold text-slate-900">{item.eventCode}</span>
+                                                         <span className="text-slate-600"> — {item.eventName}</span>
+                                                         <span className="block text-xs text-slate-500 mt-1">
+                                                            {item.count} ocorrência(s) · {formatCurrency(item.totalCents)}
+                                                         </span>
+                                                      </li>
+                                                   ))}
+                                                </ul>
+                                                <p className="text-xs text-slate-400 mt-3">Cadastro visual de evento→conta fica para uma etapa futura.</p>
+                                             </div>
+                                          )}
+
                                           {summary?.unbalancedJournal && summary.unbalancedJournal.differenceCents !== 0 && (
                                              <div className="bg-white rounded-2xl p-6 border border-rose-100 shadow-sm relative overflow-hidden">
                                                 <div className="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>
@@ -678,16 +780,16 @@ export default function FolhaDealerPage() {
                                  </div>
                               </div>
                            )}
-                        </motion.div>
-                     </motion.div>
+                        </Motion.div>
+                     </Motion.div>
                   )}
                </AnimatePresence>
             </div>
 
             {/* VERTICAL OPERATIONS BAR */}
             <AnimatePresence>
-               {run && (
-                  <motion.div
+               {run && activeTab !== 'cadastros' && (
+                  <Motion.div
                      initial={{ x: 50, opacity: 0 }}
                      animate={{ x: 0, opacity: 1 }}
                      exit={{ x: 50, opacity: 0 }}
@@ -796,9 +898,24 @@ export default function FolhaDealerPage() {
                            </div>
                         )}
                      </div>
-                  </motion.div>
+                  </Motion.div>
                )}
             </AnimatePresence>
+
+            {quickMapping && (
+               <QuickLotacaoMappingModal
+                  lotacaoCode={quickMapping.lotacaoCode}
+                  lotacaoName={quickMapping.lotacaoName}
+                  centers={centersStored?.centers || []}
+                  onClose={() => setQuickMapping(null)}
+                  onSave={async (mapping) => {
+                     await upsertLotacao(mapping);
+                     await reprocessLastRun();
+                     setQuickMapping(null);
+                     setActiveTab('pendencias');
+                  }}
+               />
+            )}
 
          </main>
       </div>

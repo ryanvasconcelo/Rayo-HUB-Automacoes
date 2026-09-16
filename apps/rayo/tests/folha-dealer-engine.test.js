@@ -18,7 +18,7 @@ const runEngine = (overrides = {}) => runFolhaDealerEngine({
 });
 
 describe('Folha Dealer engine', () => {
-    it('normaliza amountCents sempre positivo', () => {
+    it('normaliza amountCents sempre positivo na folha mensal', () => {
         const rows = normalizePayrollRows([
             {
                 sourceSystem: 'fortes',
@@ -34,6 +34,174 @@ describe('Folha Dealer engine', () => {
         ]);
 
         expect(rows[0].amountCents).toBe(12345);
+    });
+
+    it('preserva sinal negativo de PROV_* Fortes (estorno Provisionar)', () => {
+        const rows = normalizePayrollRows([
+            {
+                sourceSystem: 'fortes',
+                sourceAdapter: 'fortes-provision',
+                sourceOrigin: 'fortes-provision',
+                companyId: 'braga-veiculos',
+                companyName: 'BRAGA VEICULOS LTDA',
+                competence: '2026-04',
+                lotacaoCode: 'AGENDAMENTOS',
+                eventCode: 'PROV_13',
+                eventName: 'Provisão 13º Salário (Fortes)',
+                employeeId: '000547',
+                employeeName: 'ALINE CARVALHO CUNHA',
+                amountCents: -41250,
+            },
+        ]);
+
+        expect(rows[0].amountCents).toBe(-41250);
+    });
+
+    it('AGENDAMENTOS PROV_13 com estorno ALINE fecha líquido 1.114,71 (RH abr/2026)', () => {
+        const sourceRows = [
+            { employeeId: '000538', employeeName: 'ADRIANA OLIVEIRA DA SILVA', amountCents: 13750 },
+            { employeeId: '000547', employeeName: 'ALINE CARVALHO CUNHA', amountCents: -41250 },
+            { employeeId: '000499', employeeName: 'ANA CLAUDIA SILVA LOPES', amountCents: 13750 },
+            { employeeId: '000427', employeeName: 'ELIMARA GARCIA DE PALMA', amountCents: 34193 },
+            { employeeId: '000583', employeeName: 'GABRIELE SEVALHO PENA', amountCents: 13750 },
+            { employeeId: '000471', employeeName: 'LUCIANA BATISTA DOS SANTOS', amountCents: 14733 },
+            { employeeId: '000473', employeeName: 'MACIELE GARONE MEDEIROS', amountCents: 14733 },
+            { employeeId: '000095', employeeName: 'MAYARA BEZERRA LEAO', amountCents: 16380 },
+            { employeeId: '000584', employeeName: 'SILVANEIDE MIGUEL DE AQUINO', amountCents: 13750 },
+            { employeeId: '000367', employeeName: 'SILVIA CARLA DA SILVA MOUSINHO', amountCents: 0 },
+            { employeeId: '000235', employeeName: 'WANDERLANE DE OLIVEIRA BARROS', amountCents: 17682 },
+        ].map((r) => ({
+            sourceSystem: 'fortes',
+            sourceAdapter: 'fortes-provision',
+            sourceOrigin: 'fortes-provision',
+            companyId: 'braga-veiculos',
+            companyName: 'BRAGA VEICULOS LTDA',
+            competence: '2026-04',
+            lotacaoCode: 'AGENDAMENTOS',
+            lotacaoName: 'AGENDAMENTOS',
+            eventCode: 'PROV_13',
+            eventName: 'Provisão 13º Salário (Fortes)',
+            ...r,
+        }));
+
+        const run = runFolhaDealerEngine({
+            config: bragaVeiculosConfig,
+            sourceRows,
+            competence: '2026-04',
+        });
+
+        const consolidated = run.consolidatedItems.find(
+            (i) => i.lotacaoCode === 'AGENDAMENTOS' && i.eventCode === 'PROV_13'
+        );
+        expect(consolidated.amountCents).toBe(111471);
+
+        const alineSource = run.sourceRows.find((r) => String(r.employeeId) === '000547');
+        expect(alineSource.amountCents).toBe(-41250);
+
+        // Estorno no journal consolidado: líquido positivo → D/C padrão do de-para
+        const debit = run.entries
+            .filter((e) => e.eventCode === 'PROV_13' && e.dc === 'D')
+            .reduce((s, e) => s + e.amountCents, 0);
+        const credit = run.entries
+            .filter((e) => e.eventCode === 'PROV_13' && e.dc === 'C')
+            .reduce((s, e) => s + e.amountCents, 0);
+        expect(debit).toBe(111471);
+        expect(credit).toBe(111471);
+    });
+
+    it('preserva sinal em todos os PROV_* Fortes (13º INSS/FGTS e férias)', () => {
+        const negatives = [
+            { eventCode: 'PROV_13', amountCents: -41250 },
+            { eventCode: 'PROV_INSS_13', amountCents: -10643 },
+            { eventCode: 'PROV_FGTS_13', amountCents: -3300 },
+            { eventCode: 'PROV_FERIAS', amountCents: -220000 },
+            { eventCode: 'PROV_INSS_FER', amountCents: -56760 },
+            { eventCode: 'PROV_FGTS_FER', amountCents: -17600 },
+        ];
+
+        const sourceRows = negatives.map((r, i) => ({
+            sourceSystem: 'fortes',
+            sourceAdapter: 'fortes-provision',
+            sourceOrigin: 'fortes-provision',
+            companyId: 'braga-veiculos',
+            companyName: 'BRAGA VEICULOS LTDA',
+            competence: '2026-04',
+            lotacaoCode: 'AGENDAMENTOS',
+            lotacaoName: 'AGENDAMENTOS',
+            eventName: r.eventCode,
+            employeeId: '000547',
+            employeeName: 'ALINE CARVALHO CUNHA',
+            sourceLineId: `neg-${i}`,
+            ...r,
+        }));
+
+        // Positivo na mesma lotação para cada evento → líquido = positivo + negativo
+        for (const r of negatives) {
+            sourceRows.push({
+                sourceSystem: 'fortes',
+                sourceAdapter: 'fortes-provision',
+                sourceOrigin: 'fortes-provision',
+                companyId: 'braga-veiculos',
+                companyName: 'BRAGA VEICULOS LTDA',
+                competence: '2026-04',
+                lotacaoCode: 'AGENDAMENTOS',
+                lotacaoName: 'AGENDAMENTOS',
+                eventCode: r.eventCode,
+                eventName: r.eventCode,
+                employeeId: '000538',
+                employeeName: 'ADRIANA',
+                amountCents: Math.abs(r.amountCents) + 1000,
+                sourceLineId: `pos-${r.eventCode}`,
+            });
+        }
+
+        const run = runFolhaDealerEngine({
+            config: bragaVeiculosConfig,
+            sourceRows,
+            competence: '2026-04',
+        });
+
+        for (const r of negatives) {
+            const src = run.sourceRows.find(
+                (row) => row.eventCode === r.eventCode && String(row.employeeId) === '000547'
+            );
+            expect(src.amountCents).toBe(r.amountCents);
+
+            const consolidated = run.consolidatedItems.find(
+                (i) => i.lotacaoCode === 'AGENDAMENTOS' && i.eventCode === r.eventCode
+            );
+            // líquido = (|neg| + 1000) + neg = 1000
+            expect(consolidated.amountCents).toBe(1000);
+        }
+    });
+
+    it('journal segmentado inverte D/C no estorno PROV_FERIAS', async () => {
+        const { buildJournal } = await import('../src/lib/folha-dealer/journal-builder.js');
+        const { entries } = buildJournal({
+            competence: '2026-04',
+            config: bragaVeiculosConfig,
+            consolidatedItems: [
+                {
+                    companyId: 'braga-veiculos',
+                    competence: '2026-04',
+                    lotacaoCode: 'AGENDAMENTOS',
+                    lotacaoName: 'AGENDAMENTOS',
+                    eventCode: 'PROV_FERIAS',
+                    eventName: 'Provisão Férias',
+                    amountCents: -220000,
+                    sourceCount: 1,
+                    employeeId: '000547',
+                    employeeName: 'ALINE',
+                },
+            ],
+        });
+
+        const despesa = entries.find((e) => e.accountCode === '6.1.1.03.001');
+        const passivo = entries.find((e) => e.accountCode === '2.1.1.03.001');
+        expect(despesa.dc).toBe('C'); // invertido de D
+        expect(passivo.dc).toBe('D'); // invertido de C
+        expect(despesa.amountCents).toBe(220000);
+        expect(passivo.amountCents).toBe(220000);
     });
 
     it('consolida duas linhas iguais em um item', () => {

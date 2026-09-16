@@ -28,8 +28,8 @@ Este documento lista itens e funcionalidades que não fazem parte do MVP (Minimu
 - **Suporte a NBS**
   A inclusão da integração ou adaptação das regras para o sistema NBS.
 
-- **Parametrização Visual de De-Para**
-  A interface deverá permitir aos usuários ajustar regras de *De-Para* de rubricas, encargos e centros de custos de forma visual, sem necessitar alterar arquivos de configuração via código.
+- **Parametrização Visual de De-Para (centros)** — **entregue**
+  Cadastro visual de **centros Dealer** e **de-para Lotação Fortes → Centro** na aba Cadastros da Folha Dealer, persistido no servidor (`apps/rayo-server/data/folha-dealer-centers-*.json`). De-para evento→conta e encargos ainda pendentes.
 
 - **Configuração de Lotação vs. Consolidado**
   Adicionar a opção visual para permitir que o usuário escolha se deseja o processamento líquido consolidado em uma única linha ou rateado detalhadamente por lotação.

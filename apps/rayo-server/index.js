@@ -6,6 +6,8 @@
  *   GET  /api/health              → { status: 'ok', version }
  *   GET  /api/queue-status        → { queueLength, processing }
  *   POST /api/scrape-eauditoria   → { ncms, uf, atividade, regime, regimeEspecial } → { rules }
+ *   GET/PUT /api/folha-dealer/centers — cadastro centros + de-para lotação
+ *   POST/DELETE /api/folha-dealer/centers/lotacao — upsert/remove de-para
  *
  * Módulos estáticos (build de produção):
  *   /subvencoes-app/*  → build do Auditor de Subvenções ZFM (subvencoes/app/dist)
@@ -21,6 +23,12 @@ const path = require('path');
 const fs = require('fs');
 const { scrapeEAuditoria } = require('./scraper/eauditoria-scraper');
 const { extractFortesPayroll } = require('./fortes-extractor');
+const {
+    loadCentersConfig,
+    saveCentersConfig,
+    upsertLotacaoMapping,
+    deleteLotacaoMapping,
+} = require('./folha-dealer-centers-store');
 
 const app = express();
 const PORT = process.env.PORT || 80;
@@ -58,7 +66,7 @@ function enqueue(params) {
 // Permite requests do frontend Rayo (Vite roda em localhost:5173 ou IP da rede)
 app.use(cors({
     origin: '*', // Em rede local, permite acesso de qualquer IP para simplificar
-    methods: ['GET', 'POST'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
 }));
 app.use(express.json({ limit: '10mb' })); // NCMs podem ser muitos
 
@@ -194,6 +202,76 @@ app.post('/api/fortes/extract', async (req, res) => {
             success: false,
             error: err.message || 'Internal Server Error'
         });
+    }
+});
+
+// ── Folha Dealer — cadastro de centros + de-para lotação ─────────────────────
+app.get('/api/folha-dealer/centers', (req, res) => {
+    try {
+        const companyId = req.query.companyId || 'braga-veiculos';
+        const config = loadCentersConfig(companyId);
+        res.json(config);
+    } catch (err) {
+        console.error('[/api/folha-dealer/centers] GET ❌', err);
+        res.status(500).json({ error: err.message || 'Erro ao carregar centros.' });
+    }
+});
+
+app.put('/api/folha-dealer/centers', (req, res) => {
+    try {
+        const companyId = req.body?.companyId || 'braga-veiculos';
+        const { centers, lotacaoMappings } = req.body || {};
+        if (!Array.isArray(centers) || !Array.isArray(lotacaoMappings)) {
+            return res.status(400).json({
+                error: 'Body deve incluir arrays "centers" e "lotacaoMappings".',
+            });
+        }
+        const saved = saveCentersConfig(companyId, { companyId, centers, lotacaoMappings });
+        res.json(saved);
+    } catch (err) {
+        console.error('[/api/folha-dealer/centers] PUT ❌', err);
+        res.status(500).json({ error: err.message || 'Erro ao salvar centros.' });
+    }
+});
+
+app.post('/api/folha-dealer/centers/lotacao', (req, res) => {
+    try {
+        const companyId = req.body?.companyId || 'braga-veiculos';
+        const { lotacaoCode, dealerCenterCode, allocationMode, active, centerName } = req.body || {};
+        if (lotacaoCode === undefined || lotacaoCode === null || !dealerCenterCode) {
+            return res.status(400).json({
+                error: 'Campos obrigatórios: lotacaoCode, dealerCenterCode.',
+            });
+        }
+        const saved = upsertLotacaoMapping(companyId, {
+            lotacaoCode,
+            dealerCenterCode,
+            allocationMode,
+            active,
+            centerName,
+        });
+        res.json(saved);
+    } catch (err) {
+        console.error('[/api/folha-dealer/centers/lotacao] POST ❌', err);
+        res.status(500).json({ error: err.message || 'Erro ao salvar de-para.' });
+    }
+});
+
+app.delete('/api/folha-dealer/centers/lotacao/:lotacaoCode', (req, res) => {
+    try {
+        const companyId = req.query.companyId || 'braga-veiculos';
+        const lotacaoCode = decodeURIComponent(req.params.lotacaoCode);
+        const result = deleteLotacaoMapping(companyId, lotacaoCode);
+        if (!result.deleted) {
+            return res.status(404).json({
+                error: `De-para não encontrado para lotação "${lotacaoCode}".`,
+                config: result.config,
+            });
+        }
+        res.json(result);
+    } catch (err) {
+        console.error('[/api/folha-dealer/centers/lotacao] DELETE ❌', err);
+        res.status(500).json({ error: err.message || 'Erro ao remover de-para.' });
     }
 });
 

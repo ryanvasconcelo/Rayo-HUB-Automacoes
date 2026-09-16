@@ -286,4 +286,8 @@ Também extrair: `INSSProvisao`, `FGTSProvisao`.
 
 O extract (`fortes-extractor.js`) devolve `provisions[]` com `eventCode` `PROV_13` / `PROV_FERIAS` / `PROV_INSS_*` / `PROV_FGTS_*` e `sourceOrigin: fortes-provision`. O adapter **não** chama `calculateProvisions` (taxa×BC-FGTS) quando essa lista vem do Fortes.
 
-Conferência: `202604` total `PROV_13` = **R$ 17.935,11** (ex.: Vendas **2.076,38**). A competência do relatório RH bate com `PRV.AnoMes`, não com a folha mensal `FOL.Folha=2` isolada.
+Conferência: `202604` total `PROV_13` = **R$ 17.935,11** (líquido com estornos;
+ex.: AGENDAMENTOS **1.114,71**, não o módulo **1.939,71**). A competência do
+relatório RH bate com `PRV.AnoMes`, não com a folha mensal `FOL.Folha=2` isolada.
+O mesmo vale para `PROV_INSS_*` / `PROV_FGTS_*` (PRD) e `PROV_FERIAS` /
+`PROV_INSS_FER` / `PROV_FGTS_FER` (PRF) — Provisionar negativo preserva sinal.

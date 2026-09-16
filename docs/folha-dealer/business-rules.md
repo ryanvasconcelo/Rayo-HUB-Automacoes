@@ -66,8 +66,13 @@ o processamento por estarem marcadas como `Por atividade`.
 ## Politica de sinais
 
 Valores positivos seguem a natureza declarada no de-para de conta. Valores
-negativos devem ser tratados explicitamente pela regra do evento. Enquanto uma
-politica por evento nao existir, valor negativo e uma inconsistencia bloqueante.
+negativos devem ser tratados explicitamente pela regra do evento.
+
+**Exceção explícita — provisões Fortes (`PROV_*`, origem `fortes-provision`):**
+a coluna `PRD`/`PRF.Provisao` (relatório RH **Provisionar**) pode ser negativa
+(= estorno). O motor preserva o sinal, consolida o líquido por lotação+evento e,
+no journal, usa o valor absoluto invertendo D/C. Folha mensal continua com
+`amountCents` positivo.
 
 ## Validacoes bloqueantes
 

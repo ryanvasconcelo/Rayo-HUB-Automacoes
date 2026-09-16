@@ -28,7 +28,15 @@ folha da competencia.
 
 ## De-para de centros
 
-Fonte: `temp/braga/mid-result.xlsx`, aba `5. De-Para Centro`.
+Fonte inicial (seed): `temp/braga/mid-result.xlsx`, aba `5. De-Para Centro`,
+materializado em `apps/rayo/src/lib/folha-dealer/braga-veiculos.config.js`
+(`centerMappings`).
+
+**Overrides em runtime:** o contador edita centros e de-para na aba **Cadastros**
+da Folha Dealer. Os valores ficam no servidor
+(`folha-dealer-centers-braga-veiculos.json`). O motor faz
+`mergeCenterMappings(seed, stored)` — cadastros do servidor **substituem** o seed
+pela chave `lotacaoCode`.
 
 As lotacoes marcadas como `Por atividade` nesta tabela ja possuem centro
 Dealer definido. No MVP, esse de-para conta como regra explicita e nao bloqueia
@@ -172,7 +180,8 @@ conta, natureza e observacao, nao o valor total.
 
 No extract por banco, `PROV_*` vêm de `PRD`/`PRF` (coluna **Provisao** = relatório RH **Provisionar**), não de `taxa × BC-FGTS`. Encargos DCTF (`ENCARGO_*`) continuam calculados na folha mensal.
 
-Validação de referência: `PRV.AnoMes = 202604` → total `PROV_13` = R$ 17.935,11.
+Validação de referência: `PRV.AnoMes = 202604` → total `PROV_13` = R$ 17.935,11
+(inclui estornos negativos, ex. AGENDAMENTOS líquido R$ 1.114,71 — não o módulo).
 
 ## Premissas de encargos no fixture
 
