@@ -33,6 +33,17 @@ function sendJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload));
 }
 
+export function buildFortesExtractResponse(extracted) {
+  return {
+    success: true,
+    data: extracted.payroll,
+    provisions: extracted.provisions,
+    encargoBases: extracted.encargoBases,
+    encargoUnmapped: extracted.encargoUnmapped,
+    encargoCoverage: extracted.encargoCoverage,
+  };
+}
+
 function handleCentersApi(req, res) {
   const url = new URL(req.url || '/', 'http://localhost');
   const pathname = url.pathname;
@@ -125,11 +136,7 @@ export function fortesApiPlugin() {
           console.log(`[API] Extract Fortes. Empresa: ${companyId}, Competência: ${competence}`);
           const extracted = await extractFortesPayroll({ companyId, competence });
 
-          sendJson(res, 200, {
-            success: true,
-            data: extracted.payroll,
-            provisions: extracted.provisions,
-          });
+          sendJson(res, 200, buildFortesExtractResponse(extracted));
         } catch (err) {
           console.error('[API] Erro ao extrair:', err);
           sendJson(res, 500, {
