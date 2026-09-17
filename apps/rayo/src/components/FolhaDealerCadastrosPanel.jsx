@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Plus, Save, Trash2, AlertTriangle } from 'lucide-react';
+import { Check, Plus, Save, Trash2, AlertTriangle, BookOpen } from 'lucide-react';
 import { useFolhaDealerCenters } from '../hooks/useFolhaDealerCenters';
 import { padCenterCode } from '../lib/folha-dealer/merge-center-config';
 
@@ -25,14 +25,21 @@ export default function FolhaDealerCadastrosPanel({ companyId = 'braga-veiculos'
     dealerCenterCode: '',
     allocationMode: 'direct',
   });
+  const [newAccount, setNewAccount] = useState({
+    eventCode: '',
+    dealerAccountCode: '',
+    dc: 'D',
+    description: '',
+  });
 
   const centers = stored?.centers || [];
   const lotacaoMappings = stored?.lotacaoMappings || [];
+  const accountMappings = stored?.accountMappings || [];
   const activeCenters = centers.filter((c) => c.active !== false);
 
   const updateCenters = (updater) => {
     setStored((prev) => {
-      const base = prev || { companyId, centers: [], lotacaoMappings: [] };
+      const base = prev || { companyId, centers: [], lotacaoMappings: [], accountMappings: [] };
       const nextCenters = typeof updater === 'function' ? updater(base.centers) : updater;
       return { ...base, centers: nextCenters };
     });
@@ -40,16 +47,24 @@ export default function FolhaDealerCadastrosPanel({ companyId = 'braga-veiculos'
 
   const updateMappings = (updater) => {
     setStored((prev) => {
-      const base = prev || { companyId, centers: [], lotacaoMappings: [] };
+      const base = prev || { companyId, centers: [], lotacaoMappings: [], accountMappings: [] };
       const next = typeof updater === 'function' ? updater(base.lotacaoMappings) : updater;
       return { ...base, lotacaoMappings: next };
+    });
+  };
+
+  const updateAccounts = (updater) => {
+    setStored((prev) => {
+      const base = prev || { companyId, centers: [], lotacaoMappings: [], accountMappings: [] };
+      const next = typeof updater === 'function' ? updater(base.accountMappings || []) : updater;
+      return { ...base, accountMappings: next };
     });
   };
 
   const handleSave = async () => {
     setFeedback(null);
     try {
-      await saveAll({ centers, lotacaoMappings });
+      await saveAll({ centers, lotacaoMappings, accountMappings });
       setFeedback({ type: 'ok', text: 'Cadastros salvos no servidor.' });
     } catch (err) {
       setFeedback({ type: 'err', text: err.message });
@@ -91,6 +106,32 @@ export default function FolhaDealerCadastrosPanel({ companyId = 'braga-veiculos'
     });
     setNewMapping({ lotacaoCode: '', dealerCenterCode: '', allocationMode: 'direct' });
     setFeedback(null);
+  };
+
+  const addAccount = () => {
+    const eventCode = newAccount.eventCode.trim();
+    const dealerAccountCode = newAccount.dealerAccountCode.trim();
+    const dc = (newAccount.dc || 'D').toUpperCase();
+    const description = newAccount.description.trim();
+    if (!eventCode || !dealerAccountCode) {
+      setFeedback({ type: 'err', text: 'Informe código do evento e conta contábil.' });
+      return;
+    }
+    if (!/^[DC]$/.test(dc)) {
+      setFeedback({ type: 'err', text: 'Natureza deve ser D (Débito) ou C (Crédito).' });
+      return;
+    }
+    updateAccounts((prev) => [
+      ...prev,
+      { eventCode, dealerAccountCode, dealerLotAccountCode: null, dc, description, active: true },
+    ]);
+    setNewAccount({ eventCode: '', dealerAccountCode: '', dc: 'D', description: '' });
+    setFeedback(null);
+  };
+
+  const deleteAccount = (idx) => {
+    updateAccounts((prev) => prev.filter((_, i) => i !== idx));
+    setFeedback({ type: 'ok', text: 'Conta removida — salve para persistir.' });
   };
 
   const handleDeleteMapping = async (lotacaoCode) => {
@@ -352,6 +393,146 @@ export default function FolhaDealerCadastrosPanel({ companyId = 'braga-veiculos'
             <button
               type="button"
               onClick={addMapping}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <Plus size={14} /> Adicionar
+            </button>
+          </div>
+        </section>
+
+        {/* ── Seção 3: De-para Evento → Conta Contábil ── */}
+        <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <BookOpen size={16} className="text-slate-500" />
+              <h3 className="font-semibold text-slate-900">De-para Evento → Conta Contábil</h3>
+            </div>
+            <span className="text-xs text-slate-400 font-mono">{accountMappings.length}</span>
+          </div>
+          <div className="overflow-x-auto max-h-[420px]">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-slate-50 z-10">
+                <tr className="text-left text-xs uppercase tracking-wider text-slate-500">
+                  <th className="px-6 py-3 font-semibold">Evento</th>
+                  <th className="px-6 py-3 font-semibold">Conta Dealer</th>
+                  <th className="px-6 py-3 font-semibold w-20">D/C</th>
+                  <th className="px-6 py-3 font-semibold">Descrição</th>
+                  <th className="px-6 py-3 font-semibold w-20">Ativo</th>
+                  <th className="px-6 py-3 font-semibold w-16" />
+                </tr>
+              </thead>
+              <tbody>
+                {accountMappings.map((m, idx) => (
+                  <tr key={`${m.eventCode}-${m.dc}-${idx}`} className="border-t border-slate-100">
+                    <td className="px-6 py-2.5 font-mono text-slate-800">{m.eventCode}</td>
+                    <td className="px-6 py-2.5">
+                      <input
+                        className="w-full bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 rounded-lg px-2 py-1.5 font-mono focus:outline-none"
+                        value={m.dealerAccountCode}
+                        onChange={(e) => {
+                          const dealerAccountCode = e.target.value;
+                          updateAccounts((prev) =>
+                            prev.map((row, i) => (i === idx ? { ...row, dealerAccountCode } : row))
+                          );
+                        }}
+                      />
+                    </td>
+                    <td className="px-6 py-2.5">
+                      <select
+                        className="bg-transparent border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-slate-400"
+                        value={m.dc}
+                        onChange={(e) => {
+                          const dc = e.target.value;
+                          updateAccounts((prev) =>
+                            prev.map((row, i) => (i === idx ? { ...row, dc } : row))
+                          );
+                        }}
+                      >
+                        <option value="D">D</option>
+                        <option value="C">C</option>
+                      </select>
+                    </td>
+                    <td className="px-6 py-2.5">
+                      <input
+                        className="w-full bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 rounded-lg px-2 py-1.5 focus:outline-none"
+                        value={m.description}
+                        onChange={(e) => {
+                          const description = e.target.value;
+                          updateAccounts((prev) =>
+                            prev.map((row, i) => (i === idx ? { ...row, description } : row))
+                          );
+                        }}
+                      />
+                    </td>
+                    <td className="px-6 py-2.5">
+                      <input
+                        type="checkbox"
+                        checked={m.active !== false}
+                        onChange={(e) => {
+                          const active = e.target.checked;
+                          updateAccounts((prev) =>
+                            prev.map((row, i) => (i === idx ? { ...row, active } : row))
+                          );
+                        }}
+                      />
+                    </td>
+                    <td className="px-6 py-2.5">
+                      <button
+                        type="button"
+                        title="Remover"
+                        onClick={() => deleteAccount(idx)}
+                        className="text-slate-400 hover:text-rose-600 p-1"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-wrap items-end gap-3">
+            <div className="w-24">
+              <label className="text-[10px] uppercase tracking-wider text-slate-500 block mb-1">Evento</label>
+              <input
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 font-mono text-sm focus:outline-none focus:border-slate-400"
+                placeholder="011"
+                value={newAccount.eventCode}
+                onChange={(e) => setNewAccount((p) => ({ ...p, eventCode: e.target.value }))}
+              />
+            </div>
+            <div className="w-40">
+              <label className="text-[10px] uppercase tracking-wider text-slate-500 block mb-1">Conta Dealer</label>
+              <input
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 font-mono text-sm focus:outline-none focus:border-slate-400"
+                placeholder="6.1.1.01.002"
+                value={newAccount.dealerAccountCode}
+                onChange={(e) => setNewAccount((p) => ({ ...p, dealerAccountCode: e.target.value }))}
+              />
+            </div>
+            <div className="w-20">
+              <label className="text-[10px] uppercase tracking-wider text-slate-500 block mb-1">D/C</label>
+              <select
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
+                value={newAccount.dc}
+                onChange={(e) => setNewAccount((p) => ({ ...p, dc: e.target.value }))}
+              >
+                <option value="D">D</option>
+                <option value="C">C</option>
+              </select>
+            </div>
+            <div className="flex-1 min-w-[160px]">
+              <label className="text-[10px] uppercase tracking-wider text-slate-500 block mb-1">Descrição</label>
+              <input
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
+                placeholder="Salário-Base"
+                value={newAccount.description}
+                onChange={(e) => setNewAccount((p) => ({ ...p, description: e.target.value }))}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={addAccount}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
               <Plus size={14} /> Adicionar

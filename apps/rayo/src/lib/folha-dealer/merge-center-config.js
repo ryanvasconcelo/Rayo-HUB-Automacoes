@@ -22,9 +22,10 @@ export function padCenterCode(code) {
  * @param {object[]} centerMappings
  * @returns {{ companyId: string, centers: object[], lotacaoMappings: object[] }}
  */
-export function seedPayloadFromCenterMappings(companyId, centerMappings = []) {
+export function seedPayloadFromCenterMappings(companyId, centerMappings = [], accountMappings = []) {
   const centersMap = new Map();
   const lotacaoMap = new Map();
+  const accountMap = new Map();
 
   for (const m of centerMappings) {
     const dealerCenterCode = padCenterCode(m.dealerCenterCode);
@@ -44,10 +45,22 @@ export function seedPayloadFromCenterMappings(companyId, centerMappings = []) {
     });
   }
 
+  for (const m of accountMappings) {
+    accountMap.set(m.eventCode, {
+      eventCode: m.eventCode,
+      dealerAccountCode: m.dealerAccountCode,
+      dealerLotAccountCode: m.dealerLotAccountCode || null,
+      dc: (m.dc || 'D').toUpperCase(),
+      description: m.description || '',
+      active: m.active !== false,
+    });
+  }
+
   return {
     companyId,
     centers: [...centersMap.values()],
     lotacaoMappings: [...lotacaoMap.values()],
+    accountMappings: [...accountMap.values()],
   };
 }
 
@@ -71,10 +84,20 @@ export function normalizeCentersPayload(payload, companyId) {
     active: m.active !== false,
   }));
 
+  const accountMappings = (payload?.accountMappings || []).map((m) => ({
+    eventCode: String(m.eventCode || '').trim(),
+    dealerAccountCode: String(m.dealerAccountCode || '').trim(),
+    dealerLotAccountCode: m.dealerLotAccountCode || null,
+    dc: (m.dc || 'D').toUpperCase(),
+    description: String(m.description || '').trim(),
+    active: m.active !== false,
+  })).filter(m => m.eventCode && m.dealerAccountCode);
+
   return {
     companyId: payload?.companyId || companyId || 'braga-veiculos',
     centers,
     lotacaoMappings,
+    accountMappings,
     ...(payload?.updatedAt ? { updatedAt: payload.updatedAt } : {}),
   };
 }
@@ -124,4 +147,49 @@ export function mergeCenterMappings(seedMappings = [], stored = null, companyId 
   }
 
   return [...byLotacao.values()];
+}
+
+/**
+ * Mescla seed (accountMappings do config) com payload armazenado no servidor.
+ * Overrides por eventCode substituem o seed.
+ *
+ * @param {object[]} seedMappings — AccountMapping[] do config JS
+ * @param {object|null} stored — { accountMappings } do servidor
+ * @param {string} [companyId='braga-veiculos']
+ * @returns {object[]} AccountMapping[] para o motor
+ */
+export function mergeAccountMappings(seedMappings = [], stored = null, companyId = 'braga-veiculos') {
+  const byEvent = new Map();
+
+  for (const m of seedMappings) {
+    byEvent.set(m.eventCode, {
+      companyId: m.companyId || companyId,
+      eventCode: m.eventCode,
+      dealerAccountCode: m.dealerAccountCode,
+      dealerLotAccountCode: m.dealerLotAccountCode || null,
+      dc: (m.dc || 'D').toUpperCase(),
+      description: m.description || '',
+      active: m.active !== false,
+    });
+  }
+
+  if (!stored) {
+    return [...byEvent.values()];
+  }
+
+  const normalized = normalizeCentersPayload(stored, companyId);
+
+  for (const m of normalized.accountMappings) {
+    byEvent.set(m.eventCode, {
+      companyId,
+      eventCode: m.eventCode,
+      dealerAccountCode: m.dealerAccountCode,
+      dealerLotAccountCode: m.dealerLotAccountCode || null,
+      dc: m.dc,
+      description: m.description,
+      active: m.active !== false,
+    });
+  }
+
+  return [...byEvent.values()];
 }

@@ -53,10 +53,20 @@ function normalizePayload(payload, companyId) {
     active: m.active !== false,
   }));
 
+  const accountMappings = (payload?.accountMappings || []).map((m) => ({
+    eventCode: String(m.eventCode || '').trim(),
+    dealerAccountCode: String(m.dealerAccountCode || '').trim(),
+    dealerLotAccountCode: m.dealerLotAccountCode || null,
+    dc: (m.dc || 'D').toUpperCase(),
+    description: String(m.description || '').trim(),
+    active: m.active !== false,
+  })).filter(m => m.eventCode && m.dealerAccountCode);
+
   return {
     companyId: payload?.companyId || companyId || DEFAULT_COMPANY_ID,
     centers,
     lotacaoMappings,
+    accountMappings,
     updatedAt: payload?.updatedAt || new Date().toISOString(),
   };
 }
@@ -65,7 +75,7 @@ function loadSeed(companyId) {
   const seedPath = SEED_FILES[companyId] || SEED_FILES[DEFAULT_COMPANY_ID];
   if (!seedPath || !fs.existsSync(seedPath)) {
     return normalizePayload(
-      { companyId, centers: [], lotacaoMappings: [] },
+      { companyId, centers: [], lotacaoMappings: [], accountMappings: [] },
       companyId
     );
   }
