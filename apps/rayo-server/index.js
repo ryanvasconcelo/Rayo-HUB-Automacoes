@@ -190,11 +190,13 @@ app.post('/api/fortes/extract', async (req, res) => {
     try {
         const payload = req.body;
         const extracted = await extractFortesPayroll(payload);
-        // data = folha mensal (compat); provisions = PROV_* do Fortes (PRD/PRF)
+        // data = folha mensal; provisions = PRD/PRF; encargoBases = eSocial CPP/FGTS
         res.json({
             success: true,
             data: extracted.payroll,
             provisions: extracted.provisions,
+            encargoBases: extracted.encargoBases,
+            encargoCoverage: extracted.encargoCoverage,
         });
     } catch (err) {
         console.error('[/api/fortes/extract] ❌ Erro:', err);

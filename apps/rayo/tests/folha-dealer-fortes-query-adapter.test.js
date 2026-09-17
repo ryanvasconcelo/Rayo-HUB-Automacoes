@@ -248,4 +248,63 @@ describe('Fortes Query Adapter', () => {
     expect(total).toBe(1793511);
     expect(result.some((r) => r.sourceOrigin === 'provision-derived')).toBe(false);
   });
+
+  it('17. lotação do Fortes prevalece sobre o mapa estático por empregado', () => {
+    // 000046 está no mapa estático como RECURSOS HUMANOS
+    const raw = [{
+      employeeId: '000046', lotacaoCode: 'FINANCEIRO', lotacaoName: 'FINANCEIRO',
+      eventCode: '011', amountCents: 1000, ProvDesc: 1,
+    }];
+    const result = normalizeFortesQueryRows(raw);
+    expect(result[0].lotacaoCode).toBe('FINANCEIRO');
+    expect(result.find((r) => r.eventCode === 'LIQUIDO_FOLHA').lotacaoCode).toBe('FINANCEIRO');
+  });
+
+  it('18. mapa estático só preenche lotação vazia', () => {
+    const raw = [{ employeeId: '000046', lotacaoCode: '', eventCode: '011', amountCents: 1000, ProvDesc: 1 }];
+    const result = normalizeFortesQueryRows(raw);
+    expect(result[0].lotacaoCode).toBe('RECURSOS HUMANOS');
+  });
+
+  it('19. líquido negativo por lotação é emitido com sinal (não some)', () => {
+    const raw = [
+      { lotacaoCode: 'TI', eventCode: '011', amountCents: 1000, ProvDesc: 1 },
+      { lotacaoCode: 'TI', eventCode: '310', amountCents: 3000, ProvDesc: 2 },
+    ];
+    const liquido = normalizeFortesQueryRows(raw).find((r) => r.eventCode === 'LIQUIDO_FOLHA');
+    expect(liquido.amountCents).toBe(-2000);
+  });
+
+  it('20. provisions vazio do Fortes cai no fallback sintético', () => {
+    const raw = [{
+      companyId: '9274', competence: '202607', employeeId: '1',
+      lotacaoCode: 'TI', lotacaoName: 'TI', eventCode: '011', amountCents: 100000,
+      ProvDesc: 1, TipoRegistro: 'PROVENTO', IncideFGTS: '1',
+    }];
+    const result = normalizeFortesQueryRows(
+      raw,
+      { fortesProvisions: [], fortesEncargoBases: [] },
+      { feriasTerco: 11.11, decimoTerceiro: 8.33, inssPatronal: 26.8, fgts: 8 },
+      null
+    );
+    const prov = result.filter((r) => r.sourceOrigin === 'provision-derived');
+    expect(prov.map((r) => r.eventCode).sort()).toEqual([
+      'PROV_13', 'PROV_FERIAS', 'PROV_FGTS_13', 'PROV_FGTS_FER', 'PROV_INSS_13', 'PROV_INSS_FER',
+    ]);
+    expect(prov.find((r) => r.eventCode === 'PROV_13').lotacaoCode).toBe('TI');
+  });
+
+  it('21. fallback de provisão usa só proventos (descontos não reduzem a base)', () => {
+    const common = { companyId: '1', competence: '2026-07', employeeId: '1', lotacaoCode: 'TI', IncideFGTS: '1' };
+    const raw = [
+      { ...common, eventCode: '011', amountCents: 100000, ProvDesc: 1, TipoRegistro: 'PROVENTO' },
+      { ...common, eventCode: '310', amountCents: 10000, ProvDesc: 2, TipoRegistro: 'DESCONTO' },
+    ];
+    const result = normalizeFortesQueryRows(
+      raw, {}, { feriasTerco: 11.11, decimoTerceiro: 8.33, inssPatronal: 26.8, fgts: 8 }, null
+    );
+    expect(result.find((r) => r.eventCode === 'PROV_13').amountCents).toBe(8330);
+    // INSS s/ 13º = 8.330 × 26,8%
+    expect(result.find((r) => r.eventCode === 'PROV_INSS_13').amountCents).toBe(2232);
+  });
 });

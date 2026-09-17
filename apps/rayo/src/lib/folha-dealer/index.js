@@ -54,13 +54,47 @@ export {
   normalizeCentersPayload,
 } from './merge-center-config.js';
 export { calculateProvisions, DEFAULT_PROVISION_RATES } from './provision-calculator.js';
-export { calculateEncargos, DEFAULT_ENCARGO_RATES } from './encargo-calculator.js';
+export { calculateEncargos, calculateEncargosFromBases, DEFAULT_ENCARGO_RATES } from './encargo-calculator.js';
 
 // Imports internos para o pipeline
 import { normalizePayrollRows } from './fortes-normalizer.js';
 import { consolidatePayrollRows } from './payroll-consolidator.js';
 import { buildJournal } from './journal-builder.js';
 import { validateJournal, resolveStatus } from './folha-validator.js';
+import { ValidationCodes } from './contracts.js';
+
+/**
+ * Avisa quando PROV_* / ENCARGO_* saíram do cálculo interno em vez do Fortes/eSocial.
+ * @param {object[]} rows — PayrollSourceRow[] normalizadas.
+ * @param {string} competence
+ * @returns {object[]}
+ */
+function buildSourceIssues(rows, competence) {
+  const issues = [];
+  const count = (origin) => rows.filter((r) => r.sourceOrigin === origin).length;
+
+  const syntheticProvisions = count('provision-derived');
+  if (syntheticProvisions > 0) {
+    issues.push({
+      code: ValidationCodes.SYNTHETIC_PROVISION,
+      severity: 'warning',
+      message: `Provisões sem PRD/PRF do Fortes em ${competence}: ${syntheticProvisions} linhas PROV_* calculadas por alíquota (fallback). Confira com o relatório de provisão do RH.`,
+      context: { competence, rows: syntheticProvisions },
+    });
+  }
+
+  const syntheticEncargos = count('encargo-derived');
+  if (syntheticEncargos > 0) {
+    issues.push({
+      code: ValidationCodes.SYNTHETIC_ENCARGO,
+      severity: 'warning',
+      message: `Encargos sem bases eSocial em ${competence}: ${syntheticEncargos} linhas ENCARGO_* calculadas por alíquota (fallback). Confira com a DCTFWeb/FGTS Digital.`,
+      context: { competence, rows: syntheticEncargos },
+    });
+  }
+
+  return issues;
+}
 
 /**
  * Executa o motor completo para uma competência.
@@ -89,7 +123,7 @@ export function runFolhaDealerEngine({ config, sourceRows, competence }) {
   const validatorIssues = validateJournal(entries, builderIssues);
 
   // 5. Merge issues
-  const allIssues = [...builderIssues, ...validatorIssues];
+  const allIssues = [...buildSourceIssues(normalized, competence), ...builderIssues, ...validatorIssues];
 
   // 6. Resolver status
   const status = resolveStatus(allIssues);

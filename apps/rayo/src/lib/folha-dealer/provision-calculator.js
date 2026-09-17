@@ -2,7 +2,8 @@
  * provision-calculator.js — Fallback sintético de provisões (taxa × BC-FGTS).
  *
  * No fluxo Braga com extract do banco, as provisões vêm de PRD/PRF no Fortes
- * (`sourceOrigin: fortes-provision`) e este módulo NÃO é chamado.
+ * (`sourceOrigin: fortes-provision`). Este módulo só roda no CSV ou em mês sem
+ * PRD/PRF calculado (o motor emite SYNTHETIC_PROVISION).
  *
  * Provisões geradas por lotação (fallback CSV / sem Fortes):
  *   PROV_FERIAS    → Férias + 1/3 de Férias
@@ -12,8 +13,8 @@
  *   PROV_FGTS_FER  → FGTS s/ Férias
  *   PROV_FGTS_13   → FGTS s/ 13º
  *
- * Base de cálculo: BC-FGTS por lotação (soma dos proventos com IncideFGTS=1
- * menos descontos com IncideFGTS=1 que reduzem a base).
+ * Base de cálculo: Σ proventos com IncideFGTS=1 por empregado|lotação.
+ * Descontos (INSS, VT…) não reduzem a remuneração que gera férias/13º.
  *
  * Módulo puro: não lê arquivos, não escreve arquivos, não acessa banco.
  */
@@ -25,7 +26,7 @@
 export const DEFAULT_PROVISION_RATES = Object.freeze({
   feriasTerco: 11.11,   // 1/12 × 4/3 ≈ 11,11%
   decimoTerceiro: 8.33,  // 1/12 ≈ 8,33%
-  inssPatronal: 28.80,   // 20% + RAT + Terceiros ≈ 28,80%
+  inssPatronal: 26.80,   // = encargos 20% + GILRAT 1% + Terceiros 5,8%
   fgts: 8.00,            // 8,00%
 });
 
@@ -34,8 +35,7 @@ export const DEFAULT_PROVISION_RATES = Object.freeze({
 // ---------------------------------------------------------------------------
 
 /**
-/**
- * Calcula a BC-FGTS por empregado a partir dos raw rows do Fortes.
+ * Calcula a base (proventos IncideFGTS) por empregado a partir dos raw rows do Fortes.
  *
  * @param {object[]} rawRows — linhas brutas do CSV/DB Fortes
  * @returns {Map<string, { base: number, lotacaoCode: string, lotacaoName: string, companyId: string, competence: string, employeeId: string, employeeName: string }>}
@@ -48,7 +48,7 @@ function calculateFgtsBasePerEmployee(rawRows) {
     if (incideFgts !== '1') continue;
 
     const tipo = String(row.TipoRegistro || row.tipoRegistro || '').toUpperCase();
-    if (tipo !== 'PROVENTO' && tipo !== 'DESCONTO') continue;
+    if (tipo !== 'PROVENTO') continue;
 
     const employeeId = String(row.employeeId || '');
     if (!employeeId) continue;
@@ -72,12 +72,7 @@ function calculateFgtsBasePerEmployee(rawRows) {
       });
     }
 
-    const entry = bases.get(key);
-    if (tipo === 'PROVENTO') {
-      entry.base += amount;
-    } else {
-      entry.base -= amount;
-    }
+    bases.get(key).base += amount;
   }
 
   return bases;
@@ -137,7 +132,7 @@ export function calculateProvisions(rawRows, rates = DEFAULT_PROVISION_RATES) {
         eventCode: def.eventCode,
         eventName: def.eventName,
         sourceEventNature: 'PROVISAO',
-        sourceReference: `BC-FGTS: ${data.base}`,
+        sourceReference: `Base proventos FGTS: ${data.base}`,
         sourceRecordType: 'PROVISAO',
         amountCents,
         employeeId: data.employeeId,

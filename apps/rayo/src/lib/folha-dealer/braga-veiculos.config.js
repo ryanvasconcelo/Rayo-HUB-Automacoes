@@ -230,27 +230,31 @@ const accountMappings = [
   { companyId: company.companyId, eventCode: 'ENCARGO_RAT_FAP', dealerAccountCode: '2.1.1.02.001', dealerLotAccountCode: null, dc: 'C', description: 'INSS a Recolher', active: true },
   { companyId: company.companyId, eventCode: 'ENCARGO_TERCEIROS', dealerAccountCode: '6.1.1.02.001', dealerLotAccountCode: null, dc: 'D', description: 'Terceiros Sistema S (DCTFWeb)', active: true },
   { companyId: company.companyId, eventCode: 'ENCARGO_TERCEIROS', dealerAccountCode: '2.1.1.02.001', dealerLotAccountCode: null, dc: 'C', description: 'INSS a Recolher', active: true },
-  { companyId: company.companyId, eventCode: 'ENCARGO_FGTS_FOLHA', dealerAccountCode: '6.1.1.02.002', dealerLotAccountCode: null, dc: 'D', description: 'FGTS mensal (tipo 11)', active: true },
+  { companyId: company.companyId, eventCode: 'ENCARGO_FGTS_FOLHA', dealerAccountCode: '6.1.1.02.002', dealerLotAccountCode: null, dc: 'D', description: 'FGTS do mês', active: true },
   { companyId: company.companyId, eventCode: 'ENCARGO_FGTS_FOLHA', dealerAccountCode: '2.1.1.02.002', dealerLotAccountCode: null, dc: 'C', description: 'FGTS a Recolher', active: true },
 ];
 
 // ---------------------------------------------------------------------------
-// Alíquotas de provisão Braga Veículos
+// Alíquotas Braga Veículos (encargos + provisões)
 // ---------------------------------------------------------------------------
 
+// Alíquotas encargos mensais (Analítico DCTFWeb + FGTS) — não inclui 1082-01
+// No extract do banco o GILRAT vem por estabelecimento (ES_CS_CP_Aliquotas_EST)
+// e o FGTS vem de VALORDEPO; estes valores são fallback.
+const encargoRates = {
+  inssEmpresa: 20.0, // 1138-01
+  gilrat: 1.0, // 1646-01 (fallback; EST 0001 = 1%, EST 0002 = 2% no eSocial)
+  terceiros: 5.8, // 1170+1176+1191+1196+1200
+  fgts: 8.0, // FGTS mensal (fallback)
+};
+
+// Alíquotas de provisão (fallback sintético; extract usa PRD/PRF do Fortes)
 const provisionRates = {
   feriasTerco: 11.11,   // 1/12 × 4/3 ≈ 11,11%
   decimoTerceiro: 8.33,  // 1/12 ≈ 8,33%
-  inssPatronal: 28.80,   // 20% + RAT + Terceiros ≈ 28,80% (só sobre provisões)
+  // INSS sobre provisões = mesmas alíquotas patronais dos encargos
+  inssPatronal: encargoRates.inssEmpresa + encargoRates.gilrat + encargoRates.terceiros,
   fgts: 8.00,            // 8,00%
-};
-
-// Alíquotas encargos mensais (Analítico DCTFWeb + FGTS) — não inclui 1082-01
-const encargoRates = {
-  inssEmpresa: 20.0, // 1138-01
-  gilrat: 2.0, // 1646-01 (RAT 2% × FAP 1)
-  terceiros: 5.8, // 1170+1176+1191+1196+1200
-  fgts: 8.0, // FGTS mensal tipo 11
 };
 
 // ---------------------------------------------------------------------------

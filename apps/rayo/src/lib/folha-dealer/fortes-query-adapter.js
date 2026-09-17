@@ -3,10 +3,15 @@
  */
 
 import { calculateProvisions } from './provision-calculator.js';
-import { calculateEncargos, DEFAULT_ENCARGO_RATES } from './encargo-calculator.js';
+import {
+  calculateEncargos,
+  calculateEncargosFromBases,
+  DEFAULT_ENCARGO_RATES,
+} from './encargo-calculator.js';
 import { employeeLotacaoMap } from './employee-lotacao-map.js';
 
 const FORTES_PROVISION_ORIGIN = 'fortes-provision';
+const FORTES_ENCARGO_ORIGIN = 'fortes-encargo';
 
 export function mapFortesProvDesc(provDesc) {
   const descMap = {
@@ -15,13 +20,18 @@ export function mapFortesProvDesc(provDesc) {
     '-1': 'DESCONTO',
     '0': 'INFORMATIVO',
     PROVISAO: 'PROVISAO',
+    ENCARGO: 'ENCARGO',
   };
   return descMap[String(provDesc)] || 'INFORMATIVO';
 }
 
 export function mapFortesRecordType(row) {
-  if (row.sourceOrigin === FORTES_PROVISION_ORIGIN || String(row.TipoRegistro || '').toUpperCase() === 'PROVISAO') {
+  const tipo = String(row.TipoRegistro || '').toUpperCase();
+  if (row.sourceOrigin === FORTES_PROVISION_ORIGIN || tipo === 'PROVISAO') {
     return 'PROVISAO';
+  }
+  if (row.sourceOrigin === FORTES_ENCARGO_ORIGIN || tipo === 'ENCARGO') {
+    return 'ENCARGO';
   }
   return mapFortesProvDesc(row.ProvDesc);
 }
@@ -48,13 +58,11 @@ function normalizeCompetence(competence) {
   return competence || '';
 }
 
-function resolveLotacao(raw) {
-  if (raw.employeeId && employeeLotacaoMap[raw.employeeId]) {
-    return {
-      lotacaoCode: employeeLotacaoMap[raw.employeeId],
-      lotacaoName: employeeLotacaoMap[raw.employeeId],
-    };
-  }
+/**
+ * Lotação: Fortes (SEP/LOT) é a fonte de verdade. O mapa estático por empregado
+ * só entra quando a linha chega sem lotação.
+ */
+export function resolveLotacao(raw) {
   const code = raw.lotacaoCode != null ? String(raw.lotacaoCode) : '';
   const name = raw.lotacaoName ? String(raw.lotacaoName) : '';
   if (code) {
@@ -62,6 +70,10 @@ function resolveLotacao(raw) {
   }
   if (name) {
     return { lotacaoCode: name, lotacaoName: name };
+  }
+  const mapped = raw.employeeId ? employeeLotacaoMap[raw.employeeId] : null;
+  if (mapped) {
+    return { lotacaoCode: mapped, lotacaoName: mapped };
   }
   return { lotacaoCode: '', lotacaoName: '' };
 }
@@ -73,10 +85,13 @@ function toPayrollSourceRow(raw, index, { preserveSign = false } = {}) {
   const amountCents = preserveSign ? Math.round(amountRaw) : Math.abs(Math.round(amountRaw));
   const sourceOrigin = raw.sourceOrigin || 'folha-mensal';
   const recordType = mapFortesRecordType(raw);
+  let sourceAdapter = 'fortes-query';
+  if (sourceOrigin === FORTES_PROVISION_ORIGIN) sourceAdapter = 'fortes-provision';
+  else if (sourceOrigin === FORTES_ENCARGO_ORIGIN) sourceAdapter = 'fortes-encargo';
 
   return {
     sourceSystem: 'fortes',
-    sourceAdapter: sourceOrigin === FORTES_PROVISION_ORIGIN ? 'fortes-provision' : 'fortes-query',
+    sourceAdapter,
     sourceOrigin,
     sourcePayrollId: raw.sourcePayrollId || null,
     companyId: raw.companyId != null ? String(raw.companyId) : '',
@@ -100,12 +115,16 @@ function toPayrollSourceRow(raw, index, { preserveSign = false } = {}) {
  * @param {object[]} rawRows — linhas da folha mensal
  * @param {object} [options]
  * @param {object[]} [options.fortesProvisions] — PROV_* já calculados no Fortes (PRD/PRF)
- * @param {object|null} provisionRates — se fortesProvisions vier preenchido, o sintético é desligado
- * @param {object|null} encargoRates — encargos DCTF (sempre sintéticos a partir da folha)
+ * @param {object[]} [options.fortesEncargoBases] — bases eSocial (ES_CS_CP_Base / ES_FGTS_SEGURADO)
+ * @param {object|null} provisionRates — fallback sintético usado só quando fortesProvisions vier vazio
+ * @param {object|null} encargoRates — alíquotas DCTF; bases eSocial preferidas quando disponíveis
  */
 export function normalizeFortesQueryRows(rawRows, options = {}, provisionRates = null, encargoRates = null) {
   const normalized = [];
   const fortesProvisions = Array.isArray(options.fortesProvisions) ? options.fortesProvisions : [];
+  const fortesEncargoBases = Array.isArray(options.fortesEncargoBases)
+    ? options.fortesEncargoBases
+    : [];
 
   for (let i = 0; i < rawRows.length; i++) {
     const raw = rawRows[i];
@@ -135,13 +154,15 @@ export function normalizeFortesQueryRows(rawRows, options = {}, provisionRates =
       };
     }
 
-    const amt = Math.abs(raw.amountCents || 0);
+    const amt = Math.abs(Number(raw.amountCents) || 0);
     if (type === 'PROVENTO') liquidoPerLotacao[code].amount += amt;
     if (type === 'DESCONTO') liquidoPerLotacao[code].amount -= amt;
   }
 
+  // Líquido com sinal: negativo (descontos > proventos) segue para o journal,
+  // que bloqueia por NEGATIVE_VALUE_WITHOUT_POLICY em vez de sumir em silêncio.
   for (const [code, data] of Object.entries(liquidoPerLotacao)) {
-    if (data.amount > 0) {
+    if (data.amount !== 0) {
       const comp = normalizeCompetence(data.competence);
       normalized.push({
         sourceSystem: 'fortes',
@@ -166,7 +187,11 @@ export function normalizeFortesQueryRows(rawRows, options = {}, provisionRates =
     }
   }
 
-  // Provisões: Fortes manda (PRD/PRF). Sem Fortes → fallback sintético taxa×BC-FGTS.
+  // Fallbacks sintéticos usam a mesma lotação resolvida da folha
+  const rowsWithLotacao = rawRows.map((raw) => ({ ...raw, ...resolveLotacao(raw) }));
+
+  // Provisões: Fortes manda (PRD/PRF). Mês sem PRD/PRF → fallback sintético
+  // (sourceOrigin provision-derived; o motor emite SYNTHETIC_PROVISION).
   if (fortesProvisions.length > 0) {
     for (let i = 0; i < fortesProvisions.length; i++) {
       const raw = { ...fortesProvisions[i], sourceOrigin: FORTES_PROVISION_ORIGIN };
@@ -178,13 +203,19 @@ export function normalizeFortesQueryRows(rawRows, options = {}, provisionRates =
       );
     }
   } else if (provisionRates) {
-    const provisionRows = calculateProvisions(rawRows, provisionRates);
+    const provisionRows = calculateProvisions(rowsWithLotacao, provisionRates);
     normalized.push(...provisionRows);
   }
 
-  // Encargos patronais DCTF (INSS/FGTS mensais) — independente das provisões 13º/férias
-  if (provisionRates || encargoRates || fortesProvisions.length > 0) {
-    const encargoRows = calculateEncargos(rawRows, encargoRates || DEFAULT_ENCARGO_RATES);
+  // Encargos: bases eSocial (preferido) → senão sintético (602/605 ou proventos FGTS)
+  if (fortesEncargoBases.length > 0) {
+    const encargoRows = calculateEncargosFromBases(
+      fortesEncargoBases,
+      encargoRates || DEFAULT_ENCARGO_RATES
+    );
+    normalized.push(...encargoRows);
+  } else if (provisionRates || encargoRates || fortesProvisions.length > 0) {
+    const encargoRows = calculateEncargos(rowsWithLotacao, encargoRates || DEFAULT_ENCARGO_RATES);
     normalized.push(...encargoRows);
   }
 
