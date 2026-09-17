@@ -67,12 +67,20 @@ function normalizeCompetence(comp) {
   return comp || '';
 }
 
-function pushEncargoRow(encargoRows, data, def, amountCents, sourceReference, sourceAdapter) {
+function pushEncargoRow(
+  encargoRows,
+  data,
+  def,
+  amountCents,
+  sourceReference,
+  sourceAdapter,
+  sourceOrigin = null
+) {
   if (amountCents <= 0) return;
   encargoRows.push({
     sourceSystem: 'fortes',
     sourceAdapter,
-    sourceOrigin: sourceAdapter === 'fortes-encargo' ? 'fortes-encargo' : 'encargo-derived',
+    sourceOrigin: sourceOrigin || (sourceAdapter === 'fortes-encargo' ? 'fortes-encargo' : 'encargo-derived'),
     sourcePayrollId: null,
     companyId: data.companyId != null ? String(data.companyId) : '',
     companyName: data.companyName || '',
@@ -87,7 +95,8 @@ function pushEncargoRow(encargoRows, data, def, amountCents, sourceReference, so
     amountCents,
     employeeId: data.employeeId != null ? String(data.employeeId) : null,
     employeeName: data.employeeName || '',
-    sourceLineId: `encargo-${def.eventCode}-${data.employeeId}-${data.lotacaoCode}${data.estCode ? `-${data.estCode}` : ''}`,
+    sourceEmployeeReference: data.sourceEmployeeReference || null,
+    sourceLineId: `encargo-${def.eventCode}-${data.employeeId || data.sourceEmployeeReference || 'unmapped'}-${data.lotacaoCode}${data.estCode ? `-${data.estCode}` : ''}`,
   });
 }
 
@@ -111,6 +120,9 @@ export function calculateEncargosFromBases(baseRows, rates = DEFAULT_ENCARGO_RAT
     const lotacaoCode = row.lotacaoName
       ? String(row.lotacaoName)
       : String(row.lotacaoCode || '');
+    const isUnmapped = row.mappingStatus === 'unmapped';
+    const sourceOrigin = isUnmapped ? 'fortes-encargo-unmapped' : 'fortes-encargo';
+    const sourceEmployeeReference = row.esMat ? String(row.esMat) : null;
     const data = {
       companyId: row.companyId,
       companyName: row.companyName || '',
@@ -120,6 +132,7 @@ export function calculateEncargosFromBases(baseRows, rates = DEFAULT_ENCARGO_RAT
       lotacaoCode,
       lotacaoName: row.lotacaoName || lotacaoCode,
       estCode: row.estCode ? String(row.estCode) : '',
+      sourceEmployeeReference,
     };
     const gilratPct =
       row.gilratPct != null && row.gilratPct !== '' && Number.isFinite(Number(row.gilratPct))
@@ -127,6 +140,9 @@ export function calculateEncargosFromBases(baseRows, rates = DEFAULT_ENCARGO_RAT
         : null;
     const rowRates = gilratPct != null ? { ...merged, gilrat: gilratPct } : merged;
     const estRef = data.estCode ? `; EST: ${data.estCode}` : '';
+    const mappingRef = isUnmapped
+      ? `Matrícula eSocial sem correspondência na folha: ${sourceEmployeeReference || 'não informada'}; `
+      : '';
 
     if (bcCpCents > 0) {
       for (const def of CPP_DEFS) {
@@ -137,8 +153,9 @@ export function calculateEncargosFromBases(baseRows, rates = DEFAULT_ENCARGO_RAT
           data,
           def,
           amountCents,
-          `ES_CS_CP_Base: ${bcCpCents}; DCTF: ${def.dctfRef}; ${pct}%${estRef}`,
-          'fortes-encargo'
+          `${mappingRef}ES_CS_CP_Base: ${bcCpCents}; DCTF: ${def.dctfRef}; ${pct}%${estRef}`,
+          'fortes-encargo',
+          sourceOrigin
         );
       }
     }
@@ -149,8 +166,9 @@ export function calculateEncargosFromBases(baseRows, rates = DEFAULT_ENCARGO_RAT
         data,
         FGTS_DEF,
         fgtsDepoCents,
-        `ES_FGTS_SEGURADO.VALORDEPO: ${fgtsDepoCents}${estRef}`,
-        'fortes-encargo'
+        `${mappingRef}ES_FGTS_SEGURADO.VALORDEPO: ${fgtsDepoCents}${estRef}`,
+        'fortes-encargo',
+        sourceOrigin
       );
     }
   }

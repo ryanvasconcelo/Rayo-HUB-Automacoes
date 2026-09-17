@@ -224,7 +224,9 @@ ORDER BY LOT.Nome, EPG.Nome;
  * - CPP: ES_CS_CP_Base TipoValor 11 (mensal + 13º).
  * - FGTS: ES_FGTS_SEGURADO.VALORDEPO de todos os TIPOVALOR (mensal, 13º, aviso, aprendiz…).
  * - GILRAT: ES_CS_CP_Aliquotas_EST.AliquotaRATAjustada do estabelecimento.
- * Lotação via SEP/LOT da folha mensal; de-para Braga usa LOT.Nome.
+ * Lotação via SEP/LOT da folha mensal; de-para Braga usa LOT.Nome. Bases sem
+ * empregado na folha também retornam, para que o frontend as lance no centro
+ * provisório e sinalize o de-para pendente em vez de descartá-las.
  */
 const ENCARGO_BASE_QUERY = `
 DECLARE @EmpresaCodigo VARCHAR(4) = @Company;
@@ -311,25 +313,27 @@ rat AS (
     GROUP BY EST_Codigo
 )
 SELECT
-    el.companyId,
+    COALESCE(el.companyId, @EmpresaCodigo) AS companyId,
     el.companyName,
     @AnoMes AS competence,
     el.employeeId,
     el.employeeName,
-    el.lotacaoCode,
-    el.lotacaoName,
+    b.esMat,
+    CASE WHEN el.employeeId IS NULL THEN 'unmapped' ELSE 'mapped' END AS mappingStatus,
+    ISNULL(el.lotacaoCode, '') AS lotacaoCode,
+    ISNULL(el.lotacaoName, '') AS lotacaoName,
     b.estCode,
     rat.gilratPct,
     CAST(ROUND(b.bcCp * 100, 0) AS INT) AS bcCpCents,
     CAST(ROUND(b.fgtsDepo * 100, 0) AS INT) AS fgtsDepoCents
 FROM bases b
-INNER JOIN empLot el
+LEFT JOIN empLot el
     ON el.esMat = b.esMat
 LEFT JOIN rat
     ON rat.estCode = b.estCode
 WHERE b.bcCp > 0
    OR b.fgtsDepo > 0
-ORDER BY el.lotacaoName, el.employeeName, b.estCode;
+ORDER BY ISNULL(el.lotacaoName, ''), ISNULL(el.employeeName, ''), b.estCode;
 `;
 
 /**
@@ -418,6 +422,7 @@ async function extractFortesPayroll({ companyId = '9274', competence = '2026-04'
         lotacaoName,
       };
     });
+    const encargoUnmapped = encargoBases.filter((row) => row.mappingStatus === 'unmapped');
 
     const encargoCoverage = buildEncargoCoverage(encargoBases, encargoTotalsResult.recordset[0]);
 
@@ -433,6 +438,7 @@ async function extractFortesPayroll({ companyId = '9274', competence = '2026-04'
       payroll,
       provisions,
       encargoBases,
+      encargoUnmapped,
       encargoCoverage,
     };
   } finally {

@@ -607,6 +607,32 @@ describe('Folha Dealer engine', () => {
         expect(codes).toContain('SYNTHETIC_ENCARGO');
     });
 
+    it('carrega encargo eSocial sem empregado da folha no centro fallback e avisa o de-para pendente', () => {
+        const run = runEngine({
+            sourceRows: [{
+                sourceSystem: 'fortes',
+                sourceAdapter: 'fortes-encargo',
+                sourceOrigin: 'fortes-encargo-unmapped',
+                companyId: 'braga-veiculos',
+                competence: '2026-07',
+                lotacaoCode: '',
+                lotacaoName: '',
+                eventCode: 'ENCARGO_FGTS_FOLHA',
+                eventName: 'FGTS do mês',
+                amountCents: 62816,
+            }],
+            competence: '2026-07',
+        });
+
+        expect(run.status).toBe('ready');
+        expect(run.entries).toHaveLength(2);
+        expect(run.entries.find((entry) => entry.dc === 'D').centerCode).toBe('000600');
+        expect(run.issues).toContainEqual(expect.objectContaining({
+            code: 'UNMAPPED_ESOCIAL_ENCARGO',
+            severity: 'warning',
+        }));
+    });
+
     it('não emite warning de origem quando não há linhas sintéticas', () => {
         const codes = runEngine().issues.map((i) => i.code);
         expect(codes).not.toContain('SYNTHETIC_PROVISION');

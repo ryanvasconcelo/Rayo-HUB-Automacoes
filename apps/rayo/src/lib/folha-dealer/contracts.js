@@ -46,6 +46,7 @@ export const ValidationCodes = Object.freeze({
   INVALID_DEALER_LINE_LENGTH:      'INVALID_DEALER_LINE_LENGTH',
   SYNTHETIC_PROVISION:             'SYNTHETIC_PROVISION',
   SYNTHETIC_ENCARGO:               'SYNTHETIC_ENCARGO',
+  UNMAPPED_ESOCIAL_ENCARGO:        'UNMAPPED_ESOCIAL_ENCARGO',
 });
 
 // ---------------------------------------------------------------------------

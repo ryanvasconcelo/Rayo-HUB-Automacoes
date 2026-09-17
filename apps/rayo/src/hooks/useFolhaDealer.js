@@ -19,7 +19,17 @@ const formatCents = (cents) =>
   (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 /** Aviso quando parte da base eSocial não casou com empregado da folha mensal. */
-function describeEncargoCoverage(coverage) {
+function describeEncargoCoverage(coverage, unmappedBases = []) {
+  if (unmappedBases.length > 0) {
+    const total = (key) => unmappedBases.reduce((sum, row) => sum + (Number(row[key]) || 0), 0);
+    const cpp = total('bcCpCents');
+    const fgts = total('fgtsDepoCents');
+    const details = [
+      cpp > 0 ? `BC CPP ${formatCents(cpp)}` : null,
+      fgts > 0 ? `FGTS ${formatCents(fgts)}` : null,
+    ].filter(Boolean).join('; ');
+    return `${unmappedBases.length} base(s) eSocial sem empregado correspondente na folha mensal foram carregadas no centro provisório. Ajuste o de-para: ${details}.`;
+  }
   if (!coverage) return null;
   const gaps = [
     ['BC CPP', coverage.bcCpCents],
@@ -189,7 +199,13 @@ export function useFolhaDealer() {
       }
 
       const { config: runtimeConfig, centersWarning } = await resolveRuntimeConfig();
-      const extractWarning = [centersWarning, describeEncargoCoverage(result.encargoCoverage)]
+      const extractWarning = [
+        centersWarning,
+        describeEncargoCoverage(
+          result.encargoCoverage,
+          Array.isArray(result.encargoUnmapped) ? result.encargoUnmapped : []
+        ),
+      ]
         .filter(Boolean)
         .join(' ');
       runWithConfig(payrollRows, competence, runtimeConfig, extractWarning || null);

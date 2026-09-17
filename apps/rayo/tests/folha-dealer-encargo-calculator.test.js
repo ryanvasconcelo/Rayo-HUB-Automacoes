@@ -117,6 +117,37 @@ describe('encargo-calculator (DCTFWeb / FGTS)', () => {
     expect(rows.every((r) => r.sourceOrigin === 'fortes-encargo')).toBe(true);
   });
 
+  it('carrega bases eSocial sem empregado da folha no fallback e as marca para conferência', () => {
+    const rows = calculateEncargosFromBases(
+      [
+        {
+          companyId: '9274',
+          competence: '202604',
+          esMat: 'ES-NAO-MAPEADA',
+          employeeId: null,
+          lotacaoCode: '',
+          lotacaoName: '',
+          mappingStatus: 'unmapped',
+          bcCpCents: 100000,
+          fgtsDepoCents: 8000,
+        },
+      ],
+      bragaVeiculosConfig.encargoRates
+    );
+
+    expect(rows.map((row) => row.eventCode).sort()).toEqual([
+      'ENCARGO_FGTS_FOLHA',
+      'ENCARGO_INSS_PATRONAL',
+      'ENCARGO_RAT_FAP',
+      'ENCARGO_TERCEIROS',
+    ]);
+    expect(rows.every((row) => row.sourceOrigin === 'fortes-encargo-unmapped')).toBe(true);
+    expect(rows.every((row) => row.lotacaoCode === '')).toBe(true);
+    expect(rows.every((row) => row.sourceEmployeeReference === 'ES-NAO-MAPEADA')).toBe(true);
+    expect(rows.find((row) => row.eventCode === 'ENCARGO_FGTS_FOLHA').amountCents).toBe(8000);
+    expect(rows.find((row) => row.eventCode === 'ENCARGO_INSS_PATRONAL').amountCents).toBe(20000);
+  });
+
   it('adapter usa bases eSocial e não gera sintético paralelo', () => {
     const result = normalizeFortesQueryRows(
       [baseRow({ lotacaoCode: 'AGENDAMENTOS', amountCents: 100 })],

@@ -93,6 +93,28 @@ function buildSourceIssues(rows, competence) {
     });
   }
 
+  const unmappedEncargos = rows.filter((r) => r.sourceOrigin === 'fortes-encargo-unmapped');
+  if (unmappedEncargos.length > 0) {
+    const employeeReferences = new Set(
+      unmappedEncargos
+        .map((r) => r.sourceEmployeeReference)
+        .filter(Boolean)
+    );
+    const sourceDescription = employeeReferences.size > 0
+      ? `${employeeReferences.size} matrícula(s) eSocial`
+      : 'uma ou mais bases eSocial';
+    issues.push({
+      code: ValidationCodes.UNMAPPED_ESOCIAL_ENCARGO,
+      severity: 'warning',
+      message: `Encargos de ${sourceDescription} sem empregado correspondente na folha mensal em ${competence} foram carregados no centro provisório. Ajuste o de-para antes do fechamento.`,
+      context: {
+        competence,
+        rows: unmappedEncargos.length,
+        employeeReferences: Array.from(employeeReferences),
+      },
+    });
+  }
+
   return issues;
 }
 
