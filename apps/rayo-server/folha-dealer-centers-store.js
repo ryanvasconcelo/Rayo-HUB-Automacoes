@@ -12,6 +12,7 @@ const DEFAULT_COMPANY_ID = 'braga-veiculos';
 
 const SEED_FILES = {
   'braga-veiculos': path.join(__dirname, 'folha-dealer-centers-seed-braga.json'),
+  'braga-motos': path.join(__dirname, 'folha-dealer-centers-seed-braga-motos.json'),
 };
 
 function getDataDir() {
@@ -72,7 +73,8 @@ function normalizePayload(payload, companyId) {
 }
 
 function loadSeed(companyId) {
-  const seedPath = SEED_FILES[companyId] || SEED_FILES[DEFAULT_COMPANY_ID];
+  // Sem fallback entre empresas: seed de outra empresa contaminaria o de-para.
+  const seedPath = SEED_FILES[companyId];
   if (!seedPath || !fs.existsSync(seedPath)) {
     return normalizePayload(
       { companyId, centers: [], lotacaoMappings: [], accountMappings: [] },

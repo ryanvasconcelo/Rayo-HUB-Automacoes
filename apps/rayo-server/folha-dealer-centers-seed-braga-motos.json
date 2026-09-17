@@ -1,0 +1,1184 @@
+{
+  "companyId": "braga-motos",
+  "centers": [
+    {
+      "code": "000600",
+      "name": "ADMINISTRAÇÃO",
+      "active": true
+    },
+    {
+      "code": "000400",
+      "name": "FUNILÁRIO",
+      "active": true
+    },
+    {
+      "code": "000500",
+      "name": "PEÇAS",
+      "active": true
+    },
+    {
+      "code": "000300",
+      "name": "MECÂNICA",
+      "active": true
+    },
+    {
+      "code": "001000",
+      "name": "VEÍCULOS NOVOS",
+      "active": true
+    },
+    {
+      "code": "002000",
+      "name": "VEÍCULOS USADOS",
+      "active": true
+    },
+    {
+      "code": "000101",
+      "name": "VENDA DIRETA",
+      "active": true
+    },
+    {
+      "code": "008000",
+      "name": "DIRETÓRIO",
+      "active": true
+    },
+    {
+      "code": "008100",
+      "name": "DIRETÓRIO COMERCIAL",
+      "active": true
+    },
+    {
+      "code": "008200",
+      "name": "RECUP TRIB./INC. FISCAIS",
+      "active": true
+    },
+    {
+      "code": "008300",
+      "name": "CONSÓRCIO",
+      "active": true
+    },
+    {
+      "code": "001100",
+      "name": "DPTO. VEÍCULOS NOVOS FILIAL",
+      "active": true
+    },
+    {
+      "code": "003100",
+      "name": "DPTO. ACESSÓRIOS",
+      "active": true
+    },
+    {
+      "code": "003200",
+      "name": "DPTO. ACESSÓRIOS MINI",
+      "active": true
+    },
+    {
+      "code": "003300",
+      "name": "DPTO. ACESSÓRIOS MOTO",
+      "active": true
+    },
+    {
+      "code": "001200",
+      "name": "DPTO. COMPRAS SUMAUMA",
+      "active": true
+    },
+    {
+      "code": "001300",
+      "name": "DPTO. ESTANDE CARREFOUR",
+      "active": true
+    },
+    {
+      "code": "001400",
+      "name": "DPTO. CARREFOUR FLORES",
+      "active": true
+    },
+    {
+      "code": "001500",
+      "name": "DPTO. MOTOS NOVAS GC",
+      "active": true
+    },
+    {
+      "code": "001600",
+      "name": "DPTO. NOVO ISRAEL",
+      "active": true
+    },
+    {
+      "code": "001700",
+      "name": "DPTO. STAND MUTIRAO",
+      "active": true
+    },
+    {
+      "code": "001800",
+      "name": "DPTO. STAND CIDADE DE DEUS",
+      "active": true
+    },
+    {
+      "code": "001900",
+      "name": "DPTO. SANTA ETELVINA",
+      "active": true
+    },
+    {
+      "code": "001110",
+      "name": "DPTO. STAND ALVORADA",
+      "active": true
+    },
+    {
+      "code": "001120",
+      "name": "DPTO. STAND JAPIIM",
+      "active": true
+    },
+    {
+      "code": "001130",
+      "name": "DPTO. STAND COL SANTO ANTONIO",
+      "active": true
+    },
+    {
+      "code": "001140",
+      "name": "DPTO. ITACOATIARA",
+      "active": true
+    },
+    {
+      "code": "001150",
+      "name": "DPTO. STAND JORGE TEIXEIRA",
+      "active": true
+    },
+    {
+      "code": "001160",
+      "name": "DPTO. STAND MANOA",
+      "active": true
+    },
+    {
+      "code": "001170",
+      "name": "DPTO. STAND PARQUE DEZ",
+      "active": true
+    },
+    {
+      "code": "001180",
+      "name": "DPTO. NOVO ALEIXO",
+      "active": true
+    },
+    {
+      "code": "001190",
+      "name": "DPTO. BETANIA",
+      "active": true
+    },
+    {
+      "code": "001111",
+      "name": "DPTO. TARUMA",
+      "active": true
+    },
+    {
+      "code": "001012",
+      "name": "DPTO. STAND LIRIO DO VALE",
+      "active": true
+    },
+    {
+      "code": "001113",
+      "name": "DPTO.STAND COROADO",
+      "active": true
+    },
+    {
+      "code": "001114",
+      "name": "DPTO. STAND GRANDE VITORIA",
+      "active": true
+    },
+    {
+      "code": "001115",
+      "name": "DPTO. PAREDES DE PAREDE",
+      "active": true
+    },
+    {
+      "code": "001116",
+      "name": "DPTO. CAMAPUA",
+      "active": true
+    },
+    {
+      "code": "001117",
+      "name": "DPTO. NOEL NUTELS",
+      "active": true
+    },
+    {
+      "code": "001118",
+      "name": "VENDAS MOTO REY",
+      "active": true
+    },
+    {
+      "code": "003400",
+      "name": "PECAS MOTO REY",
+      "active": true
+    },
+    {
+      "code": "004100",
+      "name": "OFC MOTO REY",
+      "active": true
+    },
+    {
+      "code": "003500",
+      "name": "BRAGA ACESSORIOS",
+      "active": true
+    },
+    {
+      "code": "001122",
+      "name": "BRAGA MOTOMARCAS",
+      "active": true
+    },
+    {
+      "code": "001119",
+      "name": "DPTO. TORQUATO",
+      "active": true
+    },
+    {
+      "code": "001121",
+      "name": "DPTO. DEPÓSITO",
+      "active": true
+    },
+    {
+      "code": "004200",
+      "name": "DPTO. MECÂNICA MOTOMARCAS",
+      "active": true
+    },
+    {
+      "code": "004300",
+      "name": "DPTO. MECÂNICA B. ACESSÓRIOS",
+      "active": true
+    },
+    {
+      "code": "003600",
+      "name": "DPTO. PECAS MOTOMARCAS",
+      "active": true
+    },
+    {
+      "code": "001123",
+      "name": "DPTO.VEICS.NOVOS MINI",
+      "active": true
+    },
+    {
+      "code": "002100",
+      "name": "DPTO.VEICS.USADOS MINI",
+      "active": true
+    },
+    {
+      "code": "002200",
+      "name": "DPTO.VEICS.USADOS MOTO",
+      "active": true
+    },
+    {
+      "code": "004400",
+      "name": "DPTO.MECANICA MINI",
+      "active": true
+    },
+    {
+      "code": "004500",
+      "name": "DPTO.MECANICA MOTO",
+      "active": true
+    },
+    {
+      "code": "006100",
+      "name": "DPTO.FUN/PINT MINI",
+      "active": true
+    },
+    {
+      "code": "006200",
+      "name": "DPTO.FUN/PINT MOTO",
+      "active": true
+    },
+    {
+      "code": "003700",
+      "name": "DPTO.PECAS MINI",
+      "active": true
+    },
+    {
+      "code": "003800",
+      "name": "DPTO.PECAS MOTO",
+      "active": true
+    },
+    {
+      "code": "003900",
+      "name": "DPTO.PECAS B.ACESSORIOS",
+      "active": true
+    }
+  ],
+  "lotacaoMappings": [
+    {
+      "lotacaoCode": "DEPARTAMENTO CD VENDAS ",
+      "dealerCenterCode": "001121",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPARTAMENTO CD VENDAS",
+      "dealerCenterCode": "001121",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO POS VENDAS PRODUTIVOS - PRACA 14",
+      "dealerCenterCode": "000300",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO POS VENDAS - MANOA",
+      "dealerCenterCode": "001160",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO BRAGA ACESSORIOS VENDAS CACHOEIRINHA",
+      "dealerCenterCode": "003500",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO VENDAS - MANOA",
+      "dealerCenterCode": "001160",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "ADMINISTRACAO POS VENDAS PRACA 14",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA PARINTINS - VENDAS",
+      "dealerCenterCode": "001115",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA PARINTINS - POS VENDAS",
+      "dealerCenterCode": "001115",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO SANTA ETELVINA - VENDAS",
+      "dealerCenterCode": "001900",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO - VENDAS PRACA 14",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS CIDADE DE DEUS - POS VENDAS",
+      "dealerCenterCode": "001800",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO CIDADE NOVA - POS VENDA",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO POS VENDAS - GRANDE CIRCULAR",
+      "dealerCenterCode": "001500",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO VENDAS - BRAGA COROADO",
+      "dealerCenterCode": "001113",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO VENDAS - GRANDE CIRCULAR",
+      "dealerCenterCode": "001500",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO VENDAS - GRANDE VITORIA ",
+      "dealerCenterCode": "001114",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO VENDAS - GRANDE VITORIA",
+      "dealerCenterCode": "001114",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOMARCAS VENDAS PRACA 14",
+      "dealerCenterCode": "001122",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO CIDADE NOVA - VENDAS",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO VENDAS - CONSORCIO PRACA 14",
+      "dealerCenterCode": "008300",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO ACESSORIOS VENDAS SUMAUMA",
+      "dealerCenterCode": "003100",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO POS VENDAS - CRM 14",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO BRAGA ACESSORIOS CIDADA NOVA",
+      "dealerCenterCode": "003500",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS LIRIO DO VALE",
+      "dealerCenterCode": "001012",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO VENDAS - FINANCIAMENTO PRACA 14",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS VENDAS CIDADE DE DEUS",
+      "dealerCenterCode": "001800",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO POS VENDAS - GRANDE VITORIA",
+      "dealerCenterCode": "001114",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO VENDAS - SEGUROS PRACA 14",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO POS VENDAS - BRAGA COROADO",
+      "dealerCenterCode": "001113",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPARTAMENTO CD POS VENDAS",
+      "dealerCenterCode": "001121",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO CIDADE NOVA - POS VENDAS",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO POS VENDAS PECAS - PRACA 14",
+      "dealerCenterCode": "000500",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO SANTA ETELVINA - VENDAS ",
+      "dealerCenterCode": "001900",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS VENDAS JAPIIM",
+      "dealerCenterCode": "001120",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "ADMINISTRACAO PRACA 14",
+      "dealerCenterCode": "000600",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS VENDAS ALVORADA",
+      "dealerCenterCode": "001110",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO POS VENDAS MECANICA - PRACA 14",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS LIRIO DO VALE VENDAS",
+      "dealerCenterCode": "001012",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO VENDAS CRM PRACA 14",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO POS VENDAS PRACA 14",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO BRAGA ACESSORIOS POS  VENDAS CACHOEIRINHA",
+      "dealerCenterCode": "004300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOMARCAS COROADO",
+      "dealerCenterCode": "001122",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPARTAMENTO DE VENDAS ITACOATIARA",
+      "dealerCenterCode": "001140",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO POS VENDAS - SANTA ETELVINA ",
+      "dealerCenterCode": "001900",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO POS VENDAS - SANTA ETELVINA",
+      "dealerCenterCode": "001900",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO POS VENDAS - SAMAUMA",
+      "dealerCenterCode": "001200",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO PEÇAS",
+      "dealerCenterCode": "000500",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS - DEPTO VENDAS",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPTO CRM POS VENDAS",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS DEPTO PECAS MATRIZ ",
+      "dealerCenterCode": "000500",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS DEPTO PECAS MATRIZ",
+      "dealerCenterCode": "000500",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS DEPTO CRM",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPTO PEÇAS - PRAÇA 14",
+      "dealerCenterCode": "000500",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPTO PEÇAS - CAMAPUA",
+      "dealerCenterCode": "001116",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS DEPTO PECAS PARINTINS",
+      "dealerCenterCode": "001115",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS DEPTO VENDAS PARINTINS",
+      "dealerCenterCode": "001115",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS DEPTO MECANICA PRACA 14",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS DEPTO PECAS CIDADE NOVA",
+      "dealerCenterCode": "000500",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS DEPTO PECAS CIDADE DE DEUS",
+      "dealerCenterCode": "001800",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS DEPTO MECANICA COROADO",
+      "dealerCenterCode": "001113",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS - DEPTO PECAS",
+      "dealerCenterCode": "000500",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS - DEPTO LOGISTICA",
+      "dealerCenterCode": "001121",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA VEÍCULOS - DEPTO VENDAS NOVOS",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS - DEPTO ADMINISTRACAO",
+      "dealerCenterCode": "000600",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS - DEPTO ACESSORIOS SUMAUMA SHOPPING",
+      "dealerCenterCode": "003100",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS - DEPTO ACESSORIOS CIDADE NOVA",
+      "dealerCenterCode": "003100",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS - DEPTO VENDAS CAMAPUA",
+      "dealerCenterCode": "001116",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA ACESSORIOS",
+      "dealerCenterCode": "003500",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS - DEPTO PEÇAS - CD",
+      "dealerCenterCode": "001121",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS - DEPTO GRANDE VITORIA",
+      "dealerCenterCode": "001114",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTOS - DEPTO BRAGA ACESSÓRIOS CACHOEIRINHA",
+      "dealerCenterCode": "003500",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "GERAL",
+      "dealerCenterCode": "000600",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "001",
+      "dealerCenterCode": "001121",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "002",
+      "dealerCenterCode": "000300",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "003",
+      "dealerCenterCode": "001160",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "004",
+      "dealerCenterCode": "003500",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "005",
+      "dealerCenterCode": "001160",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "006",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "007",
+      "dealerCenterCode": "001115",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "008",
+      "dealerCenterCode": "001115",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "009",
+      "dealerCenterCode": "001900",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "010",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "011",
+      "dealerCenterCode": "001800",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "012",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "013",
+      "dealerCenterCode": "001500",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "014",
+      "dealerCenterCode": "001113",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "015",
+      "dealerCenterCode": "001500",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "016",
+      "dealerCenterCode": "001114",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "017",
+      "dealerCenterCode": "001122",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "018",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "019",
+      "dealerCenterCode": "008300",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "020",
+      "dealerCenterCode": "003100",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "021",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "022",
+      "dealerCenterCode": "003500",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "023",
+      "dealerCenterCode": "001012",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "024",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "025",
+      "dealerCenterCode": "001800",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "026",
+      "dealerCenterCode": "001114",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "027",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "028",
+      "dealerCenterCode": "001113",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "029",
+      "dealerCenterCode": "001121",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "030",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "031",
+      "dealerCenterCode": "000500",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "032",
+      "dealerCenterCode": "001900",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "033",
+      "dealerCenterCode": "001121",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "034",
+      "dealerCenterCode": "001120",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "035",
+      "dealerCenterCode": "000600",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "036",
+      "dealerCenterCode": "001110",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "037",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "038",
+      "dealerCenterCode": "001012",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "039",
+      "dealerCenterCode": "001115",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "040",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "041",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "042",
+      "dealerCenterCode": "004300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "043",
+      "dealerCenterCode": "001122",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "044",
+      "dealerCenterCode": "008300",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "045",
+      "dealerCenterCode": "001140",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "046",
+      "dealerCenterCode": "001900",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "047",
+      "dealerCenterCode": "001200",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "048",
+      "dealerCenterCode": "000500",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "049",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "050",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "051",
+      "dealerCenterCode": "000500",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "052",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "053",
+      "dealerCenterCode": "000500",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "054",
+      "dealerCenterCode": "001116",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "056",
+      "dealerCenterCode": "001115",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "057",
+      "dealerCenterCode": "001115",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "058",
+      "dealerCenterCode": "000300",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "059",
+      "dealerCenterCode": "000500",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "060",
+      "dealerCenterCode": "001800",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "061",
+      "dealerCenterCode": "001113",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "062",
+      "dealerCenterCode": "000500",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "063",
+      "dealerCenterCode": "000500",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "064",
+      "dealerCenterCode": "001121",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "065",
+      "dealerCenterCode": "001000",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "066",
+      "dealerCenterCode": "000600",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "067",
+      "dealerCenterCode": "003100",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "068",
+      "dealerCenterCode": "003100",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "069",
+      "dealerCenterCode": "001116",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "070",
+      "dealerCenterCode": "003500",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "071",
+      "dealerCenterCode": "001121",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "072",
+      "dealerCenterCode": "001114",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "073",
+      "dealerCenterCode": "003500",
+      "allocationMode": "activity",
+      "active": true
+    },
+    {
+      "lotacaoCode": "999",
+      "dealerCenterCode": "000600",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "",
+      "dealerCenterCode": "000600",
+      "allocationMode": "direct",
+      "active": true
+    }
+  ]
+}

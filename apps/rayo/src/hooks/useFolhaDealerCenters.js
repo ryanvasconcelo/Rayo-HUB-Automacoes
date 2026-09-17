@@ -1,5 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
-import { bragaVeiculosConfig } from '../lib/folha-dealer/braga-veiculos.config.js';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  DEFAULT_COMPANY_ID,
+  getCompanyConfig,
+} from '../lib/folha-dealer/company-configs.js';
 import {
   fetchCentersConfig,
   saveCentersConfig as apiSaveCentersConfig,
@@ -13,8 +16,6 @@ import {
   mergeAccountMappings,
 } from '../lib/folha-dealer/merge-center-config.js';
 
-const DEFAULT_COMPANY_ID = 'braga-veiculos';
-
 /**
  * Hook de cadastro de centros + de-para lotação (API servidor).
  * Expõe payload editável, merge com seed e CRUD.
@@ -26,8 +27,9 @@ export function useFolhaDealerCenters(companyId = DEFAULT_COMPANY_ID) {
   const [error, setError] = useState(null);
   const [apiAvailable, setApiAvailable] = useState(true);
 
-  const seedMappings = bragaVeiculosConfig.centerMappings;
-  const seedAccountMappings = bragaVeiculosConfig.accountMappings;
+  const seedConfig = useMemo(() => getCompanyConfig(companyId), [companyId]);
+  const seedMappings = seedConfig.centerMappings;
+  const seedAccountMappings = seedConfig.accountMappings;
 
   const load = useCallback(async () => {
     setLoading(true);

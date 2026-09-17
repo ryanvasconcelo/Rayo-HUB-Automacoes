@@ -6,6 +6,8 @@ import {
   exportRunConferenceXlsx,
   buildBragaRowsFortes,
   bragaVeiculosConfig,
+  getCompanyConfig,
+  getCompanyConfigByFortesCode,
   summarizeValidationIssues
 } from '../lib/folha-dealer';
 import { normalizeFortesQueryRows } from '../lib/folha-dealer/fortes-query-adapter';
@@ -13,7 +15,6 @@ import { parseFortesCsv } from '../lib/folha-dealer/fortes-csv-parser';
 import { fetchCentersConfig } from '../lib/folha-dealer/centers-config-api';
 import { mergeCenterMappings, mergeAccountMappings } from '../lib/folha-dealer/merge-center-config';
 
-const COMPANY_ID = 'braga-veiculos';
 
 const formatCents = (cents) =>
   (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -42,30 +43,31 @@ function describeEncargoCoverage(coverage, unmappedBases = []) {
   return `Bases eSocial sem empregado na folha mensal (encargos incompletos): ${detail}.`;
 }
 
-async function resolveRuntimeConfig() {
+async function resolveRuntimeConfig(baseConfig) {
+  const companyId = baseConfig.company.companyId;
   let centersWarning = null;
   let stored = null;
 
   try {
-    stored = await fetchCentersConfig(COMPANY_ID);
+    stored = await fetchCentersConfig(companyId);
   } catch (err) {
     centersWarning = `Cadastro de centros indisponível (${err.message}). Usando seed do config.`;
   }
 
   const centerMappings = mergeCenterMappings(
-    bragaVeiculosConfig.centerMappings,
+    baseConfig.centerMappings,
     stored,
-    COMPANY_ID
+    companyId
   );
 
   const accountMappings = mergeAccountMappings(
-    bragaVeiculosConfig.accountMappings,
+    baseConfig.accountMappings,
     stored,
-    COMPANY_ID
+    companyId
   );
 
   return {
-    config: { ...bragaVeiculosConfig, centerMappings, accountMappings },
+    config: { ...baseConfig, centerMappings, accountMappings },
     centersWarning,
   };
 }
@@ -103,7 +105,7 @@ export function useFolhaDealer() {
         throw new Error(`A empresa ${companyId} não possui configuração/fixtures implementados ainda.`);
       }
 
-      const { config: runtimeConfig, centersWarning } = await resolveRuntimeConfig();
+      const { config: runtimeConfig, centersWarning } = await resolveRuntimeConfig(bragaVeiculosConfig);
       runWithConfig(sourceRows, competence, runtimeConfig, centersWarning);
       setMetadata(null);
     } catch (err) {
@@ -121,28 +123,34 @@ export function useFolhaDealer() {
         throw new Error('Nenhuma linha encontrada para a empresa e competência informadas no CSV.');
       }
 
+      const baseConfig = getCompanyConfig(targetCompanyId);
+
       let payrollRows = normalizeFortesQueryRows(
         rawRows,
         {},
-        bragaVeiculosConfig.provisionRates,
-        bragaVeiculosConfig.encargoRates
+        baseConfig.provisionRates,
+        baseConfig.encargoRates
       );
       payrollRows = payrollRows.map(row => ({
         ...row,
-        companyId: COMPANY_ID
+        companyId: baseConfig.company.companyId
       }));
 
-      const { config: runtimeConfig, centersWarning } = await resolveRuntimeConfig();
+      const { config: runtimeConfig, centersWarning } = await resolveRuntimeConfig(baseConfig);
       runWithConfig(payrollRows, targetCompetence, runtimeConfig, centersWarning);
     } catch (err) {
       setError(err.message);
     }
   };
 
-  const extractFromDatabase = async (companyId, competence) => {
+  const extractFromDatabase = async (fortesCompanyCode, competence) => {
     try {
       setError(null);
       setMetadata(null);
+
+      // Resolve antes da chamada: empresa sem de-para não deve sequer extrair.
+      const baseConfig = getCompanyConfigByFortesCode(fortesCompanyCode);
+      const companyId = fortesCompanyCode;
 
       const response = await fetch('/api/fortes/extract', {
         method: 'POST',
@@ -185,20 +193,16 @@ export function useFolhaDealer() {
           fortesProvisions: Array.isArray(result.provisions) ? result.provisions : [],
           fortesEncargoBases: Array.isArray(result.encargoBases) ? result.encargoBases : [],
         },
-        bragaVeiculosConfig.provisionRates,
-        bragaVeiculosConfig.encargoRates
+        baseConfig.provisionRates,
+        baseConfig.encargoRates
       );
 
-      if (companyId === '9274' || companyId === 'BRAGA_VEICULOS') {
-        payrollRows = payrollRows.map(row => ({
-          ...row,
-          companyId: COMPANY_ID
-        }));
-      } else {
-        throw new Error(`Empresa ${companyId} não suportada pelos mocks atuais.`);
-      }
+      payrollRows = payrollRows.map(row => ({
+        ...row,
+        companyId: baseConfig.company.companyId
+      }));
 
-      const { config: runtimeConfig, centersWarning } = await resolveRuntimeConfig();
+      const { config: runtimeConfig, centersWarning } = await resolveRuntimeConfig(baseConfig);
       const extractWarning = [
         centersWarning,
         describeEncargoCoverage(
@@ -215,12 +219,14 @@ export function useFolhaDealer() {
   };
 
   const reprocessLastRun = async () => {
-    if (!lastSourceRows || !lastCompetence) {
+    if (!lastSourceRows || !lastCompetence || !config) {
       throw new Error('Não há lote anterior para reprocessar. Extraia a folha novamente.');
     }
     try {
       setError(null);
-      const { config: runtimeConfig, centersWarning } = await resolveRuntimeConfig();
+      const { config: runtimeConfig, centersWarning } = await resolveRuntimeConfig(
+        getCompanyConfig(config.company.companyId)
+      );
       runWithConfig(lastSourceRows, lastCompetence, runtimeConfig, centersWarning);
       return true;
     } catch (err) {
