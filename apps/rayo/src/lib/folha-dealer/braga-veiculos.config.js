@@ -75,7 +75,11 @@ const centerMappings = [
   { companyId: company.companyId, lotacaoCode: 'DEPT. DE LEADS FILIAL', dealerCenterCode: '001100', dealerCenterName: 'Veíc. Novos – Filial', allocationMode: 'activity', active: true },
 
   // ---- Lotações Fortes adicionais (provisão / cadastro) ----
-  { companyId: company.companyId, lotacaoCode: 'GERAL', dealerCenterCode: '000999', dealerCenterName: 'Geral', allocationMode: 'direct', active: true },
+  // GERAL/999 é a lotação guarda-chuva do Fortes. Não há centro "Geral" no
+  // cadastro do Dealer — um 000999 inventado fazia a importação do lote inteiro
+  // falhar com "Centro de Resultado de Débito 000999 não encontrado". Vai para a
+  // Administração, mesmo destino da lotação vazia.
+  { companyId: company.companyId, lotacaoCode: 'GERAL', dealerCenterCode: '000600', dealerCenterName: 'Administração', allocationMode: 'direct', active: true },
   { companyId: company.companyId, lotacaoCode: 'DEPTO. SEMINOVOS', dealerCenterCode: '002000', dealerCenterName: 'Veíc. Usados', allocationMode: 'activity', active: true },
   { companyId: company.companyId, lotacaoCode: 'DEPTO. VENDAS', dealerCenterCode: '001000', dealerCenterName: 'Veíc. Novos', allocationMode: 'activity', active: true },
   { companyId: company.companyId, lotacaoCode: 'BRAGA VEICULOS DEPTO AGENDAMENTO', dealerCenterCode: '000300', dealerCenterName: 'Mecânica', allocationMode: 'activity', active: true },
@@ -104,7 +108,7 @@ const centerMappings = [
   { companyId: company.companyId, lotacaoCode: '014', dealerCenterCode: '003100', dealerCenterName: 'Acessórios', allocationMode: 'direct', active: true },
   { companyId: company.companyId, lotacaoCode: '024', dealerCenterCode: '001100', dealerCenterName: 'Veíc. Novos – Filial', allocationMode: 'activity', active: true },
   { companyId: company.companyId, lotacaoCode: '013', dealerCenterCode: '000500', dealerCenterName: 'Peças', allocationMode: 'direct', active: true },
-  { companyId: company.companyId, lotacaoCode: '999', dealerCenterCode: '000999', dealerCenterName: 'Geral', allocationMode: 'direct', active: true },
+  { companyId: company.companyId, lotacaoCode: '999', dealerCenterCode: '000600', dealerCenterName: 'Administração', allocationMode: 'direct', active: true },
 
   // ---- Fallback (Lotação Vazia temporária enquanto ajustamos o SQL) ----
   { companyId: company.companyId, lotacaoCode: '', dealerCenterCode: '000600', dealerCenterName: 'Administração', allocationMode: 'direct', active: true },
