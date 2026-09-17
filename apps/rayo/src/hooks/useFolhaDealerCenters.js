@@ -10,6 +10,7 @@ import {
   mergeCenterMappings,
   normalizeCentersPayload,
   seedPayloadFromCenterMappings,
+  mergeAccountMappings,
 } from '../lib/folha-dealer/merge-center-config.js';
 
 const DEFAULT_COMPANY_ID = 'braga-veiculos';
@@ -26,6 +27,7 @@ export function useFolhaDealerCenters(companyId = DEFAULT_COMPANY_ID) {
   const [apiAvailable, setApiAvailable] = useState(true);
 
   const seedMappings = bragaVeiculosConfig.centerMappings;
+  const seedAccountMappings = bragaVeiculosConfig.accountMappings;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -37,17 +39,18 @@ export function useFolhaDealerCenters(companyId = DEFAULT_COMPANY_ID) {
     } catch (err) {
       setApiAvailable(false);
       setError(err.message);
-      setStored(seedPayloadFromCenterMappings(companyId, seedMappings));
+      setStored(seedPayloadFromCenterMappings(companyId, seedMappings, seedAccountMappings));
     } finally {
       setLoading(false);
     }
-  }, [companyId, seedMappings]);
+  }, [companyId, seedMappings, seedAccountMappings]);
 
   useEffect(() => {
     load();
   }, [load]);
 
   const mergedCenterMappings = mergeCenterMappings(seedMappings, stored, companyId);
+  const mergedAccountMappings = mergeAccountMappings(seedAccountMappings, stored, companyId);
 
   const saveAll = useCallback(async (payload) => {
     setSaving(true);
@@ -105,6 +108,7 @@ export function useFolhaDealerCenters(companyId = DEFAULT_COMPANY_ID) {
     stored,
     setStored,
     mergedCenterMappings,
+    mergedAccountMappings,
     loading,
     saving,
     error,

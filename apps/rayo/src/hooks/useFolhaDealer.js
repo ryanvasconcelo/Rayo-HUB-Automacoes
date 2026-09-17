@@ -11,7 +11,7 @@ import {
 import { normalizeFortesQueryRows } from '../lib/folha-dealer/fortes-query-adapter';
 import { parseFortesCsv } from '../lib/folha-dealer/fortes-csv-parser';
 import { fetchCentersConfig } from '../lib/folha-dealer/centers-config-api';
-import { mergeCenterMappings } from '../lib/folha-dealer/merge-center-config';
+import { mergeCenterMappings, mergeAccountMappings } from '../lib/folha-dealer/merge-center-config';
 
 const COMPANY_ID = 'braga-veiculos';
 
@@ -48,8 +48,14 @@ async function resolveRuntimeConfig() {
     COMPANY_ID
   );
 
+  const accountMappings = mergeAccountMappings(
+    bragaVeiculosConfig.accountMappings,
+    stored,
+    COMPANY_ID
+  );
+
   return {
-    config: { ...bragaVeiculosConfig, centerMappings },
+    config: { ...bragaVeiculosConfig, centerMappings, accountMappings },
     centersWarning,
   };
 }
