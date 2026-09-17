@@ -9,7 +9,7 @@
  *   1191-01 SENAC 1,00%                       → ENCARGO_TERCEIROS (soma 5,80%)
  *   1196-01 SESC 1,50%
  *   1200-01 SEBRAE 0,60%
- *   FGTS mensal (tipo 11)                     → ENCARGO_FGTS_FOLHA
+ *   FGTS do mês (todos os TIPOVALOR)          → ENCARGO_FGTS_FOLHA
  *
  * Excluído: 1082-01 INSS descontado do segurado (evento Fortes 310, já mapeado).
  *
@@ -18,7 +18,8 @@
  *   FGTS                      → D 6.1.1.02.002 / C 2.1.1.02.002
  *
  * Preferência de base (fluxo extract DB):
- *   ES_CS_CP_Base (TipoValor 11) + ES_FGTS_SEGURADO.VALORDEPO → calculateEncargosFromBases
+ *   ES_CS_CP_Base (TipoValor 11, inclui 13º) + ES_FGTS_SEGURADO.VALORDEPO (todos os tipos)
+ *   + ES_CS_CP_Aliquotas_EST.AliquotaRATAjustada por estabelecimento → calculateEncargosFromBases
  *
  * Fallback sintético (CSV / sem eSocial):
  *   1) eventos informativos 602 (BC CPP) e 605 (FGTS)
@@ -27,9 +28,15 @@
 
 export const DEFAULT_ENCARGO_RATES = Object.freeze({
   inssEmpresa: 20.0, // 1138-01
-  gilrat: 1.0, // 1646-01 (RAT × FAP da empresa; Braga = 1%)
+  gilrat: 1.0, // 1646-01 (fallback; extract usa RAT ajustado por estabelecimento)
   terceiros: 5.8, // 1170+1176+1191+1196+1200
   fgts: 8.0, // FGTS mensal (só no fallback sintético)
+});
+
+const FGTS_DEF = Object.freeze({
+  eventCode: 'ENCARGO_FGTS_FOLHA',
+  eventName: 'FGTS do mês',
+  dctfRef: 'FGTS',
 });
 
 const CPP_DEFS = Object.freeze([
@@ -80,14 +87,15 @@ function pushEncargoRow(encargoRows, data, def, amountCents, sourceReference, so
     amountCents,
     employeeId: data.employeeId != null ? String(data.employeeId) : null,
     employeeName: data.employeeName || '',
-    sourceLineId: `encargo-${def.eventCode}-${data.employeeId}-${data.lotacaoCode}`,
+    sourceLineId: `encargo-${def.eventCode}-${data.employeeId}-${data.lotacaoCode}${data.estCode ? `-${data.estCode}` : ''}`,
   });
 }
 
 /**
  * Encargos a partir das bases oficiais eSocial (extract Fortes).
  *
- * @param {object[]} baseRows — { bcCpCents, fgtsDepoCents, employeeId, lotacaoCode, ... }
+ * @param {object[]} baseRows — { bcCpCents, fgtsDepoCents, estCode, gilratPct, employeeId, lotacaoCode, ... }
+ *   gilratPct (RAT ajustado do estabelecimento) prevalece sobre rates.gilrat.
  * @param {object} [rates]
  * @returns {object[]}
  */
@@ -111,17 +119,25 @@ export function calculateEncargosFromBases(baseRows, rates = DEFAULT_ENCARGO_RAT
       employeeName: row.employeeName || '',
       lotacaoCode,
       lotacaoName: row.lotacaoName || lotacaoCode,
+      estCode: row.estCode ? String(row.estCode) : '',
     };
+    const gilratPct =
+      row.gilratPct != null && row.gilratPct !== '' && Number.isFinite(Number(row.gilratPct))
+        ? Number(row.gilratPct)
+        : null;
+    const rowRates = gilratPct != null ? { ...merged, gilrat: gilratPct } : merged;
+    const estRef = data.estCode ? `; EST: ${data.estCode}` : '';
 
     if (bcCpCents > 0) {
       for (const def of CPP_DEFS) {
-        const amountCents = Math.round(bcCpCents * (merged[def.rateKey] / 100));
+        const pct = rowRates[def.rateKey];
+        const amountCents = Math.round(bcCpCents * (pct / 100));
         pushEncargoRow(
           encargoRows,
           data,
           def,
           amountCents,
-          `ES_CS_CP_Base: ${bcCpCents}; DCTF: ${def.dctfRef}`,
+          `ES_CS_CP_Base: ${bcCpCents}; DCTF: ${def.dctfRef}; ${pct}%${estRef}`,
           'fortes-encargo'
         );
       }
@@ -131,13 +147,9 @@ export function calculateEncargosFromBases(baseRows, rates = DEFAULT_ENCARGO_RAT
       pushEncargoRow(
         encargoRows,
         data,
-        {
-          eventCode: 'ENCARGO_FGTS_FOLHA',
-          eventName: 'FGTS mensal (tipo 11)',
-          dctfRef: 'FGTS-11',
-        },
+        FGTS_DEF,
         fgtsDepoCents,
-        `ES_FGTS_SEGURADO.VALORDEPO: ${fgtsDepoCents}`,
+        `ES_FGTS_SEGURADO.VALORDEPO: ${fgtsDepoCents}${estRef}`,
         'fortes-encargo'
       );
     }
@@ -251,15 +263,11 @@ export function calculateEncargos(rawRows, rates = DEFAULT_ENCARGO_RATES) {
       pushEncargoRow(
         encargoRows,
         data,
-        {
-          eventCode: 'ENCARGO_FGTS_FOLHA',
-          eventName: 'FGTS mensal (tipo 11)',
-          dctfRef: 'FGTS-11',
-        },
+        FGTS_DEF,
         amountCents,
         data.hasInformative
           ? `EFP 605: ${data.fgtsCents}`
-          : `BC-FGTS: ${data.fgtsCents}; DCTF/FGTS: FGTS-11`,
+          : `BC-FGTS: ${data.fgtsCents}`,
         'encargo-calculator'
       );
     }

@@ -172,4 +172,45 @@ describe('encargo-calculator (DCTFWeb / FGTS)', () => {
     expect(bragaVeiculosConfig.encargoRates.gilrat).toBe(1);
     expect(DEFAULT_ENCARGO_RATES.gilrat).toBe(1);
   });
+
+  it('GILRAT por estabelecimento vem do eSocial (gilratPct) e prevalece sobre o config', () => {
+    const rows = calculateEncargosFromBases(
+      [
+        { employeeId: '1', lotacaoName: 'MATRIZ', estCode: '0001', gilratPct: 1, bcCpCents: 100000 },
+        { employeeId: '2', lotacaoName: 'FILIAL', estCode: '0002', gilratPct: 2, bcCpCents: 100000 },
+        { employeeId: '3', lotacaoName: 'SEM EST', bcCpCents: 100000 },
+      ],
+      { ...DEFAULT_ENCARGO_RATES, gilrat: 1 }
+    );
+    const rat = (emp) => rows.find((r) => r.eventCode === 'ENCARGO_RAT_FAP' && r.employeeId === emp);
+    expect(rat('1').amountCents).toBe(1000);
+    expect(rat('2').amountCents).toBe(2000);
+    expect(rat('3').amountCents).toBe(1000); // fallback do config
+    expect(rat('2').sourceReference).toContain('EST: 0002');
+  });
+
+  it('gilratPct vazio/nulo não zera o GILRAT', () => {
+    const rows = calculateEncargosFromBases(
+      [{ employeeId: '1', lotacaoName: 'X', gilratPct: '', bcCpCents: 100000 }],
+      DEFAULT_ENCARGO_RATES
+    );
+    expect(rows.find((r) => r.eventCode === 'ENCARGO_RAT_FAP').amountCents).toBe(1000);
+  });
+
+  it('mesmo empregado em dois estabelecimentos gera linhas separadas', () => {
+    const rows = calculateEncargosFromBases([
+      { employeeId: '1', lotacaoName: 'X', estCode: '0001', gilratPct: 1, fgtsDepoCents: 500 },
+      { employeeId: '1', lotacaoName: 'X', estCode: '0002', gilratPct: 2, fgtsDepoCents: 700 },
+    ]);
+    const fgts = rows.filter((r) => r.eventCode === 'ENCARGO_FGTS_FOLHA');
+    expect(fgts.map((r) => r.amountCents)).toEqual([500, 700]);
+    expect(new Set(fgts.map((r) => r.sourceLineId)).size).toBe(2);
+  });
+
+  it('provisionRates.inssPatronal da Braga = soma dos encargos patronais', () => {
+    const { encargoRates, provisionRates } = bragaVeiculosConfig;
+    expect(provisionRates.inssPatronal).toBeCloseTo(
+      encargoRates.inssEmpresa + encargoRates.gilrat + encargoRates.terceiros, 10
+    );
+  });
 });

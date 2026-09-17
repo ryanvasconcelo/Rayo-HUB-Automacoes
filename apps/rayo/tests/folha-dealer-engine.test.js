@@ -580,5 +580,56 @@ describe('Folha Dealer engine', () => {
         // Informativo ignorado
         expect(result.entries.some((e) => e.eventCode === '600')).toBe(false);
     });
-});
 
+    it('emite warning quando PROV_/ENCARGO_ vêm do fallback sintético', () => {
+        const synthetic = (eventCode, sourceOrigin) => ({
+            sourceSystem: 'fortes',
+            sourceAdapter: 'provision-calculator',
+            sourceOrigin,
+            companyId: 'braga-veiculos',
+            companyName: '',
+            competence: '2026-07',
+            lotacaoCode: 'AGENDAMENTOS',
+            lotacaoName: 'AGENDAMENTOS',
+            eventCode,
+            amountCents: 100,
+        });
+        const run = runEngine({
+            competence: '2026-07',
+            sourceRows: [
+                ...baseRows(),
+                synthetic('PROV_13', 'provision-derived'),
+                synthetic('ENCARGO_FGTS_FOLHA', 'encargo-derived'),
+            ],
+        });
+        const codes = run.issues.filter((i) => i.severity === 'warning').map((i) => i.code);
+        expect(codes).toContain('SYNTHETIC_PROVISION');
+        expect(codes).toContain('SYNTHETIC_ENCARGO');
+    });
+
+    it('não emite warning de origem quando não há linhas sintéticas', () => {
+        const codes = runEngine().issues.map((i) => i.code);
+        expect(codes).not.toContain('SYNTHETIC_PROVISION');
+        expect(codes).not.toContain('SYNTHETIC_ENCARGO');
+    });
+
+    it('LIQUIDO_FOLHA negativo bloqueia em vez de virar positivo', () => {
+        const [row] = normalizePayrollRows([{ eventCode: 'LIQUIDO_FOLHA', amountCents: -500, lotacaoCode: 'TI' }]);
+        expect(row.amountCents).toBe(-500);
+
+        const run = runEngine({
+            sourceRows: [{ ...baseRows()[0], eventCode: 'LIQUIDO_FOLHA', amountCents: -500 }],
+        });
+        expect(run.status).toBe('blocked');
+        expect(run.issues.map((i) => i.code)).toContain('NEGATIVE_VALUE_WITHOUT_POLICY');
+    });
+
+    it('normalizePayrollRows não sobrescreve lotação já informada com o mapa estático', () => {
+        const [withLot, withoutLot] = normalizePayrollRows([
+            { employeeId: '000046', lotacaoCode: 'FINANCEIRO', eventCode: '011', amountCents: 1 },
+            { employeeId: '000046', lotacaoCode: '', eventCode: '011', amountCents: 1 },
+        ]);
+        expect(withLot.lotacaoCode).toBe('FINANCEIRO');
+        expect(withoutLot.lotacaoCode).toBe('RECURSOS HUMANOS');
+    });
+});

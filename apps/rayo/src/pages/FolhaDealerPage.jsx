@@ -92,6 +92,14 @@ export default function FolhaDealerPage() {
       return { debit, credit, difference: Math.abs(debit - credit) };
    }, [run]);
 
+   // Avisos de origem (PROV_/ENCARGO_ por alíquota em vez de Fortes/eSocial)
+   const sourceWarnings = useMemo(
+      () => (run?.issues || [])
+         .filter(i => i.code === 'SYNTHETIC_PROVISION' || i.code === 'SYNTHETIC_ENCARGO')
+         .map(i => i.message),
+      [run]
+   );
+
    const gridRows = useMemo(() => {
       if (!run || !run.consolidatedItems) return [];
       let rows = [];
@@ -484,12 +492,12 @@ export default function FolhaDealerPage() {
 
                         {/* MAIN CONTENT AREA */}
                         <Motion.div className="flex-1 bg-white border border-slate-200/80 rounded-[2rem] shadow-sm overflow-hidden flex flex-col min-h-0">
-                           {warning && (
-                              <div className="mx-6 mt-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                           {[warning, ...sourceWarnings].filter(Boolean).map((text) => (
+                              <div key={text} className="mx-6 mt-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                                  <AlertTriangle size={16} className="shrink-0 mt-0.5" />
-                                 <p>{warning}</p>
+                                 <p>{text}</p>
                               </div>
-                           )}
+                           ))}
                            {activeTab === 'lancamentos' ? (
                               <div className="flex-1 relative overflow-x-auto">
                                  {filteredRows.length > 0 ? (

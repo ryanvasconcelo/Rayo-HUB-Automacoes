@@ -58,13 +58,11 @@ function normalizeCompetence(competence) {
   return competence || '';
 }
 
-function resolveLotacao(raw) {
-  if (raw.employeeId && employeeLotacaoMap[raw.employeeId]) {
-    return {
-      lotacaoCode: employeeLotacaoMap[raw.employeeId],
-      lotacaoName: employeeLotacaoMap[raw.employeeId],
-    };
-  }
+/**
+ * Lotação: Fortes (SEP/LOT) é a fonte de verdade. O mapa estático por empregado
+ * só entra quando a linha chega sem lotação.
+ */
+export function resolveLotacao(raw) {
   const code = raw.lotacaoCode != null ? String(raw.lotacaoCode) : '';
   const name = raw.lotacaoName ? String(raw.lotacaoName) : '';
   if (code) {
@@ -72,6 +70,10 @@ function resolveLotacao(raw) {
   }
   if (name) {
     return { lotacaoCode: name, lotacaoName: name };
+  }
+  const mapped = raw.employeeId ? employeeLotacaoMap[raw.employeeId] : null;
+  if (mapped) {
+    return { lotacaoCode: mapped, lotacaoName: mapped };
   }
   return { lotacaoCode: '', lotacaoName: '' };
 }
@@ -114,7 +116,7 @@ function toPayrollSourceRow(raw, index, { preserveSign = false } = {}) {
  * @param {object} [options]
  * @param {object[]} [options.fortesProvisions] — PROV_* já calculados no Fortes (PRD/PRF)
  * @param {object[]} [options.fortesEncargoBases] — bases eSocial (ES_CS_CP_Base / ES_FGTS_SEGURADO)
- * @param {object|null} provisionRates — se fortesProvisions vier preenchido, o sintético é desligado
+ * @param {object|null} provisionRates — fallback sintético usado só quando fortesProvisions vier vazio
  * @param {object|null} encargoRates — alíquotas DCTF; bases eSocial preferidas quando disponíveis
  */
 export function normalizeFortesQueryRows(rawRows, options = {}, provisionRates = null, encargoRates = null) {
@@ -152,13 +154,15 @@ export function normalizeFortesQueryRows(rawRows, options = {}, provisionRates =
       };
     }
 
-    const amt = Math.abs(raw.amountCents || 0);
+    const amt = Math.abs(Number(raw.amountCents) || 0);
     if (type === 'PROVENTO') liquidoPerLotacao[code].amount += amt;
     if (type === 'DESCONTO') liquidoPerLotacao[code].amount -= amt;
   }
 
+  // Líquido com sinal: negativo (descontos > proventos) segue para o journal,
+  // que bloqueia por NEGATIVE_VALUE_WITHOUT_POLICY em vez de sumir em silêncio.
   for (const [code, data] of Object.entries(liquidoPerLotacao)) {
-    if (data.amount > 0) {
+    if (data.amount !== 0) {
       const comp = normalizeCompetence(data.competence);
       normalized.push({
         sourceSystem: 'fortes',
@@ -183,7 +187,11 @@ export function normalizeFortesQueryRows(rawRows, options = {}, provisionRates =
     }
   }
 
-  // Provisões: Fortes manda (PRD/PRF). Sem Fortes → fallback sintético taxa×BC-FGTS.
+  // Fallbacks sintéticos usam a mesma lotação resolvida da folha
+  const rowsWithLotacao = rawRows.map((raw) => ({ ...raw, ...resolveLotacao(raw) }));
+
+  // Provisões: Fortes manda (PRD/PRF). Mês sem PRD/PRF → fallback sintético
+  // (sourceOrigin provision-derived; o motor emite SYNTHETIC_PROVISION).
   if (fortesProvisions.length > 0) {
     for (let i = 0; i < fortesProvisions.length; i++) {
       const raw = { ...fortesProvisions[i], sourceOrigin: FORTES_PROVISION_ORIGIN };
@@ -195,7 +203,7 @@ export function normalizeFortesQueryRows(rawRows, options = {}, provisionRates =
       );
     }
   } else if (provisionRates) {
-    const provisionRows = calculateProvisions(rawRows, provisionRates);
+    const provisionRows = calculateProvisions(rowsWithLotacao, provisionRates);
     normalized.push(...provisionRows);
   }
 
@@ -207,7 +215,7 @@ export function normalizeFortesQueryRows(rawRows, options = {}, provisionRates =
     );
     normalized.push(...encargoRows);
   } else if (provisionRates || encargoRates || fortesProvisions.length > 0) {
-    const encargoRows = calculateEncargos(rawRows, encargoRates || DEFAULT_ENCARGO_RATES);
+    const encargoRows = calculateEncargos(rowsWithLotacao, encargoRates || DEFAULT_ENCARGO_RATES);
     normalized.push(...encargoRows);
   }
 

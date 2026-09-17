@@ -44,6 +44,8 @@ export const ValidationCodes = Object.freeze({
   MISSING_DEALER_LOT_ACCOUNT_CODE: 'MISSING_DEALER_LOT_ACCOUNT_CODE',
   INVALID_DEALER_ACCOUNT_FORMAT:   'INVALID_DEALER_ACCOUNT_FORMAT',
   INVALID_DEALER_LINE_LENGTH:      'INVALID_DEALER_LINE_LENGTH',
+  SYNTHETIC_PROVISION:             'SYNTHETIC_PROVISION',
+  SYNTHETIC_ENCARGO:               'SYNTHETIC_ENCARGO',
 });
 
 // ---------------------------------------------------------------------------

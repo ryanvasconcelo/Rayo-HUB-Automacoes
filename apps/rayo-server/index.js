@@ -196,6 +196,7 @@ app.post('/api/fortes/extract', async (req, res) => {
             data: extracted.payroll,
             provisions: extracted.provisions,
             encargoBases: extracted.encargoBases,
+            encargoCoverage: extracted.encargoCoverage,
         });
     } catch (err) {
         console.error('[/api/fortes/extract] ❌ Erro:', err);

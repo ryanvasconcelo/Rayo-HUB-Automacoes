@@ -15,6 +15,23 @@ import { mergeCenterMappings } from '../lib/folha-dealer/merge-center-config';
 
 const COMPANY_ID = 'braga-veiculos';
 
+const formatCents = (cents) =>
+  (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+/** Aviso quando parte da base eSocial não casou com empregado da folha mensal. */
+function describeEncargoCoverage(coverage) {
+  if (!coverage) return null;
+  const gaps = [
+    ['BC CPP', coverage.bcCpCents],
+    ['FGTS', coverage.fgtsDepoCents],
+  ].filter(([, c]) => c && c.missing !== 0);
+  if (gaps.length === 0) return null;
+  const detail = gaps
+    .map(([label, c]) => `${label} ${formatCents(c.extracted)} de ${formatCents(c.expected)}`)
+    .join('; ');
+  return `Bases eSocial sem empregado na folha mensal (encargos incompletos): ${detail}.`;
+}
+
 async function resolveRuntimeConfig() {
   let centersWarning = null;
   let stored = null;
@@ -145,15 +162,14 @@ export function useFolhaDealer() {
         encargosBases: Array.isArray(result.encargoBases) ? result.encargoBases.length : 0,
       });
 
-      const hasFortesProvisions = Array.isArray(result.provisions);
-      const hasFortesEncargoBases = Array.isArray(result.encargoBases) && result.encargoBases.length > 0;
+      // PRD/PRF e bases eSocial vazios caem no fallback sintético (o motor emite warning)
       let payrollRows = normalizeFortesQueryRows(
         rawRows,
         {
-          ...(hasFortesProvisions ? { fortesProvisions: result.provisions } : {}),
-          ...(hasFortesEncargoBases ? { fortesEncargoBases: result.encargoBases } : {}),
+          fortesProvisions: Array.isArray(result.provisions) ? result.provisions : [],
+          fortesEncargoBases: Array.isArray(result.encargoBases) ? result.encargoBases : [],
         },
-        hasFortesProvisions ? null : bragaVeiculosConfig.provisionRates,
+        bragaVeiculosConfig.provisionRates,
         bragaVeiculosConfig.encargoRates
       );
 
@@ -167,7 +183,10 @@ export function useFolhaDealer() {
       }
 
       const { config: runtimeConfig, centersWarning } = await resolveRuntimeConfig();
-      runWithConfig(payrollRows, competence, runtimeConfig, centersWarning);
+      const extractWarning = [centersWarning, describeEncargoCoverage(result.encargoCoverage)]
+        .filter(Boolean)
+        .join(' ');
+      runWithConfig(payrollRows, competence, runtimeConfig, extractWarning || null);
     } catch (err) {
       setError(err.message);
     }
