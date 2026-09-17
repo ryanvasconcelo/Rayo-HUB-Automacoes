@@ -10,6 +10,13 @@
 
 // Re-exports públicos
 export { bragaVeiculosConfig } from './braga-veiculos.config.js';
+export { bragaMotosConfig } from './braga-motos.config.js';
+export {
+  FOLHA_DEALER_COMPANIES,
+  DEFAULT_COMPANY_ID,
+  getCompanyConfig,
+  getCompanyConfigByFortesCode,
+} from './company-configs.js';
 export { buildBragaRows, buildBragaRowsFortes } from './braga-veiculos.fixtures.js';
 export { normalizePayrollRows } from './fortes-normalizer.js';
 export { consolidatePayrollRows } from './payroll-consolidator.js';

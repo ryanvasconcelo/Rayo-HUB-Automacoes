@@ -3,6 +3,7 @@ import { TableVirtuoso } from 'react-virtuoso';
 import { AnimatePresence, motion as Motion } from 'framer-motion';
 import { useFolhaDealer } from '../hooks/useFolhaDealer';
 import { useFolhaDealerCenters } from '../hooks/useFolhaDealerCenters';
+import { FOLHA_DEALER_COMPANIES } from '../lib/folha-dealer/company-configs';
 import { getLastDayOfCompetence } from '../lib/folha-dealer/date-helpers';
 import { generateProvisionsReport } from '../lib/folha-dealer/pdf-report-generator';
 import FolhaDealerCadastrosPanel, { QuickLotacaoMappingModal } from '../components/FolhaDealerCadastrosPanel';
@@ -23,13 +24,28 @@ export default function FolhaDealerPage() {
       run, error, warning, metadata, summary,
       extractFromDatabase, reprocessLastRun, approveRun, downloadExcel, downloadTxt
    } = useFolhaDealer();
-   const { stored: centersStored, upsertLotacao } = useFolhaDealerCenters('braga-veiculos');
-
-   const [fortesCompanyId, setFortesCompanyId] = useState('9274');
+   const [fortesCompanyId, setFortesCompanyId] = useState(FOLHA_DEALER_COMPANIES[0].fortesCompanyCode);
    const [fortesCompetence, setFortesCompetence] = useState('04-2026');
 
-   const [dealerCompany, setDealerCompany] = useState('01');
-   const [dealerBranch, setDealerBranch] = useState('001');
+   const selectedCompany = useMemo(
+      () => FOLHA_DEALER_COMPANIES.find(c => c.fortesCompanyCode === fortesCompanyId) ?? FOLHA_DEALER_COMPANIES[0],
+      [fortesCompanyId]
+   );
+
+   const { stored: centersStored, upsertLotacao } = useFolhaDealerCenters(selectedCompany.companyId);
+
+   const [dealerCompany, setDealerCompany] = useState(selectedCompany.dealerCompanyField);
+   const [dealerBranch, setDealerBranch] = useState(selectedCompany.dealerBranch);
+
+   // Empresa/filial Dealer acompanham a empresa escolhida, mas seguem editáveis.
+   const handleCompanyChange = (nextFortesCode) => {
+      const next = FOLHA_DEALER_COMPANIES.find(c => c.fortesCompanyCode === nextFortesCode);
+      setFortesCompanyId(nextFortesCode);
+      if (next) {
+         setDealerCompany(next.dealerCompanyField);
+         setDealerBranch(next.dealerBranch);
+      }
+   };
 
    const [initialDay, setInitialDay] = useState('01');
    const [finalDay, setFinalDay] = useState('30');
@@ -367,7 +383,7 @@ export default function FolhaDealerPage() {
                         exit={{ opacity: 0 }}
                         className="bg-white border border-slate-200/80 rounded-[2rem] shadow-sm overflow-hidden min-h-[calc(100dvh-180px)] flex flex-col"
                      >
-                        <FolhaDealerCadastrosPanel companyId="braga-veiculos" />
+                        <FolhaDealerCadastrosPanel companyId={selectedCompany.companyId} />
                      </Motion.div>
                   ) : !run ? (
                      <Motion.div
@@ -393,8 +409,12 @@ export default function FolhaDealerPage() {
                               <div className="grid grid-cols-2 gap-4">
                                  <div className="space-y-1.5">
                                     <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Cód. Empresa</label>
-                                    <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 outline-none transition-all" value={fortesCompanyId} onChange={e => setFortesCompanyId(e.target.value)}>
-                                       <option value="9274">Braga Veículos - 9274</option>
+                                    <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 outline-none transition-all" value={fortesCompanyId} onChange={e => handleCompanyChange(e.target.value)}>
+                                       {FOLHA_DEALER_COMPANIES.map(c => (
+                                          <option key={c.companyId} value={c.fortesCompanyCode}>
+                                             {c.companyName} - {c.fortesCompanyCode}
+                                          </option>
+                                       ))}
                                     </select>
                                  </div>
                                  <div className="space-y-1.5">
