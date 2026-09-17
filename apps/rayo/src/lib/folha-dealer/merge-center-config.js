@@ -46,11 +46,13 @@ export function seedPayloadFromCenterMappings(companyId, centerMappings = [], ac
   }
 
   for (const m of accountMappings) {
-    accountMap.set(m.eventCode, {
+    const dc = (m.dc || 'D').toUpperCase();
+    const key = `${m.eventCode}:${dc}`;
+    accountMap.set(key, {
       eventCode: m.eventCode,
       dealerAccountCode: m.dealerAccountCode,
       dealerLotAccountCode: m.dealerLotAccountCode || null,
-      dc: (m.dc || 'D').toUpperCase(),
+      dc,
       description: m.description || '',
       active: m.active !== false,
     });
@@ -159,37 +161,41 @@ export function mergeCenterMappings(seedMappings = [], stored = null, companyId 
  * @returns {object[]} AccountMapping[] para o motor
  */
 export function mergeAccountMappings(seedMappings = [], stored = null, companyId = 'braga-veiculos') {
-  const byEvent = new Map();
+  const byKey = new Map();
 
   for (const m of seedMappings) {
-    byEvent.set(m.eventCode, {
+    const dc = (m.dc || 'D').toUpperCase();
+    const key = `${m.eventCode}:${dc}`;
+    byKey.set(key, {
       companyId: m.companyId || companyId,
       eventCode: m.eventCode,
       dealerAccountCode: m.dealerAccountCode,
       dealerLotAccountCode: m.dealerLotAccountCode || null,
-      dc: (m.dc || 'D').toUpperCase(),
+      dc,
       description: m.description || '',
       active: m.active !== false,
     });
   }
 
   if (!stored) {
-    return [...byEvent.values()];
+    return [...byKey.values()];
   }
 
   const normalized = normalizeCentersPayload(stored, companyId);
 
   for (const m of normalized.accountMappings) {
-    byEvent.set(m.eventCode, {
+    const dc = (m.dc || 'D').toUpperCase();
+    const key = `${m.eventCode}:${dc}`;
+    byKey.set(key, {
       companyId,
       eventCode: m.eventCode,
       dealerAccountCode: m.dealerAccountCode,
       dealerLotAccountCode: m.dealerLotAccountCode || null,
-      dc: m.dc,
+      dc,
       description: m.description,
       active: m.active !== false,
     });
   }
 
-  return [...byEvent.values()];
+  return [...byKey.values()];
 }
