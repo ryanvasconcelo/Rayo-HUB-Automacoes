@@ -134,7 +134,10 @@ export function fortesApiPlugin() {
           const competence = payload.competence || '2026-04';
 
           console.log(`[API] Extract Fortes. Empresa: ${companyId}, Competência: ${competence}`);
-          const extracted = await extractFortesPayroll({ companyId, competence });
+          const extractorPath = path.resolve(__dirname, '../rayo-server/fortes-extractor.js');
+          delete require.cache[require.resolve(extractorPath)];
+          const { extractFortesPayroll: dynamicExtract } = require(extractorPath);
+          const extracted = await dynamicExtract({ companyId, competence });
 
           sendJson(res, 200, buildFortesExtractResponse(extracted));
         } catch (err) {

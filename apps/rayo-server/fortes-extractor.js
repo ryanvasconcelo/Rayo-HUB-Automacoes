@@ -232,13 +232,14 @@ const ENCARGO_BASE_QUERY = `
 DECLARE @EmpresaCodigo VARCHAR(4) = @Company;
 DECLARE @AnoMes VARCHAR(6) = @AnoMesParam;
 
-;WITH empLot AS (
+;WITH folhaLot AS (
     SELECT
         EPG.EMP_Codigo AS companyId,
         EMP.Nome AS companyName,
         EPG.Codigo AS employeeId,
         EPG.Nome AS employeeName,
-        LTRIM(RTRIM(EPG.MatriculaESocial)) AS esMat,
+        LTRIM(RTRIM(ISNULL(EPG.MatriculaESocial, ''))) AS esMat,
+        LTRIM(RTRIM(ISNULL(EPG.CPF, ''))) AS cpf,
         ISNULL(MAX(SEP.LOT_Codigo), '') AS lotacaoCode,
         ISNULL(MAX(LOT.Nome), '') AS lotacaoName
     FROM EFO (NOLOCK)
@@ -248,12 +249,10 @@ DECLARE @AnoMes VARCHAR(6) = @AnoMesParam;
     INNER JOIN FOL (NOLOCK)
         ON EFO.EMP_Codigo = FOL.EMP_Codigo
        AND EFO.FOL_Seq = FOL.Seq
-       AND FOL.Folha = 2
     INNER JOIN FPG (NOLOCK)
         ON FOL.EMP_Codigo = FPG.EMP_Codigo
        AND FOL.Seq = FPG.FOL_Seq
        AND FPG.AnoMes = @AnoMes
-       AND FPG.Tipo IN (1, 4)
     LEFT JOIN EMP (NOLOCK)
         ON EPG.EMP_Codigo = EMP.Codigo
     LEFT JOIN SEP (NOLOCK)
@@ -269,32 +268,60 @@ DECLARE @AnoMes VARCHAR(6) = @AnoMesParam;
         EMP.Nome,
         EPG.Codigo,
         EPG.Nome,
-        EPG.MatriculaESocial
+        EPG.MatriculaESocial,
+        EPG.CPF
+),
+cadastroLot AS (
+    SELECT
+        EPG.EMP_Codigo AS companyId,
+        EMP.Nome AS companyName,
+        EPG.Codigo AS employeeId,
+        EPG.Nome AS employeeName,
+        LTRIM(RTRIM(ISNULL(EPG.MatriculaESocial, ''))) AS esMat,
+        LTRIM(RTRIM(ISNULL(EPG.CPF, ''))) AS cpf,
+        ISNULL(LOT.Codigo, '') AS lotacaoCode,
+        ISNULL(LOT.Nome, '') AS lotacaoName,
+        ROW_NUMBER() OVER (PARTITION BY EPG.Codigo ORDER BY SEP.Data DESC) AS rn
+    FROM EPG (NOLOCK)
+    LEFT JOIN EMP (NOLOCK)
+        ON EPG.EMP_Codigo = EMP.Codigo
+    LEFT JOIN SEP (NOLOCK)
+        ON EPG.EMP_Codigo = SEP.EMP_Codigo
+       AND EPG.Codigo = SEP.EPG_Codigo
+    LEFT JOIN LOT (NOLOCK)
+        ON SEP.EMP_Codigo = LOT.EMP_Codigo
+       AND SEP.LOT_Codigo = LOT.Codigo
+    WHERE EPG.EMP_Codigo = @EmpresaCodigo
+),
+cadastroLotLatest AS (
+    SELECT * FROM cadastroLot WHERE rn = 1
 ),
 cp AS (
     SELECT
-        LTRIM(RTRIM(Matricula)) AS esMat,
+        LTRIM(RTRIM(ISNULL(Matricula, ''))) AS esMat,
+        LTRIM(RTRIM(ISNULL(CPF, ''))) AS cpf,
         EST_Codigo AS estCode,
         SUM(TRY_CAST(Valor AS FLOAT)) AS bcCp
     FROM ES_CS_CP_Base (NOLOCK)
     WHERE EMP_Codigo = @EmpresaCodigo
       AND PeriodoApuracao = @AnoMes
       AND TipoValor = 11
-    GROUP BY LTRIM(RTRIM(Matricula)), EST_Codigo
+    GROUP BY LTRIM(RTRIM(ISNULL(Matricula, ''))), LTRIM(RTRIM(ISNULL(CPF, ''))), EST_Codigo
 ),
 fg AS (
     SELECT
-        LTRIM(RTRIM(MATRICULA)) AS esMat,
+        LTRIM(RTRIM(ISNULL(MATRICULA, ''))) AS esMat,
         EST_CODIGO AS estCode,
         SUM(TRY_CAST(VALORDEPO AS FLOAT)) AS fgtsDepo
     FROM ES_FGTS_SEGURADO (NOLOCK)
     WHERE EMP_CODIGO = @EmpresaCodigo
       AND PERIODOAPURACAO = @AnoMes
-    GROUP BY LTRIM(RTRIM(MATRICULA)), EST_CODIGO
+    GROUP BY LTRIM(RTRIM(ISNULL(MATRICULA, ''))), EST_CODIGO
 ),
 bases AS (
     SELECT
-        COALESCE(cp.esMat, fg.esMat) AS esMat,
+        COALESCE(NULLIF(cp.esMat, ''), fg.esMat, '') AS esMat,
+        cp.cpf AS cpf,
         COALESCE(cp.estCode, fg.estCode) AS estCode,
         ISNULL(cp.bcCp, 0) AS bcCp,
         ISNULL(fg.fgtsDepo, 0) AS fgtsDepo
@@ -313,27 +340,34 @@ rat AS (
     GROUP BY EST_Codigo
 )
 SELECT
-    COALESCE(el.companyId, @EmpresaCodigo) AS companyId,
-    el.companyName,
+    COALESCE(fl.companyId, clM.companyId, clC.companyId, @EmpresaCodigo) AS companyId,
+    COALESCE(fl.companyName, clM.companyName, clC.companyName) AS companyName,
     @AnoMes AS competence,
-    el.employeeId,
-    el.employeeName,
+    COALESCE(fl.employeeId, clM.employeeId, clC.employeeId) AS employeeId,
+    COALESCE(fl.employeeName, clM.employeeName, clC.employeeName) AS employeeName,
     b.esMat,
-    CASE WHEN el.employeeId IS NULL THEN 'unmapped' ELSE 'mapped' END AS mappingStatus,
-    ISNULL(el.lotacaoCode, '') AS lotacaoCode,
-    ISNULL(el.lotacaoName, '') AS lotacaoName,
+    CASE 
+        WHEN COALESCE(fl.employeeId, clM.employeeId, clC.employeeId) IS NULL THEN 'unmapped' 
+        ELSE 'mapped' 
+    END AS mappingStatus,
+    COALESCE(NULLIF(fl.lotacaoCode, ''), clM.lotacaoCode, clC.lotacaoCode, '') AS lotacaoCode,
+    COALESCE(NULLIF(fl.lotacaoName, ''), clM.lotacaoName, clC.lotacaoName, '') AS lotacaoName,
     b.estCode,
     rat.gilratPct,
     CAST(ROUND(b.bcCp * 100, 0) AS INT) AS bcCpCents,
     CAST(ROUND(b.fgtsDepo * 100, 0) AS INT) AS fgtsDepoCents
 FROM bases b
-LEFT JOIN empLot el
-    ON el.esMat = b.esMat
+LEFT JOIN folhaLot fl
+    ON b.esMat <> '' AND fl.esMat = b.esMat
+LEFT JOIN cadastroLotLatest clM
+    ON b.esMat <> '' AND clM.esMat = b.esMat
+LEFT JOIN cadastroLotLatest clC
+    ON (b.esMat = '' OR b.esMat IS NULL) AND b.cpf IS NOT NULL AND b.cpf <> '' AND clC.cpf = b.cpf
 LEFT JOIN rat
     ON rat.estCode = b.estCode
 WHERE b.bcCp > 0
    OR b.fgtsDepo > 0
-ORDER BY ISNULL(el.lotacaoName, ''), ISNULL(el.employeeName, ''), b.estCode;
+ORDER BY mappingStatus DESC, ISNULL(fl.lotacaoName, ''), b.estCode;
 `;
 
 /**
