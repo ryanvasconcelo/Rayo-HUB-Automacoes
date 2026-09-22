@@ -34,7 +34,7 @@ describe('bragaMotosConfig — empresa', () => {
     // 01/001 é a Braga Veículos. Um lote da Braga Motos com esses códigos é
     // lançado na empresa errada dentro do Dealer.
     expect(bragaMotosConfig.company.dealerCompanyField).toBe('07');
-    expect(bragaMotosConfig.company.dealerBranch).toBe('165');
+    expect(bragaMotosConfig.company.dealerBranch).toBe('007');
     expect(bragaMotosConfig.company.dealerCompanyField).not.toBe(bragaVeiculosConfig.company.dealerCompanyField);
     expect(bragaMotosConfig.company.dealerBranch).not.toBe(bragaVeiculosConfig.company.dealerBranch);
   });

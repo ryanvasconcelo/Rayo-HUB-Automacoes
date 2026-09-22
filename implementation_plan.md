@@ -117,6 +117,6 @@ Export do TXT (08/2026): **1.970 linhas**, todas com 483 caracteres, nenhuma rep
 
 **Manual — falta fazer**
 
-1. ~~Confirmar Empresa/Filial Dealer da Braga Motos~~ — confirmado: `07`/`165` (era `01`/`001`, os mesmos da Braga Veículos, e teria lançado o lote na empresa errada no Dealer). Falta importar o TXT no Dealer pra validar.
+1. ~~Confirmar Empresa/Filial Dealer da Braga Motos~~ — confirmado: `07`/`007` (era `01`/`001`, os mesmos da Braga Veículos, e teria lançado o lote na empresa errada no Dealer). Falta importar o TXT no Dealer pra validar.
 2. Revisar com o cliente as lotações marcadas `INFERIDO — confirmar` e `SEM CORRESPONDÊNCIA`.
 3. Conferir o lote de uma competência com o relatório de provisão do RH (04, 05 e 06/2026 têm PRD/PRF no Fortes; 07 e 08 caem no fallback sintético e o motor avisa).
