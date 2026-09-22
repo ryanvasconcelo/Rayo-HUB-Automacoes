@@ -46,7 +46,6 @@ Fontes usadas: `Mapeamento_CC_Provisao_x_Dealer_BRAGA_MOTOS.xlsx` (abas `Mapeame
 
 | Item | Situação |
 |---|---|
-| `dealerCompanyField` / `dealerBranch` | Não constam no xlsx nem no Fortes. O config usa `01` / `001` (mesmos da Braga Veículos) e os campos seguem **editáveis na tela** antes de exportar o TXT. |
 | 29 lotações fora do xlsx (`039`, `046`–`073`, `999`) | Mapeadas pelas mesmas regras do xlsx (localidade > marca > função), marcadas `INFERIDO — confirmar` no config. |
 | 9 lotações que o próprio xlsx marcou `[SEM CORRESPONDÊNCIA]` | Mantido o destino sugerido pelo xlsx, marcado `xlsx: SEM CORRESPONDÊNCIA — confirmar`. |
 | Eventos sem equivalente na Braga Veículos (`121`, `300`, `979`) | Conta atribuída por analogia, marcada `confirmar` no config. |
@@ -118,6 +117,6 @@ Export do TXT (08/2026): **1.970 linhas**, todas com 483 caracteres, nenhuma rep
 
 **Manual — falta fazer**
 
-1. Confirmar Empresa/Filial Dealer da Braga Motos e importar o TXT no Dealer.
+1. ~~Confirmar Empresa/Filial Dealer da Braga Motos~~ — confirmado: `07`/`165` (era `01`/`001`, os mesmos da Braga Veículos, e teria lançado o lote na empresa errada no Dealer). Falta importar o TXT no Dealer pra validar.
 2. Revisar com o cliente as lotações marcadas `INFERIDO — confirmar` e `SEM CORRESPONDÊNCIA`.
 3. Conferir o lote de uma competência com o relatório de provisão do RH (04, 05 e 06/2026 têm PRD/PRF no Fortes; 07 e 08 caem no fallback sintético e o motor avisa).

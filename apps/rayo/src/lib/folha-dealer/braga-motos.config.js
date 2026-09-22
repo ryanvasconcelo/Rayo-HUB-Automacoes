@@ -21,10 +21,11 @@ const company = {
   companyName: 'BRAGA MOTOS LTDA',
   cnpj: '05.216.530/0001-95',
   fortesCompanyCode: '9277',
-  // Empresa/filial no Dealer ainda não confirmadas pelo cliente — o usuário pode
-  // ajustar os campos na tela antes de exportar o TXT.
-  dealerCompanyField: '01',
-  dealerBranch: '001',
+  // Empresa/filial no Dealer confirmadas pelo cliente: 07165 = empresa 07 +
+  // filial 165. Antes usava 01/001 (os mesmos códigos da Braga Veículos), o
+  // que fazia o lote da Braga Motos ser lançado na empresa errada no Dealer.
+  dealerCompanyField: '07',
+  dealerBranch: '165',
 };
 
 // ---------------------------------------------------------------------------

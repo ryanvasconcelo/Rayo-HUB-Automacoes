@@ -29,6 +29,15 @@ describe('bragaMotosConfig — empresa', () => {
     expect(bragaMotosConfig.encargoRates.gilrat).toBe(1.5);
     expect(bragaMotosConfig.provisionRates.inssPatronal).toBeCloseTo(27.3, 5);
   });
+
+  it('usa empresa/filial Dealer próprias (07/165), não as da Braga Veículos', () => {
+    // 01/001 é a Braga Veículos. Um lote da Braga Motos com esses códigos é
+    // lançado na empresa errada dentro do Dealer.
+    expect(bragaMotosConfig.company.dealerCompanyField).toBe('07');
+    expect(bragaMotosConfig.company.dealerBranch).toBe('165');
+    expect(bragaMotosConfig.company.dealerCompanyField).not.toBe(bragaVeiculosConfig.company.dealerCompanyField);
+    expect(bragaMotosConfig.company.dealerBranch).not.toBe(bragaVeiculosConfig.company.dealerBranch);
+  });
 });
 
 describe('bragaMotosConfig — de-para de centros', () => {
