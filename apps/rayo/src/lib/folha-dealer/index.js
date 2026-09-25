@@ -42,6 +42,9 @@ export {
   EVENT_100_REQUIRED_ACCOUNT,
   ValidationCodes,
   buildHistory,
+  PAYROLL_TYPES,
+  DEFAULT_PAYROLL_TYPE,
+  resolvePayrollType,
   accountClass,
   accountRequiresCenter,
 } from './contracts.js';
