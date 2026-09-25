@@ -20,4 +20,16 @@ describe('Fortes API do Vite', () => {
       encargoCoverage: { bcCpCents: { expected: 1000, extracted: 1000, missing: 0 } },
     }));
   });
+
+  it('repassa férias, rescisão e complementar na resposta', () => {
+    const response = buildFortesExtractResponse({
+      payroll: [],
+      extraPayroll: [{ payrollType: 'RESCISAO', eventCode: '200' }],
+    });
+    expect(response.extraPayroll).toEqual([{ payrollType: 'RESCISAO', eventCode: '200' }]);
+  });
+
+  it('sem férias/rescisão/complementar, responde lista vazia', () => {
+    expect(buildFortesExtractResponse({ payroll: [] }).extraPayroll).toEqual([]);
+  });
 });
