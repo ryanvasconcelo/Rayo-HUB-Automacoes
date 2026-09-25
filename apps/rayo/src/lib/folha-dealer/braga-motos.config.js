@@ -344,6 +344,44 @@ const eventAccountMappings = [
   { eventCode: '979', dealerAccountCode: '6.1.1.01.002', dc: 'C', description: 'Desconto Compra Interna' }, // sem equivalente na Braga Veículos — confirmar
   { eventCode: '983', dealerAccountCode: '1.1.4.01.004', dc: 'C', description: 'Empréstimo' },
   { eventCode: '988', dealerAccountCode: '6.1.1.01.002', dc: 'C', description: 'Atrasos' },
+
+  // ---- FÉRIAS (folha de férias, Fortes Folha 4) ----
+  // Proventos baixam a provisão de férias que o Rayo já constitui todo mês.
+  { eventCode: '110', dealerAccountCode: '2.1.1.03.001', dc: 'D', description: 'Remuneração de Férias' },
+  { eventCode: '111', dealerAccountCode: '2.1.1.03.001', dc: 'D', description: '1/3 de Férias' },
+  { eventCode: '113', dealerAccountCode: '2.1.1.03.001', dc: 'D', description: 'Abono Pecuniário' },
+  { eventCode: '950', dealerAccountCode: '2.1.1.03.001', dc: 'D', description: '1/3 de Abono Pecuniário' },
+  { eventCode: '301', dealerAccountCode: '2.1.1.03.001', dc: 'C', description: 'Provisão Cred. Trab. - Desconto (contrapartida do evento 100)' },
+  { eventCode: '344', dealerAccountCode: '2.1.1.02.006', dc: 'C', description: 'Pensão Alimentícia - Férias' },
+
+  // ---- RESCISÃO (Fortes Folha 10) ----
+  { eventCode: '025', dealerAccountCode: '2.1.1.02.001', dc: 'D', description: 'Salário-Família Retroativo' }, // compensa com INSS a recolher
+  { eventCode: '105', dealerAccountCode: '6.1.1.01.003', dc: 'D', description: 'Prêmio Emplacamento Mês Anterior' },
+  { eventCode: '160', dealerAccountCode: '2.1.1.03.004', dc: 'D', description: '13º Salário' },
+  { eventCode: '200', dealerAccountCode: '6.1.1.01.004', dc: 'D', description: 'Aviso Prévio Indenizado' },
+  { eventCode: '201', dealerAccountCode: '6.1.1.01.004', dc: 'D', description: 'Rescisão Antes do Prazo Determinado' },
+  { eventCode: '203', dealerAccountCode: '2.1.1.03.001', dc: 'D', description: 'Férias Vencidas' },
+  { eventCode: '205', dealerAccountCode: '2.1.1.03.001', dc: 'D', description: 'Férias Proporcionais' },
+  { eventCode: '206', dealerAccountCode: '2.1.1.03.001', dc: 'D', description: 'Férias (Aviso Prévio)' },
+  { eventCode: '211', dealerAccountCode: '2.1.1.03.001', dc: 'D', description: '1/3 de Férias Vencidas' },
+  { eventCode: '212', dealerAccountCode: '2.1.1.03.001', dc: 'D', description: '1/3 de Férias Proporcionais' },
+  { eventCode: '208', dealerAccountCode: '2.1.1.03.004', dc: 'D', description: '13º Salário (Rescisão)' },
+  { eventCode: '209', dealerAccountCode: '2.1.1.03.004', dc: 'D', description: '13º Salário (Aviso Prévio)' },
+  { eventCode: '213', dealerAccountCode: '2.1.1.02.001', dc: 'D', description: 'Sal. Maternidade 13º pago pela empresa' }, // compensa com INSS a recolher
+  { eventCode: '122', dealerAccountCode: '6.1.1.04.006', dc: 'C', description: 'Vale-Transporte - Mês Anterior' },
+  { eventCode: '129', dealerAccountCode: '6.1.1.01.006', dc: 'C', description: 'Débito de Banco de Horas' },
+  { eventCode: '314', dealerAccountCode: '2.1.1.02.001', dc: 'C', description: 'INSS 13º Salário' },
+  { eventCode: '500', dealerAccountCode: '6.1.1.01.002', dc: 'C', description: 'Aviso Prévio (desconto)' },
+  { eventCode: '501', dealerAccountCode: '6.1.1.01.002', dc: 'C', description: 'Rescisão Antes do Prazo Determinado (desconto)' },
+  { eventCode: '502', dealerAccountCode: '2.1.1.02.001', dc: 'C', description: 'INSS (Rescisão)' },
+  { eventCode: '504', dealerAccountCode: '2.1.1.02.001', dc: 'C', description: 'INSS 13º Salário' },
+  { eventCode: '930', dealerAccountCode: '6.1.1.01.006', dc: 'C', description: 'Débito de Banco de Horas' },
+  { eventCode: '971', dealerAccountCode: '6.1.1.04.006', dc: 'C', description: 'Vale-Transporte não utilizado' },
+  { eventCode: '972', dealerAccountCode: '6.1.1.04.003', dc: 'C', description: 'Ifood Benefícios não utilizado' },
+  { eventCode: '980', dealerAccountCode: '6.1.1.04.003', dc: 'C', description: 'Vale-Refeição não utilizado' },
+  { eventCode: '993', dealerAccountCode: '6.1.1.01.002', dc: 'C', description: 'Desconto de Faltas' },
+  { eventCode: '994', dealerAccountCode: '6.1.1.01.002', dc: 'C', description: 'DSR Desconto s/ Faltas' },
+  { eventCode: '995', dealerAccountCode: '6.1.1.04.006', dc: 'C', description: 'Descontos de Vale-Transporte' },
 ];
 
 /**
