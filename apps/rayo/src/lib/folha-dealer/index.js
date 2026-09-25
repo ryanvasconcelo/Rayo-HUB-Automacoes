@@ -57,6 +57,7 @@ export {
 } from './folha-dealer-run-service.js';
 
 export { summarizeValidationIssues } from './validation-summarizer.js';
+export { summarizeByPayrollType } from './payroll-type-summary.js';
 export {
   padCenterCode,
   mergeCenterMappings,

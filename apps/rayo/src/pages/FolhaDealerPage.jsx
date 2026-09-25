@@ -7,6 +7,7 @@ import { FOLHA_DEALER_COMPANIES } from '../lib/folha-dealer/company-configs';
 import { getLastDayOfCompetence } from '../lib/folha-dealer/date-helpers';
 import { generateProvisionsReport } from '../lib/folha-dealer/pdf-report-generator';
 import FolhaDealerCadastrosPanel, { QuickLotacaoMappingModal } from '../components/FolhaDealerCadastrosPanel';
+import FolhaDealerResumoPorTipo from '../components/FolhaDealerResumoPorTipo';
 import { FileSpreadsheet, Check, Download, AlertTriangle, XCircle,
    Upload, Filter, AlertCircle, Info, Search, CornerDownRight,
    Database, RefreshCw, ChevronRight, ChevronDown, AlignJustify, List, Settings2
@@ -824,6 +825,7 @@ export default function FolhaDealerPage() {
                      transition={{ type: "spring", stiffness: 100, damping: 20, delay: 0.2 }}
                      className="w-72 shrink-0 flex flex-col gap-4 sticky top-28"
                   >
+                     <FolhaDealerResumoPorTipo resumo={metadata?.resumoPorTipo} />
                      <div className="bg-white border border-slate-200/80 shadow-sm rounded-[1.5rem] p-6 flex flex-col gap-5">
                         <h3 className="font-bold text-slate-900 flex items-center gap-2">
                            <Database size={16} className="text-slate-400" />

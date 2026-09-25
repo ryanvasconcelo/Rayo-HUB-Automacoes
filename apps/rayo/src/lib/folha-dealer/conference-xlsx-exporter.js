@@ -1,5 +1,8 @@
 import * as XLSX from 'xlsx';
-import { BATCH_TYPE, buildHistory } from './contracts.js';
+import { BATCH_TYPE, buildHistory, PAYROLL_TYPES, resolvePayrollType } from './contracts.js';
+import { summarizeByPayrollType } from './payroll-type-summary.js';
+
+const payrollTypeLabel = (payrollType) => PAYROLL_TYPES[resolvePayrollType(payrollType)].label;
 import { buildJournal } from './journal-builder.js';
 
 /**
@@ -102,6 +105,16 @@ export function exportConferenceXlsx(run, config) {
   const wsResume = XLSX.utils.json_to_sheet(resumeData);
   XLSX.utils.book_append_sheet(wb, wsResume, 'Resumo');
 
+  // 1b. Aba Resumo por Tipo — mesmo recorte do "Resumo Geral do Mês/Período" do Fortes
+  const resumoPorTipo = summarizeByPayrollType(run.sourceRows || []).map((t) => ({
+    'Tipo de Folha': t.label,
+    Empregados: t.empregados,
+    'Proventos (R$)': formatReais(t.proventosCents),
+    'Descontos (R$)': formatReais(t.descontosCents),
+    'Líquido (R$)': formatReais(t.liquidoCents),
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumoPorTipo), 'Resumo por Tipo');
+
   // 2. Aba Analítico — origem segmentada (empregado × evento), com nome do evento
   const analiticoData = (run.sourceRows || []).map((row, index) => ({
     Linha: index + 1,
@@ -109,6 +122,7 @@ export function exportConferenceXlsx(run, config) {
     Colaborador: row.employeeName || '',
     'Lotação Fortes': row.lotacaoCode || '',
     'Nome Lotação': row.lotacaoName || '',
+    'Tipo de Folha': payrollTypeLabel(row.payrollType),
     'Código Evento': row.eventCode || '',
     'Nome do Evento': row.eventName || '',
     'Valor (R$)': formatReais(row.amountCents || 0),
@@ -130,6 +144,7 @@ export function exportConferenceXlsx(run, config) {
     Histórico: e.history,
     Matrícula: e.employeeId || '',
     Colaborador: e.employeeName || '',
+    'Tipo de Folha': payrollTypeLabel(e.payrollType),
     'Lotação Fortes': e.lotacaoCode || '',
     'Código Evento': e.eventCode || '',
     'Nome do Evento': e.eventName || '',
@@ -142,6 +157,7 @@ export function exportConferenceXlsx(run, config) {
   const consolidatedData = (run.consolidatedItems || []).map((c) => ({
     Empresa: run.companyId,
     Competência: run.competence,
+    'Tipo de Folha': payrollTypeLabel(c.payrollType),
     Lotação: c.lotacaoCode,
     'Nome Lotação': c.lotacaoName || '',
     'Código Evento': c.eventCode,

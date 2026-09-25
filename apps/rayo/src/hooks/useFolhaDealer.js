@@ -8,7 +8,8 @@ import {
   bragaVeiculosConfig,
   getCompanyConfig,
   getCompanyConfigByFortesCode,
-  summarizeValidationIssues
+  summarizeValidationIssues,
+  summarizeByPayrollType
 } from '../lib/folha-dealer';
 import { normalizeFortesQueryRows } from '../lib/folha-dealer/fortes-query-adapter';
 import { parseFortesCsv } from '../lib/folha-dealer/fortes-csv-parser';
@@ -192,6 +193,7 @@ export function useFolhaDealer() {
         {
           fortesProvisions: Array.isArray(result.provisions) ? result.provisions : [],
           fortesEncargoBases: Array.isArray(result.encargoBases) ? result.encargoBases : [],
+          fortesExtraPayroll: Array.isArray(result.extraPayroll) ? result.extraPayroll : [],
         },
         baseConfig.provisionRates,
         baseConfig.encargoRates
@@ -201,6 +203,7 @@ export function useFolhaDealer() {
         ...row,
         companyId: baseConfig.company.companyId
       }));
+      setMetadata((prev) => ({ ...prev, resumoPorTipo: summarizeByPayrollType(payrollRows) }));
 
       const { config: runtimeConfig, centersWarning } = await resolveRuntimeConfig(baseConfig);
       const extractWarning = [

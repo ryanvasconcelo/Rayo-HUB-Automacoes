@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as XLSX from 'xlsx';
+import { normalizeFortesQueryRows } from '../src/lib/folha-dealer/fortes-query-adapter.js';
 import {
   runFolhaDealerEngine,
   bragaVeiculosConfig,
@@ -35,6 +36,7 @@ describe('Folha Dealer - Conference XLSX Exporter', () => {
     const { workbook } = generateTestWorkbook();
     const expectedSheets = [
       'Resumo',
+      'Resumo por Tipo',
       'Analítico',
       'Lançamentos',
       'Consolidado',
@@ -171,5 +173,27 @@ describe('Folha Dealer - Conference XLSX Exporter', () => {
     const issuesData = XLSX.utils.sheet_to_json(wsIssues);
     const hasBlocker = issuesData.some((i) => i.Severidade === 'blocker');
     expect(hasBlocker).toBe(true);
+  });
+
+  it('aba Resumo por Tipo traz o total da folha mensal no formato do Resumo Geral do Fortes', () => {
+    const base = { companyId: 'braga-veiculos', competence: '202604', employeeId: '1', lotacaoCode: 'RECURSOS HUMANOS' };
+    const sourceRows = normalizeFortesQueryRows([
+      { ...base, eventCode: '011', amountCents: 300000, ProvDesc: 1 },
+      { ...base, eventCode: '310', amountCents: 30000, ProvDesc: -1 },
+    ]);
+    const { workbook } = generateTestWorkbook({ sourceRows });
+    const rows = XLSX.utils.sheet_to_json(workbook.Sheets['Resumo por Tipo']);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]['Tipo de Folha']).toBe('Folha de Pagamento');
+    expect(rows[0].Empregados).toBe(1);
+    expect(Object.keys(rows[0])).toEqual([
+      'Tipo de Folha', 'Empregados', 'Proventos (R$)', 'Descontos (R$)', 'Líquido (R$)',
+    ]);
+  });
+
+  it('lançamentos informam o tipo de folha', () => {
+    const { workbook } = generateTestWorkbook();
+    const rows = XLSX.utils.sheet_to_json(workbook.Sheets['Lançamentos']);
+    expect(rows.every((r) => r['Tipo de Folha'] === 'Folha de Pagamento')).toBe(true);
   });
 });
