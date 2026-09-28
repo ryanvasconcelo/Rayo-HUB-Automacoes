@@ -7,7 +7,7 @@
  * - Férias (FOL.Folha = 4): mês de início do gozo (FER.DtGozoInicial). Só a
  *   folha raiz — as filhas de rescisão (FOL_Seq_Pai) repetem férias que já
  *   estão dentro da rescisão.
- * - Rescisão (FOL.Folha = 10): mês de FOL.DtCalculo. O 13º rescisório
+ * - Rescisão (FOL.Folha 10 e 11 — a 11 é a rescisão complementar): mês de FOL.DtCalculo. O 13º rescisório
  *   (FOL.Folha = 8) é filho da rescisão e repete os eventos 208/209: não entra.
  * - Complementar (FOL.Folha = 17): mês de FOL.DtReferencia.
  *
@@ -15,10 +15,12 @@
  * o último cadastro SEP do empregado.
  */
 
+// Folha 11 = rescisão complementar (só a Moto Rey tem em 2026): complementa a
+// rescisão com valores próprios, sem repetir os da Folha 10.
 const EXTRA_PAYROLL_TYPES = [
-  { payrollType: 'FERIAS', folha: 4, competenceDate: 'FER.DtGozoInicial', joinFer: true, onlyRoot: true },
-  { payrollType: 'RESCISAO', folha: 10, competenceDate: 'FOL.DtCalculo', joinFer: false, onlyRoot: false },
-  { payrollType: 'COMPLEMENTAR', folha: 17, competenceDate: 'FOL.DtReferencia', joinFer: false, onlyRoot: false },
+  { payrollType: 'FERIAS', folhas: [4], competenceDate: 'FER.DtGozoInicial', joinFer: true, onlyRoot: true },
+  { payrollType: 'RESCISAO', folhas: [10, 11], competenceDate: 'FOL.DtCalculo', joinFer: false, onlyRoot: false },
+  { payrollType: 'COMPLEMENTAR', folhas: [17], competenceDate: 'FOL.DtReferencia', joinFer: false, onlyRoot: false },
 ];
 
 /**
@@ -38,7 +40,7 @@ function competenceDateRange(competence) {
   return { dataIni: firstDay(year, month), dataFim: firstDay(nextYear, nextMonth) };
 }
 
-function buildExtraPayrollQuery({ payrollType, folha, competenceDate, joinFer, onlyRoot }) {
+function buildExtraPayrollQuery({ payrollType, folhas, competenceDate, joinFer, onlyRoot }) {
   return `
 DECLARE @EmpresaCodigo VARCHAR(4) = @Company;
 DECLARE @DataIni DATE = CAST(@DataIniParam AS DATE);
@@ -99,7 +101,7 @@ LEFT JOIN LOT (NOLOCK)
     ON LOT.EMP_Codigo = EFO.EMP_Codigo
    AND LOT.Codigo = COALESCE(SEP.LOT_Codigo, SEPU.LOT_Codigo)
 WHERE FOL.EMP_Codigo = @EmpresaCodigo
-  AND FOL.Folha = ${folha}
+  AND FOL.Folha IN (${folhas.join(', ')})
   ${onlyRoot ? 'AND FOL.FOL_Seq_Pai IS NULL' : ''}
   AND ${competenceDate} >= @DataIni
   AND ${competenceDate} < @DataFim
