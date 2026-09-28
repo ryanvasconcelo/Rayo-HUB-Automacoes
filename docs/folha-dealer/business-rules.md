@@ -126,3 +126,4 @@ O Fortes guarda cada uma como uma folha própria (`FOL.Folha`), sem registro em 
 - Histórico no TXT: `FERIAS REF MM/AAAA`, `RESCISAO REF MM/AAAA`, `FOLHA COMPLEMENTAR REF MM/AAAA`. A folha mensal continua `FOLHA DE PAGAMENTO REF MM/AAAA`.
 - A multa de 40% do FGTS (evento 900) é informativa e não gera lançamento — precisa de regra própria.
 - Para conferir contra o Resumo Geral: `node apps/rayo-server/scripts/reconcile-payroll-types.mjs <empresaFortes> <AAAA-MM> [AAAA-MM final]`.
+- Testes de conformidade com o contador: `apps/rayo/tests/folha-dealer-contador-resumo-geral.test.js` confere o lote contra o Resumo Geral (valor de cada evento, contas dos líquidos, decisões do contador). Com `FORTES_LIVE=1` também compara, evento a evento, a extração do banco com o relatório.
