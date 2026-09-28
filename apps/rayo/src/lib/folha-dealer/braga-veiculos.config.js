@@ -213,13 +213,13 @@ const accountMappings = [
   { companyId: company.companyId, eventCode: '999', dealerAccountCode: '6.1.1.01.003', dealerLotAccountCode: null, dc: 'C', description: 'Desc. Prêmio Meta CCT - Mês ant', active: true },
 
   // ---- FÉRIAS (folha de férias, Fortes Folha 4) ----
-  // Proventos baixam a provisão de férias que o Rayo já constitui todo mês.
-  { companyId: company.companyId, eventCode: '110', dealerAccountCode: '2.1.1.03.001', dealerLotAccountCode: null, dc: 'D', description: 'Remuneração de Férias', active: true },
-  { companyId: company.companyId, eventCode: '111', dealerAccountCode: '2.1.1.03.001', dealerLotAccountCode: null, dc: 'D', description: '1/3 de Férias', active: true },
-  { companyId: company.companyId, eventCode: '113', dealerAccountCode: '2.1.1.03.001', dealerLotAccountCode: null, dc: 'D', description: 'Abono Pecuniário', active: true },
-  { companyId: company.companyId, eventCode: '950', dealerAccountCode: '2.1.1.03.001', dealerLotAccountCode: null, dc: 'D', description: '1/3 de Abono Pecuniário', active: true },
+  // Proventos de férias em despesa de férias (decisão do contador, 28/09/2026).
+  { companyId: company.companyId, eventCode: '110', dealerAccountCode: '6.1.1.03.001', dealerLotAccountCode: null, dc: 'D', description: 'Remuneração de Férias', active: true },
+  { companyId: company.companyId, eventCode: '111', dealerAccountCode: '6.1.1.03.001', dealerLotAccountCode: null, dc: 'D', description: '1/3 de Férias', active: true },
+  { companyId: company.companyId, eventCode: '113', dealerAccountCode: '6.1.1.03.001', dealerLotAccountCode: null, dc: 'D', description: 'Abono Pecuniário', active: true },
+  { companyId: company.companyId, eventCode: '950', dealerAccountCode: '6.1.1.03.001', dealerLotAccountCode: null, dc: 'D', description: '1/3 de Abono Pecuniário', active: true },
   { companyId: company.companyId, eventCode: '151', dealerAccountCode: '1.1.4.01.003', dealerLotAccountCode: null, dc: 'D', description: 'Adiantamento de 13º Salário (pago nas férias)', active: true },
-  { companyId: company.companyId, eventCode: '301', dealerAccountCode: '2.1.1.03.001', dealerLotAccountCode: null, dc: 'C', description: 'Provisão Cred. Trab. - Desconto (contrapartida do evento 100)', active: true },
+  { companyId: company.companyId, eventCode: '301', dealerAccountCode: '2.1.1.02.007', dealerLotAccountCode: null, dc: 'C', description: 'Provisão Cred. Trab. - Desconto (crédito do trabalhador / consignado)', active: true },
   { companyId: company.companyId, eventCode: '344', dealerAccountCode: '2.1.1.02.006', dealerLotAccountCode: null, dc: 'C', description: 'Pensão Alimentícia - Férias', active: true },
 
   // ---- RESCISÃO (Fortes Folha 10) ----
@@ -227,13 +227,13 @@ const accountMappings = [
   { companyId: company.companyId, eventCode: '086', dealerAccountCode: '6.1.1.01.002', dealerLotAccountCode: null, dc: 'D', description: 'Reembolso DSR', active: true },
   { companyId: company.companyId, eventCode: '199', dealerAccountCode: '6.1.1.01.002', dealerLotAccountCode: null, dc: 'D', description: 'Saldo de Salário', active: true },
   { companyId: company.companyId, eventCode: '200', dealerAccountCode: '6.1.1.01.004', dealerLotAccountCode: null, dc: 'D', description: 'Aviso Prévio Indenizado', active: true },
-  { companyId: company.companyId, eventCode: '203', dealerAccountCode: '2.1.1.03.001', dealerLotAccountCode: null, dc: 'D', description: 'Férias Vencidas', active: true },
-  { companyId: company.companyId, eventCode: '205', dealerAccountCode: '2.1.1.03.001', dealerLotAccountCode: null, dc: 'D', description: 'Férias Proporcionais', active: true },
-  { companyId: company.companyId, eventCode: '206', dealerAccountCode: '2.1.1.03.001', dealerLotAccountCode: null, dc: 'D', description: 'Férias (Aviso Prévio)', active: true },
-  { companyId: company.companyId, eventCode: '211', dealerAccountCode: '2.1.1.03.001', dealerLotAccountCode: null, dc: 'D', description: '1/3 de Férias Vencidas', active: true },
-  { companyId: company.companyId, eventCode: '212', dealerAccountCode: '2.1.1.03.001', dealerLotAccountCode: null, dc: 'D', description: '1/3 de Férias Proporcionais', active: true },
-  { companyId: company.companyId, eventCode: '208', dealerAccountCode: '2.1.1.03.004', dealerLotAccountCode: null, dc: 'D', description: '13º Salário (Rescisão)', active: true },
-  { companyId: company.companyId, eventCode: '209', dealerAccountCode: '2.1.1.03.004', dealerLotAccountCode: null, dc: 'D', description: '13º Salário (Aviso Prévio)', active: true },
+  { companyId: company.companyId, eventCode: '203', dealerAccountCode: '6.1.1.03.001', dealerLotAccountCode: null, dc: 'D', description: 'Férias Vencidas', active: true },
+  { companyId: company.companyId, eventCode: '205', dealerAccountCode: '6.1.1.03.001', dealerLotAccountCode: null, dc: 'D', description: 'Férias Proporcionais', active: true },
+  { companyId: company.companyId, eventCode: '206', dealerAccountCode: '6.1.1.03.001', dealerLotAccountCode: null, dc: 'D', description: 'Férias (Aviso Prévio)', active: true },
+  { companyId: company.companyId, eventCode: '211', dealerAccountCode: '6.1.1.03.001', dealerLotAccountCode: null, dc: 'D', description: '1/3 de Férias Vencidas', active: true },
+  { companyId: company.companyId, eventCode: '212', dealerAccountCode: '6.1.1.03.001', dealerLotAccountCode: null, dc: 'D', description: '1/3 de Férias Proporcionais', active: true },
+  { companyId: company.companyId, eventCode: '208', dealerAccountCode: '6.1.1.03.002', dealerLotAccountCode: null, dc: 'D', description: '13º Salário (Rescisão)', active: true },
+  { companyId: company.companyId, eventCode: '209', dealerAccountCode: '6.1.1.03.002', dealerLotAccountCode: null, dc: 'D', description: '13º Salário (Aviso Prévio)', active: true },
   { companyId: company.companyId, eventCode: '450', dealerAccountCode: '1.1.4.01.003', dealerLotAccountCode: null, dc: 'C', description: 'Adiantamento 13º Salário - Compensação', active: true },
   { companyId: company.companyId, eventCode: '500', dealerAccountCode: '6.1.1.01.002', dealerLotAccountCode: null, dc: 'C', description: 'Aviso Prévio (desconto)', active: true },
   { companyId: company.companyId, eventCode: '501', dealerAccountCode: '6.1.1.01.002', dealerLotAccountCode: null, dc: 'C', description: 'Rescisão Antes do Prazo Determinado (desconto)', active: true },
@@ -245,6 +245,9 @@ const accountMappings = [
   { companyId: company.companyId, eventCode: '957', dealerAccountCode: '6.1.1.01.006', dealerLotAccountCode: null, dc: 'C', description: 'Débito de Banco de Horas', active: true },
   { companyId: company.companyId, eventCode: '971', dealerAccountCode: '6.1.1.04.003', dealerLotAccountCode: null, dc: 'C', description: 'Vale-Refeição não utilizado', active: true },
   { companyId: company.companyId, eventCode: '972', dealerAccountCode: '6.1.1.01.006', dealerLotAccountCode: null, dc: 'C', description: 'Débito de Banco de Horas', active: true },
+  // Multa de 40% do FGTS: custo da empresa, pago em guia própria; não entra no líquido.
+  { companyId: company.companyId, eventCode: '900', dealerAccountCode: '6.1.1.02.002', dealerLotAccountCode: null, dc: 'D', description: 'Multa 40% FGTS (rescisão)', active: true },
+  { companyId: company.companyId, eventCode: '900', dealerAccountCode: '2.1.1.02.002', dealerLotAccountCode: null, dc: 'C', description: 'FGTS a Recolher (multa 40% rescisão)', active: true },
 
   // ---- PROVISÕES TRABALHISTAS (débito = despesa 6.1.1.03.xxx) ----
   { companyId: company.companyId, eventCode: 'PROV_FERIAS',   dealerAccountCode: '6.1.1.03.001', dealerLotAccountCode: null, dc: 'D', description: 'Férias e 1/3 de Férias', active: true },
@@ -302,9 +305,10 @@ const provisionRates = {
 // Eventos informativos Braga (complementar ao set global)
 // ---------------------------------------------------------------------------
 
-// 610/613/900/902/904: bases de cálculo e multa FGTS da rescisão (ProvDesc = 0).
+// 610/613/902/904: bases de cálculo da rescisão (ProvDesc = 0). A multa FGTS
+// (900) também é ProvDesc = 0 no Fortes, mas é lançada (ver RESCISÃO).
 const informativeEventCodes = [
-  '600', '601', '602', '603', '604', '605', '610', '613', '900', '902', '904', '937', '938',
+  '600', '601', '602', '603', '604', '605', '610', '613', '902', '904', '937', '938',
 ];
 
 // ---------------------------------------------------------------------------

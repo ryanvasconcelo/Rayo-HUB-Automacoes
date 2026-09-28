@@ -124,6 +124,7 @@ O Fortes guarda cada uma como uma folha própria (`FOL.Folha`), sem registro em 
 - O 13º rescisório (`Folha=8`) e as férias filhas de rescisão (`Folha=4` com `FOL_Seq_Pai`) **não entram**: repetem os eventos 208/209 e 203/205/211/212 que já estão na rescisão.
 - **Encargos patronais não são gerados** para esses tipos: as bases eSocial (`ES_CS_CP_Base`, `ES_FGTS_SEGURADO`) já consolidam todos os tipos de folha da competência.
 - Histórico no TXT: `FERIAS REF MM/AAAA`, `RESCISAO REF MM/AAAA`, `FOLHA COMPLEMENTAR REF MM/AAAA`. A folha mensal continua `FOLHA DE PAGAMENTO REF MM/AAAA`.
-- A multa de 40% do FGTS (evento 900) é informativa e não gera lançamento — precisa de regra própria.
+- Contas definidas com o contador (28/09/2026): proventos de férias (110, 111, 113, 950) e férias na rescisão (203, 205, 206, 211, 212) a débito de 6.1.1.03.001; 13º na rescisão (160, 208, 209) a débito de 6.1.1.03.002; aviso prévio indenizado e rescisão antecipada (200, 201) a débito de 6.1.1.01.004; evento 301 a crédito de 2.1.1.02.007.
+- A multa de 40% do FGTS (evento 900) é informativa no Fortes, mas vai para o Dealer na competência da data de cálculo da rescisão: D 6.1.1.02.002 / C 2.1.1.02.002. Não entra no líquido da rescisão e não está nas bases eSocial do FGTS mensal (sem duplicidade).
 - Para conferir contra o Resumo Geral: `node apps/rayo-server/scripts/reconcile-payroll-types.mjs <empresaFortes> <AAAA-MM> [AAAA-MM final]`.
 - Testes de conformidade com o contador: `apps/rayo/tests/folha-dealer-contador-resumo-geral.test.js` confere o lote contra o Resumo Geral (valor de cada evento, contas dos líquidos, decisões do contador). Com `FORTES_LIVE=1` também compara, evento a evento, a extração do banco com o relatório.

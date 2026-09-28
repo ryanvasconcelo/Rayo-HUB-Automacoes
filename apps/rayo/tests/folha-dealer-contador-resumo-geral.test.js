@@ -54,14 +54,18 @@ const LIQUIDOS = {
   COMPLEMENTAR: { eventCode: 'LIQUIDO_COMPLEMENTAR', conta: '2.1.1.01.001', historico: 'FOLHA COMPLEMENTAR REF' },
 };
 
-// Decisões do contador: evento → conta e natureza, por tipo de folha.
+// Decisões do contador (validadas em 28/09/2026): evento → conta e natureza, por tipo de folha.
 const DECISOES = [
-  { tipo: 'FERIAS', eventos: ['110', '111', '113', '950'], conta: '2.1.1.03.001', dc: 'D', motivo: 'proventos de férias baixam a provisão de férias' },
-  { tipo: 'FERIAS', eventos: ['301'], conta: '2.1.1.03.001', dc: 'C', motivo: 'espelho do evento 100' },
-  { tipo: 'RESCISAO', eventos: ['203', '205', '206', '211', '212'], conta: '2.1.1.03.001', dc: 'D', motivo: 'férias na rescisão baixam a provisão de férias' },
-  { tipo: 'RESCISAO', eventos: ['160', '208', '209'], conta: '2.1.1.03.004', dc: 'D', motivo: '13º na rescisão baixa a provisão de 13º' },
+  { tipo: 'FERIAS', eventos: ['110', '111', '113', '950'], conta: '6.1.1.03.001', dc: 'D', motivo: 'proventos de férias em despesa de férias' },
+  { tipo: 'FERIAS', eventos: ['301'], conta: '2.1.1.02.007', dc: 'C', motivo: 'desconto do crédito do trabalhador (consignado)' },
+  { tipo: 'RESCISAO', eventos: ['203', '205', '206', '211', '212'], conta: '6.1.1.03.001', dc: 'D', motivo: 'férias na rescisão em despesa de férias' },
+  { tipo: 'RESCISAO', eventos: ['160', '208', '209'], conta: '6.1.1.03.002', dc: 'D', motivo: '13º na rescisão em despesa de 13º' },
   { tipo: 'RESCISAO', eventos: ['200', '201'], conta: '6.1.1.01.004', dc: 'D', motivo: 'aviso prévio indenizado / rescisão antecipada' },
 ];
+
+// Multa de 40% do FGTS (evento 900, informativo no Fortes): vai para o Dealer
+// na competência da data de cálculo da rescisão.
+const MULTA_FGTS = { eventCode: '900', debito: '6.1.1.02.002', credito: '2.1.1.02.002' };
 
 const EMPRESAS = [
   { config: bragaMotosConfig, resumo: bragaMotosResumoGeral },
@@ -211,6 +215,28 @@ for (const empresa of EMPRESAS) {
         expect(lancados.length).toBeGreaterThan(0);
         expect([...new Set(lancados.map((e) => e.history))]).toEqual([`FOLHA DE PAGAMENTO REF ${mes}/${ano}`]);
       });
+    });
+
+    it('multa de 40% do FGTS vai para o Dealer (D despesa FGTS / C FGTS a recolher) sem mexer no líquido da rescisão', () => {
+      const companyId = config.company.companyId;
+      const lotacaoCode = config.centerMappings.find((m) => m.active && m.allocationMode === 'direct').lotacaoCode;
+      const base = { companyId, competence: '202604', payrollType: 'RESCISAO', lotacaoCode, employeeId: '2' };
+      const sourceRows = normalizeFortesQueryRows([], {
+        fortesExtraPayroll: [
+          { ...base, eventCode: '199', amountCents: 300000, ProvDesc: 1, TipoRegistro: 'PROVENTO' },
+          { ...base, eventCode: '900', amountCents: 41906, ProvDesc: 0, TipoRegistro: 'INFORMATIVO' },
+        ],
+      }).map((row) => ({ ...row, companyId }));
+      const run = runFolhaDealerEngine({ config, sourceRows, competence: '2026-04' });
+
+      const multa = run.entries.filter((e) => e.eventCode === MULTA_FGTS.eventCode);
+      expect(multa.map((e) => [e.dc, e.accountCode, e.amountCents, e.history]).sort()).toEqual([
+        ['C', MULTA_FGTS.credito, 41906, 'RESCISAO REF 04/2026'],
+        ['D', MULTA_FGTS.debito, 41906, 'RESCISAO REF 04/2026'],
+      ]);
+      const liquido = run.entries.filter((e) => e.eventCode === 'LIQUIDO_RESCISAO');
+      expect(liquido.reduce((s, e) => s + e.amountCents, 0)).toBe(300000);
+      expect(run.issues.filter((i) => i.severity === 'blocker')).toEqual([]);
     });
   });
 }
