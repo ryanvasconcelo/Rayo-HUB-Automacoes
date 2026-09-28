@@ -15,8 +15,9 @@ const OBSERVADOS = {
   },
 };
 
-// Bases de cálculo da rescisão (ProvDesc = 0): nunca geram lançamento.
-const INFORMATIVOS_RESCISAO = ['610', '613', '900', '902', '904'];
+// Bases de cálculo da rescisão (ProvDesc = 0): nunca geram lançamento. A multa
+// FGTS (900) também é ProvDesc = 0, mas gera lançamento próprio (D/C).
+const INFORMATIVOS_RESCISAO = ['610', '613', '902', '904'];
 
 for (const config of [bragaVeiculosConfig, bragaMotosConfig]) {
   const { companyId } = config.company;
@@ -41,6 +42,19 @@ for (const config of [bragaVeiculosConfig, bragaMotosConfig]) {
       for (const code of INFORMATIVOS_RESCISAO) {
         expect(config.informativeEventCodes).toContain(code);
       }
+    });
+
+    it('baixa da provisão de férias: débito na provisão, crédito na despesa', () => {
+      const contas = (code) =>
+        config.accountMappings.filter((m) => m.eventCode === code).map((m) => `${m.dc} ${m.dealerAccountCode}`).sort();
+      expect(contas('PROV_BAIXA_FERIAS')).toEqual(['C 6.1.1.03.001', 'D 2.1.1.03.001']);
+      expect(contas('PROV_BAIXA_INSS_FER')).toEqual(['C 6.1.1.03.003', 'D 2.1.1.03.002']);
+      expect(contas('PROV_BAIXA_FGTS_FER')).toEqual(['C 6.1.1.03.005', 'D 2.1.1.03.003']);
+    });
+
+    it('multa FGTS (900) não é informativa e tem débito e crédito', () => {
+      expect(config.informativeEventCodes).not.toContain('900');
+      expect(dcsDoEvento('900').sort()).toEqual(['C', 'D']);
     });
 
     it('líquidos vão para as contas definidas com o contador', () => {

@@ -81,7 +81,7 @@ no journal, usa o valor absoluto invertendo D/C. Folha mensal continua com
 | `MISSING_CENTER_MAPPING` | A lotacao Fortes nao tem centro Dealer. | Bloquear aprovacao. |
 | `ACTIVITY_MAPPING_REQUIRED` | A lotacao esta marcada como `Por atividade` e nao existe centro no de-para nem regra explicita cadastrada. | Bloquear aprovacao. |
 | `MISSING_ACCOUNT_MAPPING` | O evento Fortes nao tem de-para contabil. | Bloquear aprovacao. |
-| `EVENT_100_ACCOUNT_MISMATCH` | O evento `100` aponta para conta diferente de `2.1.1.03.001`. | Bloquear aprovacao. |
+| `EVENT_100_ACCOUNT_MISMATCH` | O evento `100` aponta para conta diferente de `2.1.1.02.007`. | Bloquear aprovacao. |
 | `CENTER_ON_BALANCE_ACCOUNT` | Conta iniciada por `1` ou `2` recebeu centro. | Remover centro e bloquear se a origem insistir no centro. |
 | `MISSING_REQUIRED_CENTER` | Conta iniciada por `3` em diante nao recebeu centro. | Bloquear aprovacao. |
 | `UNBALANCED_JOURNAL` | Total de debitos difere do total de creditos. | Bloquear aprovacao. |
@@ -124,6 +124,8 @@ O Fortes guarda cada uma como uma folha própria (`FOL.Folha`), sem registro em 
 - O 13º rescisório (`Folha=8`) e as férias filhas de rescisão (`Folha=4` com `FOL_Seq_Pai`) **não entram**: repetem os eventos 208/209 e 203/205/211/212 que já estão na rescisão.
 - **Encargos patronais não são gerados** para esses tipos: as bases eSocial (`ES_CS_CP_Base`, `ES_FGTS_SEGURADO`) já consolidam todos os tipos de folha da competência.
 - Histórico no TXT: `FERIAS REF MM/AAAA`, `RESCISAO REF MM/AAAA`, `FOLHA COMPLEMENTAR REF MM/AAAA`. A folha mensal continua `FOLHA DE PAGAMENTO REF MM/AAAA`.
-- A multa de 40% do FGTS (evento 900) é informativa e não gera lançamento — precisa de regra própria.
+- Contas definidas com o contador (28/09/2026): proventos de férias (110, 111, 113, 950) e férias na rescisão (203, 205, 206, 211, 212) a débito de 6.1.1.03.001; 13º na rescisão (160, 208, 209) a débito de 6.1.1.03.002; aviso prévio indenizado e rescisão antecipada (200, 201) a débito de 6.1.1.01.004; evento 301 a crédito e evento 100 a débito de 2.1.1.02.007.
+- Baixa da provisão de férias (contador, 28/09/2026): as férias são pagas em despesa, e a provisão do empregado zera sempre que as férias acontecem (gozo ou rescisão). No Fortes (PRF), por empregado × período aquisitivo, `Acumulada` é o saldo anterior já deduzido da baixa do mês e `Provisao` é a constituição do mês (no mês das férias, o complemento). O Rayo lança a constituição (PROV_FERIAS, PROV_INSS_FER, PROV_FGTS_FER) e a baixa = saldo final do mês anterior − `Acumulada` do mês (PROV_BAIXA_FERIAS / PROV_BAIXA_INSS_FER / PROV_BAIXA_FGTS_FER: D provisão 2.1.1.03.001/002/003, C despesa 6.1.1.03.001/003/005). Período que some da PRF (rescisão) baixa o saldo inteiro; sem PRF do mês ou do mês anterior, não há baixa. A provisão de 13º não tem baixa automática: o contador zera no fim do ano.
+- A multa de 40% do FGTS (evento 900) é informativa no Fortes, mas vai para o Dealer na competência da data de cálculo da rescisão: D 6.1.1.02.002 / C 2.1.1.02.002. Não entra no líquido da rescisão e não está nas bases eSocial do FGTS mensal (sem duplicidade).
 - Para conferir contra o Resumo Geral: `node apps/rayo-server/scripts/reconcile-payroll-types.mjs <empresaFortes> <AAAA-MM> [AAAA-MM final]`.
 - Testes de conformidade com o contador: `apps/rayo/tests/folha-dealer-contador-resumo-geral.test.js` confere o lote contra o Resumo Geral (valor de cada evento, contas dos líquidos, decisões do contador). Com `FORTES_LIVE=1` também compara, evento a evento, a extração do banco com o relatório.

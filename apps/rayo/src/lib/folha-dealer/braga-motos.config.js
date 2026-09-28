@@ -296,7 +296,7 @@ const eventAccountMappings = [
   { eventCode: '096', dealerAccountCode: '6.1.1.01.002', dc: 'D', description: 'Reembolso Atrasos' },
   { eventCode: '098', dealerAccountCode: '6.1.1.01.002', dc: 'D', description: 'Quebra de Caixa - Mês Anterior' },
   { eventCode: '099', dealerAccountCode: '6.1.1.01.002', dc: 'D', description: 'Complemento de Folha' },
-  { eventCode: '100', dealerAccountCode: '2.1.1.03.001', dc: 'D', description: 'Provisão Cred. Trab. - Provento' }, // conta exigida pelo motor
+  { eventCode: '100', dealerAccountCode: '2.1.1.02.007', dc: 'D', description: 'Provisão Cred. Trab. - Provento' }, // conta exigida pelo motor
   { eventCode: '101', dealerAccountCode: '6.1.1.01.003', dc: 'D', description: 'Prêmio Meta F&I' },
   { eventCode: '102', dealerAccountCode: '6.1.1.01.003', dc: 'D', description: 'Prêmio Emplacamento' },
   { eventCode: '107', dealerAccountCode: '6.1.1.01.005', dc: 'D', description: 'Comissão LEADS' },
@@ -346,27 +346,27 @@ const eventAccountMappings = [
   { eventCode: '988', dealerAccountCode: '6.1.1.01.002', dc: 'C', description: 'Atrasos' },
 
   // ---- FÉRIAS (folha de férias, Fortes Folha 4) ----
-  // Proventos baixam a provisão de férias que o Rayo já constitui todo mês.
-  { eventCode: '110', dealerAccountCode: '2.1.1.03.001', dc: 'D', description: 'Remuneração de Férias' },
-  { eventCode: '111', dealerAccountCode: '2.1.1.03.001', dc: 'D', description: '1/3 de Férias' },
-  { eventCode: '113', dealerAccountCode: '2.1.1.03.001', dc: 'D', description: 'Abono Pecuniário' },
-  { eventCode: '950', dealerAccountCode: '2.1.1.03.001', dc: 'D', description: '1/3 de Abono Pecuniário' },
-  { eventCode: '301', dealerAccountCode: '2.1.1.03.001', dc: 'C', description: 'Provisão Cred. Trab. - Desconto (contrapartida do evento 100)' },
+  // Proventos de férias em despesa de férias (decisão do contador, 28/09/2026).
+  { eventCode: '110', dealerAccountCode: '6.1.1.03.001', dc: 'D', description: 'Remuneração de Férias' },
+  { eventCode: '111', dealerAccountCode: '6.1.1.03.001', dc: 'D', description: '1/3 de Férias' },
+  { eventCode: '113', dealerAccountCode: '6.1.1.03.001', dc: 'D', description: 'Abono Pecuniário' },
+  { eventCode: '950', dealerAccountCode: '6.1.1.03.001', dc: 'D', description: '1/3 de Abono Pecuniário' },
+  { eventCode: '301', dealerAccountCode: '2.1.1.02.007', dc: 'C', description: 'Provisão Cred. Trab. - Desconto (crédito do trabalhador / consignado)' },
   { eventCode: '344', dealerAccountCode: '2.1.1.02.006', dc: 'C', description: 'Pensão Alimentícia - Férias' },
 
   // ---- RESCISÃO (Fortes Folha 10) ----
   { eventCode: '025', dealerAccountCode: '2.1.1.02.001', dc: 'D', description: 'Salário-Família Retroativo' }, // compensa com INSS a recolher
   { eventCode: '105', dealerAccountCode: '6.1.1.01.003', dc: 'D', description: 'Prêmio Emplacamento Mês Anterior' },
-  { eventCode: '160', dealerAccountCode: '2.1.1.03.004', dc: 'D', description: '13º Salário' },
+  { eventCode: '160', dealerAccountCode: '6.1.1.03.002', dc: 'D', description: '13º Salário' },
   { eventCode: '200', dealerAccountCode: '6.1.1.01.004', dc: 'D', description: 'Aviso Prévio Indenizado' },
   { eventCode: '201', dealerAccountCode: '6.1.1.01.004', dc: 'D', description: 'Rescisão Antes do Prazo Determinado' },
-  { eventCode: '203', dealerAccountCode: '2.1.1.03.001', dc: 'D', description: 'Férias Vencidas' },
-  { eventCode: '205', dealerAccountCode: '2.1.1.03.001', dc: 'D', description: 'Férias Proporcionais' },
-  { eventCode: '206', dealerAccountCode: '2.1.1.03.001', dc: 'D', description: 'Férias (Aviso Prévio)' },
-  { eventCode: '211', dealerAccountCode: '2.1.1.03.001', dc: 'D', description: '1/3 de Férias Vencidas' },
-  { eventCode: '212', dealerAccountCode: '2.1.1.03.001', dc: 'D', description: '1/3 de Férias Proporcionais' },
-  { eventCode: '208', dealerAccountCode: '2.1.1.03.004', dc: 'D', description: '13º Salário (Rescisão)' },
-  { eventCode: '209', dealerAccountCode: '2.1.1.03.004', dc: 'D', description: '13º Salário (Aviso Prévio)' },
+  { eventCode: '203', dealerAccountCode: '6.1.1.03.001', dc: 'D', description: 'Férias Vencidas' },
+  { eventCode: '205', dealerAccountCode: '6.1.1.03.001', dc: 'D', description: 'Férias Proporcionais' },
+  { eventCode: '206', dealerAccountCode: '6.1.1.03.001', dc: 'D', description: 'Férias (Aviso Prévio)' },
+  { eventCode: '211', dealerAccountCode: '6.1.1.03.001', dc: 'D', description: '1/3 de Férias Vencidas' },
+  { eventCode: '212', dealerAccountCode: '6.1.1.03.001', dc: 'D', description: '1/3 de Férias Proporcionais' },
+  { eventCode: '208', dealerAccountCode: '6.1.1.03.002', dc: 'D', description: '13º Salário (Rescisão)' },
+  { eventCode: '209', dealerAccountCode: '6.1.1.03.002', dc: 'D', description: '13º Salário (Aviso Prévio)' },
   { eventCode: '213', dealerAccountCode: '2.1.1.02.001', dc: 'D', description: 'Sal. Maternidade 13º pago pela empresa' }, // compensa com INSS a recolher
   { eventCode: '122', dealerAccountCode: '6.1.1.04.006', dc: 'C', description: 'Vale-Transporte - Mês Anterior' },
   { eventCode: '129', dealerAccountCode: '6.1.1.01.006', dc: 'C', description: 'Débito de Banco de Horas' },
@@ -382,6 +382,9 @@ const eventAccountMappings = [
   { eventCode: '993', dealerAccountCode: '6.1.1.01.002', dc: 'C', description: 'Desconto de Faltas' },
   { eventCode: '994', dealerAccountCode: '6.1.1.01.002', dc: 'C', description: 'DSR Desconto s/ Faltas' },
   { eventCode: '995', dealerAccountCode: '6.1.1.04.006', dc: 'C', description: 'Descontos de Vale-Transporte' },
+  // Multa de 40% do FGTS: custo da empresa, pago em guia própria; não entra no líquido.
+  { eventCode: '900', dealerAccountCode: '6.1.1.02.002', dc: 'D', description: 'Multa 40% FGTS (rescisão)' },
+  { eventCode: '900', dealerAccountCode: '2.1.1.02.002', dc: 'C', description: 'FGTS a Recolher (multa 40% rescisão)' },
 ];
 
 /**

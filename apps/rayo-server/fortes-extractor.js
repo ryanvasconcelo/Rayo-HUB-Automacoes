@@ -1,5 +1,6 @@
 const mssql = require('mssql');
 const { EXTRA_PAYROLL_QUERIES, competenceDateRange } = require('./fortes-extra-payroll-queries');
+const { computeVacationProvisionReversals } = require('./fortes-provision-reversal');
 
 function buildDbConfig() {
   return {
@@ -188,9 +189,13 @@ SELECT
     PRV.FOL_Seq AS sourcePayrollId,
     ISNULL(SEP.LOT_Codigo, '') AS lotacaoCode,
     ISNULL(LOT.Nome, '') AS lotacaoName,
+    CONVERT(VARCHAR(10), PRF.DtInicial, 120) AS periodStart,
     CAST(ROUND(ISNULL(PRF.Provisao, 0) * 100, 0) AS INT) AS provFerCents,
     CAST(ROUND(ISNULL(PRF.INSSProvisao, 0) * 100, 0) AS INT) AS inssFerCents,
-    CAST(ROUND(ISNULL(PRF.FGTSProvisao, 0) * 100, 0) AS INT) AS fgtsFerCents
+    CAST(ROUND(ISNULL(PRF.FGTSProvisao, 0) * 100, 0) AS INT) AS fgtsFerCents,
+    CAST(ROUND(ISNULL(PRF.Acumulada, 0) * 100, 0) AS INT) AS provFerAcumCents,
+    CAST(ROUND(ISNULL(PRF.INSSAcumulada, 0) * 100, 0) AS INT) AS inssFerAcumCents,
+    CAST(ROUND(ISNULL(PRF.FGTSAcumulada, 0) * 100, 0) AS INT) AS fgtsFerAcumCents
 FROM PRV (NOLOCK)
 INNER JOIN FOL (NOLOCK)
     ON PRV.EMP_Codigo = FOL.EMP_Codigo
@@ -410,27 +415,30 @@ async function extractFortesPayroll({ companyId = '9274', competence = '2026-04'
   const mes = parseInt(mesStr, 10);
   const anoMesStr = anoStr + (mesStr ? mesStr.padStart(2, '0') : '');
   const { dataIni, dataFim } = competenceDateRange(`${anoMesStr.slice(0, 4)}-${anoMesStr.slice(4, 6)}`);
+  // Provisão de férias do mês anterior: base para a baixa (saldo anterior − Acumulada)
+  const anoMesAnterior = mes === 1 ? `${ano - 1}12` : `${ano}${String(mes - 1).padStart(2, '0')}`;
 
   console.log(`[API Fortes] Conectando ao MSSQL... Empresa: ${companyId}, Competência: ${anoMesStr}`);
 
   let pool;
   try {
     pool = await mssql.connect(dbConfig);
-    const request = () =>
+    const request = (anoMes = anoMesStr) =>
       pool
         .request()
         .input('Company', mssql.VarChar(4), companyId)
         .input('AnoParam', mssql.Int, ano)
         .input('MesParam', mssql.Int, mes)
-        .input('AnoMesParam', mssql.VarChar(6), anoMesStr)
+        .input('AnoMesParam', mssql.VarChar(6), anoMes)
         .input('DataIniParam', mssql.VarChar(10), dataIni)
         .input('DataFimParam', mssql.VarChar(10), dataFim);
 
-    const [payrollResult, prov13Result, provFerResult, encargoBaseResult, encargoTotalsResult, ...extraResults] =
+    const [payrollResult, prov13Result, provFerResult, provFerPrevResult, encargoBaseResult, encargoTotalsResult, ...extraResults] =
       await Promise.all([
         request().query(PAYROLL_QUERY),
         request().query(PROV_13_QUERY),
         request().query(PROV_FER_QUERY),
+        request(anoMesAnterior).query(PROV_FER_QUERY),
         request().query(ENCARGO_BASE_QUERY),
         request().query(ENCARGO_TOTALS_QUERY),
         ...EXTRA_PAYROLL_QUERIES.map((q) => request().query(q.sql)),
@@ -451,6 +459,16 @@ async function extractFortesPayroll({ companyId = '9274', competence = '2026-04'
       if (row.lotacaoName) row.lotacaoCode = row.lotacaoName;
       provisions.push(...expandProvisionAmounts(row, PROV_FER_DEFS));
     }
+    for (const row of provFerPrevResult.recordset) {
+      if (row.lotacaoName) row.lotacaoCode = row.lotacaoName;
+    }
+    // Férias gozadas ou pagas na rescisão zeram a provisão do empregado
+    const vacationReversals = computeVacationProvisionReversals({
+      competence: anoMesStr,
+      current: provFerResult.recordset,
+      previous: provFerPrevResult.recordset,
+    });
+    provisions.push(...vacationReversals);
 
     // Férias, rescisão e complementar: mesma chave de lotação (LOT.Nome) da folha mensal
     const extraPayroll = extraResults.flatMap((result) =>
@@ -472,7 +490,7 @@ async function extractFortesPayroll({ companyId = '9274', competence = '2026-04'
 
     console.log(
       `[API Fortes] Folha=${payroll.length} linhas; ` +
-        `Provisões Fortes=${provisions.length} (13º+férias); ` +
+        `Provisões Fortes=${provisions.length} (13º+férias, ${vacationReversals.length} baixas de férias); ` +
         `Bases encargo eSocial=${encargoBases.length}; ` +
         `Férias/rescisão/complementar=${extraPayroll.length} linhas; ` +
         `CPP ${encargoCoverage.bcCpCents.extracted}/${encargoCoverage.bcCpCents.expected}, ` +
