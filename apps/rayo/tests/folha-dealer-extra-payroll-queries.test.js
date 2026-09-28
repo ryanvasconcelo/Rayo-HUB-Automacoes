@@ -5,6 +5,7 @@ const require = createRequire(import.meta.url);
 const {
   competenceDateRange,
   EXTRA_PAYROLL_QUERIES,
+  EXTRA_PAYROLL_TYPES,
 } = require('../../rayo-server/fortes-extra-payroll-queries.js');
 
 describe('competenceDateRange', () => {
@@ -31,28 +32,28 @@ describe('queries de férias, rescisão e complementar', () => {
 
   it('férias: Folha 4, só a folha raiz, competência pelo início do gozo', () => {
     const sql = sqlDe('FERIAS');
-    expect(sql).toContain('FOL.Folha = 4');
+    expect(sql).toContain('FOL.Folha IN (4)');
     expect(sql).toContain('FOL.FOL_Seq_Pai IS NULL');
     expect(sql).toContain('FER.DtGozoInicial >= @DataIni');
     expect(sql).toContain("'FERIAS' AS payrollType");
   });
 
-  it('rescisão: Folha 10, competência pela data de cálculo', () => {
+  it('rescisão: Folhas 10 e 11 (rescisão complementar), competência pela data de cálculo', () => {
     const sql = sqlDe('RESCISAO');
-    expect(sql).toContain('FOL.Folha = 10');
+    expect(sql).toContain('FOL.Folha IN (10, 11)');
     expect(sql).toContain('FOL.DtCalculo >= @DataIni');
     expect(sql).not.toContain('INNER JOIN FER');
   });
 
   it('complementar: Folha 17, competência pela data de referência', () => {
     const sql = sqlDe('COMPLEMENTAR');
-    expect(sql).toContain('FOL.Folha = 17');
+    expect(sql).toContain('FOL.Folha IN (17)');
     expect(sql).toContain('FOL.DtReferencia >= @DataIni');
   });
 
   it('nunca lê o 13º rescisório (Folha 8), que repete eventos da rescisão', () => {
-    for (const { sql } of EXTRA_PAYROLL_QUERIES) {
-      expect(sql).not.toContain('FOL.Folha = 8');
+    for (const { folhas } of EXTRA_PAYROLL_TYPES) {
+      expect(folhas).not.toContain(8);
     }
   });
 

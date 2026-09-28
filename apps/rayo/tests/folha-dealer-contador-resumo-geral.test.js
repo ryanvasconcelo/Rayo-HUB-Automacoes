@@ -23,6 +23,7 @@ import { runFolhaDealerEngine } from '../src/lib/folha-dealer/index.js';
 import { summarizeByPayrollType } from '../src/lib/folha-dealer/payroll-type-summary.js';
 import { bragaMotosConfig } from '../src/lib/folha-dealer/braga-motos.config.js';
 import { bragaVeiculosConfig } from '../src/lib/folha-dealer/braga-veiculos.config.js';
+import { motoReyConfig } from '../src/lib/folha-dealer/moto-rey.config.js';
 import {
   bragaMotosResumoGeral,
   bragaVeiculosResumoGeral,
@@ -317,43 +318,55 @@ describe.skipIf(!process.env.FORTES_LIVE)('Fortes ao vivo × Resumo Geral do con
       }
     }, 600_000);
 
-    it(`${config.company.companyName}: provisão de férias no lote acompanha o saldo do Fortes (constituição − baixa)`, async () => {
-      const mssql = require('mssql');
-      const { extractFortesPayroll, buildDbConfig } = require('../../rayo-server/fortes-extractor.js');
-      const pool = await mssql.connect(buildDbConfig());
-      // Saldo em centavos arredondados linha a linha, como o Rayo lança cada provisão.
-      const saldoFortes = async (anoMes, coluna) => {
-        const [r] = (await pool.request().query(`
-          SELECT ISNULL(SUM(CAST(ROUND(PRF.${coluna}Acumulada * 100, 0) AS BIGINT) + CAST(ROUND(PRF.${coluna}Provisao * 100, 0) AS BIGINT)), 0) AS saldo
-          FROM PRF JOIN PRV ON PRV.EMP_Codigo = PRF.EMP_Codigo AND PRV.FOL_Seq = PRF.EFO_FOL_Seq
-          JOIN FOL ON FOL.EMP_Codigo = PRV.EMP_Codigo AND FOL.Seq = PRV.FOL_Seq AND FOL.Folha = 15
-          WHERE PRF.EMP_Codigo = '${resumo.fortesCompany}' AND PRV.AnoMes = '${anoMes}'`)).recordset;
-        return Number(r.saldo);
-      };
-      const passivos = [['', '2.1.1.03.001'], ['INSS', '2.1.1.03.002'], ['FGTS', '2.1.1.03.003']];
-      try {
-        for (const competence of competencias('2026-04', '2026-08')) {
-          const ex = await extractFortesPayroll({ companyId: resumo.fortesCompany, competence });
-          const sourceRows = normalizeFortesQueryRows(
-            ex.payroll,
-            { fortesProvisions: ex.provisions, fortesEncargoBases: ex.encargoBases, fortesExtraPayroll: ex.extraPayroll },
-            config.provisionRates,
-            config.encargoRates
-          ).map((row) => ({ ...row, companyId: config.company.companyId }));
-          const run = runFolhaDealerEngine({ config, sourceRows, competence });
-          const [ano, mes] = competence.split('-').map(Number);
-          const anterior = mes === 1 ? `${ano - 1}12` : `${ano}${String(mes - 1).padStart(2, '0')}`;
-          for (const [coluna, conta] of passivos) {
-            const movimentoLote = run.entries
-              .filter((e) => e.accountCode === conta)
-              .reduce((s, e) => s + (e.dc === 'C' ? e.amountCents : -e.amountCents), 0);
-            const variacaoFortes = (await saldoFortes(competence.replace('-', ''), coluna)) - (await saldoFortes(anterior, coluna));
-            expect([competence, conta, movimentoLote]).toEqual([competence, conta, variacaoFortes]);
-          }
-        }
-      } finally {
-        await pool.close();
-      }
-    }, 600_000);
+    it(`${config.company.companyName}: provisão de férias no lote acompanha o saldo do Fortes (constituição − baixa)`, () =>
+      conferirProvisaoFerias({ config, fortesCompany: resumo.fortesCompany, inicio: '2026-04', fim: '2026-08' }), 600_000);
   }
+
+  // Moto Rey: provisão calculada no Fortes de 01 a 07/2026; folha a partir de 03/2026.
+  it(`${motoReyConfig.company.companyName}: provisão de férias no lote acompanha o saldo do Fortes (constituição − baixa)`, () =>
+    conferirProvisaoFerias({ config: motoReyConfig, fortesCompany: '9275', inicio: '2026-03', fim: '2026-07' }), 600_000);
 });
+
+/**
+ * Movimento das contas de provisão de férias no lote = variação do saldo da PRF
+ * no Fortes (constituição − baixa), mês a mês.
+ */
+async function conferirProvisaoFerias({ config, fortesCompany, inicio, fim }) {
+  const require = createRequire(import.meta.url);
+  const mssql = require('mssql');
+  const { extractFortesPayroll, buildDbConfig } = require('../../rayo-server/fortes-extractor.js');
+  const pool = await mssql.connect(buildDbConfig());
+  // Saldo em centavos arredondados linha a linha, como o Rayo lança cada provisão.
+  const saldoFortes = async (anoMes, coluna) => {
+    const [r] = (await pool.request().query(`
+      SELECT ISNULL(SUM(CAST(ROUND(PRF.${coluna}Acumulada * 100, 0) AS BIGINT) + CAST(ROUND(PRF.${coluna}Provisao * 100, 0) AS BIGINT)), 0) AS saldo
+      FROM PRF JOIN PRV ON PRV.EMP_Codigo = PRF.EMP_Codigo AND PRV.FOL_Seq = PRF.EFO_FOL_Seq
+      JOIN FOL ON FOL.EMP_Codigo = PRV.EMP_Codigo AND FOL.Seq = PRV.FOL_Seq AND FOL.Folha = 15
+      WHERE PRF.EMP_Codigo = '${fortesCompany}' AND PRV.AnoMes = '${anoMes}'`)).recordset;
+    return Number(r.saldo);
+  };
+  const passivos = [['', '2.1.1.03.001'], ['INSS', '2.1.1.03.002'], ['FGTS', '2.1.1.03.003']];
+  try {
+    for (const competence of competencias(inicio, fim)) {
+      const ex = await extractFortesPayroll({ companyId: fortesCompany, competence });
+      const sourceRows = normalizeFortesQueryRows(
+        ex.payroll,
+        { fortesProvisions: ex.provisions, fortesEncargoBases: ex.encargoBases, fortesExtraPayroll: ex.extraPayroll },
+        config.provisionRates,
+        config.encargoRates
+      ).map((row) => ({ ...row, companyId: config.company.companyId }));
+      const run = runFolhaDealerEngine({ config, sourceRows, competence });
+      const [ano, mes] = competence.split('-').map(Number);
+      const anterior = mes === 1 ? `${ano - 1}12` : `${ano}${String(mes - 1).padStart(2, '0')}`;
+      for (const [coluna, conta] of passivos) {
+        const movimentoLote = run.entries
+          .filter((e) => e.accountCode === conta)
+          .reduce((s, e) => s + (e.dc === 'C' ? e.amountCents : -e.amountCents), 0);
+        const variacaoFortes = (await saldoFortes(competence.replace('-', ''), coluna)) - (await saldoFortes(anterior, coluna));
+        expect([competence, conta, movimentoLote]).toEqual([competence, conta, variacaoFortes]);
+      }
+    }
+  } finally {
+    await pool.close();
+  }
+}

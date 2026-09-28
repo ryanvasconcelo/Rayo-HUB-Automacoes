@@ -7,8 +7,9 @@
 
 import { bragaVeiculosConfig } from './braga-veiculos.config.js';
 import { bragaMotosConfig } from './braga-motos.config.js';
+import { motoReyConfig } from './moto-rey.config.js';
 
-const CONFIGS = [bragaVeiculosConfig, bragaMotosConfig];
+const CONFIGS = [bragaVeiculosConfig, bragaMotosConfig, motoReyConfig];
 
 const BY_COMPANY_ID = new Map(CONFIGS.map((c) => [c.company.companyId, c]));
 const BY_FORTES_CODE = new Map(CONFIGS.map((c) => [c.company.fortesCompanyCode, c]));

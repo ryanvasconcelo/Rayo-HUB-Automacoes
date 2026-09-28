@@ -1,0 +1,117 @@
+{
+  "companyId": "moto-rey",
+  "centers": [
+    {
+      "code": "001118",
+      "name": "VENDAS MOTO REY",
+      "active": true
+    },
+    {
+      "code": "003400",
+      "name": "PECAS MOTO REY",
+      "active": true
+    },
+    {
+      "code": "004100",
+      "name": "OFC MOTO REY",
+      "active": true
+    },
+    {
+      "code": "000600",
+      "name": "ADMINISTRAÇÃO",
+      "active": true
+    }
+  ],
+  "lotacaoMappings": [
+    {
+      "lotacaoCode": "DPT POS VENDAS MECANICA ROYAL ENFIELD",
+      "dealerCenterCode": "004100",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "001",
+      "dealerCenterCode": "004100",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPTO DE VENDAS",
+      "dealerCenterCode": "001118",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "002",
+      "dealerCenterCode": "001118",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPARTAMENTO CRM",
+      "dealerCenterCode": "001118",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "003",
+      "dealerCenterCode": "001118",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "BRAGA MOTO REY DEPTO MECANICA",
+      "dealerCenterCode": "004100",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "004",
+      "dealerCenterCode": "004100",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DPT POS VENDAS PEÇAS",
+      "dealerCenterCode": "003400",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "005",
+      "dealerCenterCode": "003400",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "DEPARTAMENTO PRACA 14",
+      "dealerCenterCode": "004100",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "006",
+      "dealerCenterCode": "004100",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "GERAL",
+      "dealerCenterCode": "000600",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "999",
+      "dealerCenterCode": "000600",
+      "allocationMode": "direct",
+      "active": true
+    },
+    {
+      "lotacaoCode": "",
+      "dealerCenterCode": "000600",
+      "allocationMode": "direct",
+      "active": true
+    }
+  ]
+}

@@ -127,10 +127,11 @@ describe('registro de empresas', () => {
     expect(() => getCompanyConfigByFortesCode('9276')).toThrow(/não possui configuração/);
   });
 
-  it('expõe as duas empresas para o seletor da tela', () => {
+  it('expõe as empresas habilitadas para o seletor da tela', () => {
     expect(FOLHA_DEALER_COMPANIES.map((c) => c.companyId)).toEqual([
       'braga-veiculos',
       'braga-motos',
+      'moto-rey',
     ]);
   });
 });
