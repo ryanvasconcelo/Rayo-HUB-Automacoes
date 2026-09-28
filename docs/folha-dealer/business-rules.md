@@ -118,7 +118,7 @@ O Fortes guarda cada uma como uma folha própria (`FOL.Folha`), sem registro em 
 | Tipo | `FOL.Folha` | Competência pelo mês de | Líquido |
 |---|---|---|---|
 | Férias | 4, só sem `FOL_Seq_Pai` | `FER.DtGozoInicial` | `LIQUIDO_FERIAS` → 1.1.4.01.002 |
-| Rescisão | 10 | `FOL.DtCalculo` | `LIQUIDO_RESCISAO` → 2.1.1.01.004 |
+| Rescisão | 10 e 11 (rescisão complementar) | `FOL.DtCalculo` | `LIQUIDO_RESCISAO` → 2.1.1.01.004 |
 | Complementar | 17 | `FOL.DtReferencia` | `LIQUIDO_COMPLEMENTAR` → 2.1.1.01.001 |
 
 - O 13º rescisório (`Folha=8`) e as férias filhas de rescisão (`Folha=4` com `FOL_Seq_Pai`) **não entram**: repetem os eventos 208/209 e 203/205/211/212 que já estão na rescisão.
