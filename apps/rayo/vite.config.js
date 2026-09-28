@@ -44,6 +44,11 @@ export default defineConfig(async ({ command }) => {
             target: 'esnext',
         },
     },
+    server: {
+        host: '0.0.0.0',   // escuta em todas as interfaces (inclusive 192.168.0.9)
+        port: 80,
+        strictPort: true,   // falha se a porta já estiver em uso
+    },
     build: {
         target: 'esnext',
     },

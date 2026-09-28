@@ -67,3 +67,6 @@ docs/**/temp/
 
 # Cadastro Folha Dealer (runtime no servidor)
 apps/rayo-server/data/
+
+# Relatórios e prints de clientes (dados de folha) — não versionar: repositório público
+novos/
