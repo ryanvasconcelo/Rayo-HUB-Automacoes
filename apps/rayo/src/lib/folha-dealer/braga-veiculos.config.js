@@ -150,7 +150,7 @@ const accountMappings = [
   { companyId: company.companyId, eventCode: '099', dealerAccountCode: '6.1.1.01.002', dealerLotAccountCode: null, dc: 'D', description: 'Complemento de Folha', active: true },
   { companyId: company.companyId, eventCode: '075', dealerAccountCode: '6.1.1.01.002', dealerLotAccountCode: null, dc: 'D', description: 'Quebra de Caixa', active: true },
   { companyId: company.companyId, eventCode: '090', dealerAccountCode: '6.1.1.01.002', dealerLotAccountCode: null, dc: 'D', description: 'Líquido Negativo', active: true },
-  { companyId: company.companyId, eventCode: '100', dealerAccountCode: '2.1.1.03.001', dealerLotAccountCode: null, dc: 'D', description: 'Provisão Cred. Trab.', active: true },
+  { companyId: company.companyId, eventCode: '100', dealerAccountCode: '2.1.1.02.007', dealerLotAccountCode: null, dc: 'D', description: 'Provisão Cred. Trab.', active: true },
   { companyId: company.companyId, eventCode: '103', dealerAccountCode: '6.1.1.01.003', dealerLotAccountCode: null, dc: 'D', description: 'Prêmio Outros Adic. F&I', active: true },
   { companyId: company.companyId, eventCode: '104', dealerAccountCode: '6.1.1.01.003', dealerLotAccountCode: null, dc: 'D', description: 'Prêmio Performance', active: true },
   { companyId: company.companyId, eventCode: '105', dealerAccountCode: '6.1.1.01.003', dealerLotAccountCode: null, dc: 'D', description: 'Prêmio Desafio', active: true },

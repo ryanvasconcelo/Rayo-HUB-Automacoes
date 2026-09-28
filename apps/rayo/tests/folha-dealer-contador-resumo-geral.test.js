@@ -58,6 +58,8 @@ const LIQUIDOS = {
 const DECISOES = [
   { tipo: 'FERIAS', eventos: ['110', '111', '113', '950'], conta: '6.1.1.03.001', dc: 'D', motivo: 'proventos de férias em despesa de férias' },
   { tipo: 'FERIAS', eventos: ['301'], conta: '2.1.1.02.007', dc: 'C', motivo: 'desconto do crédito do trabalhador (consignado)' },
+  { tipo: 'MENSAL', eventos: ['100'], conta: '2.1.1.02.007', dc: 'D', motivo: 'evento 100 na mesma conta do 301' },
+  { tipo: 'RESCISAO', eventos: ['100'], conta: '2.1.1.02.007', dc: 'D', motivo: 'evento 100 na mesma conta do 301' },
   { tipo: 'RESCISAO', eventos: ['203', '205', '206', '211', '212'], conta: '6.1.1.03.001', dc: 'D', motivo: 'férias na rescisão em despesa de férias' },
   { tipo: 'RESCISAO', eventos: ['160', '208', '209'], conta: '6.1.1.03.002', dc: 'D', motivo: '13º na rescisão em despesa de 13º' },
   { tipo: 'RESCISAO', eventos: ['200', '201'], conta: '6.1.1.01.004', dc: 'D', motivo: 'aviso prévio indenizado / rescisão antecipada' },

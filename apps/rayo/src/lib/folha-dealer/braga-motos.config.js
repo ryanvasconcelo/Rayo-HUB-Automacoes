@@ -296,7 +296,7 @@ const eventAccountMappings = [
   { eventCode: '096', dealerAccountCode: '6.1.1.01.002', dc: 'D', description: 'Reembolso Atrasos' },
   { eventCode: '098', dealerAccountCode: '6.1.1.01.002', dc: 'D', description: 'Quebra de Caixa - Mês Anterior' },
   { eventCode: '099', dealerAccountCode: '6.1.1.01.002', dc: 'D', description: 'Complemento de Folha' },
-  { eventCode: '100', dealerAccountCode: '2.1.1.03.001', dc: 'D', description: 'Provisão Cred. Trab. - Provento' }, // conta exigida pelo motor
+  { eventCode: '100', dealerAccountCode: '2.1.1.02.007', dc: 'D', description: 'Provisão Cred. Trab. - Provento' }, // conta exigida pelo motor
   { eventCode: '101', dealerAccountCode: '6.1.1.01.003', dc: 'D', description: 'Prêmio Meta F&I' },
   { eventCode: '102', dealerAccountCode: '6.1.1.01.003', dc: 'D', description: 'Prêmio Emplacamento' },
   { eventCode: '107', dealerAccountCode: '6.1.1.01.005', dc: 'D', description: 'Comissão LEADS' },

@@ -20,8 +20,11 @@ export const INFORMATIVE_EVENT_CODES = new Set([
   '600', '601', '602', '603', '604',
 ]);
 
-/** Conta obrigatória para o evento 100. */
-export const EVENT_100_REQUIRED_ACCOUNT = '2.1.1.03.001';
+/**
+ * Conta obrigatória para o evento 100 (Provisão Cred. Trab. - Provento): crédito
+ * do trabalhador, a mesma conta do evento 301 (decisão do contador, 28/09/2026).
+ */
+export const EVENT_100_REQUIRED_ACCOUNT = '2.1.1.02.007';
 
 /**
  * Tipos de folha do Fortes que o Rayo contabiliza. Cada tipo tem o próprio

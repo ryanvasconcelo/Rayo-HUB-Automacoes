@@ -109,7 +109,7 @@ conta, natureza e observacao, nao o valor total.
 | 096 | Prêmio Outros | 6.1.1.01.003 |  | Variante família prêmio |
 | 097 | Prêmio Meta Complementar | 6.1.1.01.003 |  | Variante Prêmio Meta |
 | 098 | Comissões Garantia | 6.1.1.01.005 |  | Variante família comissão |
-| 100 | Provisão Cred. Trab.- Provento | 2.1.1.03.001 |  | Conta fechada para o evento 100; por iniciar com 2, nao leva centro no TXT |
+| 100 | Provisão Cred. Trab.- Provento | 2.1.1.02.007 |  | Conta fechada para o evento 100 (mesma do 301, contador 28/09/2026); por iniciar com 2, nao leva centro no TXT |
 | 103 | Prêmio Outros Adic. F&I | 6.1.1.01.003 |  | Variante família prêmio |
 | 104 | Prêmio Performance | 6.1.1.01.003 |  | Variante família prêmio |
 | 105 | Prêmio Desafio | 6.1.1.01.003 |  | Variante família prêmio |

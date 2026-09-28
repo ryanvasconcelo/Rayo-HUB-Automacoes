@@ -311,11 +311,11 @@ describe('Folha Dealer engine', () => {
         expect(inssEntry.centerCode).toBeUndefined();
     });
 
-    it('evento 100 usa 2.1.1.03.001', () => {
+    it('evento 100 usa 2.1.1.02.007 (crédito do trabalhador, mesma conta do 301)', () => {
         const result = runEngine();
         const event100 = result.entries.find((entry) => entry.eventCode === '100');
 
-        expect(event100.accountCode).toBe('2.1.1.03.001');
+        expect(event100.accountCode).toBe('2.1.1.02.007');
     });
 
     it('evento 100 nao leva centro', () => {

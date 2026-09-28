@@ -28,7 +28,7 @@ Parametros e valores observados:
 - Contas iniciadas por `1` ou `2` exportam centro de custo vazio ou com
   espacos, conforme a regra de preenchimento do layout oficial.
 - Contas iniciadas por `3` em diante exportam centro de custo.
-- O evento Fortes `100 Provisao Cred. Trab.` usa a conta `2.1.1.03.001` e,
+- O evento Fortes `100 Provisao Cred. Trab.` usa a conta `2.1.1.02.007` e,
   por comecar com `2`, exporta centro de custo vazio ou com espacos.
 - O motor e o exportador devem normalizar a natureza D/C para maiusculo.
 - O TXT final so pode ser exportado depois da aprovacao do analista contabil.
