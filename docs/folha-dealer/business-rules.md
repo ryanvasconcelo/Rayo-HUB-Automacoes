@@ -110,3 +110,20 @@ o Excel de conferencia.
 A aprovacao deve registrar empresa, competencia, usuario, data/hora, hash ou
 versao dos dados de origem, hash ou versao dos de-para, total de debitos, total
 de creditos, quantidade de lancamentos, e lista de validacoes sem bloqueio.
+
+## Férias, rescisão e folha complementar
+
+O Fortes guarda cada uma como uma folha própria (`FOL.Folha`), sem registro em `FPG`. A competência de cada uma sai de uma data própria — regra conferida ao centavo com o "Resumo Geral do Mês/Período" do Fortes (Braga Motos 04/2026 e Braga Veículos 01–08/2026):
+
+| Tipo | `FOL.Folha` | Competência pelo mês de | Líquido |
+|---|---|---|---|
+| Férias | 4, só sem `FOL_Seq_Pai` | `FER.DtGozoInicial` | `LIQUIDO_FERIAS` → 1.1.4.01.002 |
+| Rescisão | 10 | `FOL.DtCalculo` | `LIQUIDO_RESCISAO` → 2.1.1.01.004 |
+| Complementar | 17 | `FOL.DtReferencia` | `LIQUIDO_COMPLEMENTAR` → 2.1.1.01.001 |
+
+- O 13º rescisório (`Folha=8`) e as férias filhas de rescisão (`Folha=4` com `FOL_Seq_Pai`) **não entram**: repetem os eventos 208/209 e 203/205/211/212 que já estão na rescisão.
+- **Encargos patronais não são gerados** para esses tipos: as bases eSocial (`ES_CS_CP_Base`, `ES_FGTS_SEGURADO`) já consolidam todos os tipos de folha da competência.
+- Histórico no TXT: `FERIAS REF MM/AAAA`, `RESCISAO REF MM/AAAA`, `FOLHA COMPLEMENTAR REF MM/AAAA`. A folha mensal continua `FOLHA DE PAGAMENTO REF MM/AAAA`.
+- A multa de 40% do FGTS (evento 900) é informativa e não gera lançamento — precisa de regra própria.
+- Para conferir contra o Resumo Geral: `node apps/rayo-server/scripts/reconcile-payroll-types.mjs <empresaFortes> <AAAA-MM> [AAAA-MM final]`.
+- Testes de conformidade com o contador: `apps/rayo/tests/folha-dealer-contador-resumo-geral.test.js` confere o lote contra o Resumo Geral (valor de cada evento, contas dos líquidos, decisões do contador). Com `FORTES_LIVE=1` também compara, evento a evento, a extração do banco com o relatório.

@@ -9,6 +9,7 @@ import {
   DEFAULT_ENCARGO_RATES,
 } from './encargo-calculator.js';
 import { employeeLotacaoMap } from './employee-lotacao-map.js';
+import { PAYROLL_TYPES, DEFAULT_PAYROLL_TYPE, resolvePayrollType } from './contracts.js';
 
 const FORTES_PROVISION_ORIGIN = 'fortes-provision';
 const FORTES_ENCARGO_ORIGIN = 'fortes-encargo';
@@ -97,6 +98,7 @@ function toPayrollSourceRow(raw, index, { preserveSign = false } = {}) {
     companyId: raw.companyId != null ? String(raw.companyId) : '',
     companyName: raw.companyName || '',
     competence,
+    payrollType: resolvePayrollType(raw.payrollType),
     lotacaoCode: lotacao.lotacaoCode,
     lotacaoName: lotacao.lotacaoName,
     eventCode: String(raw.eventCode),
@@ -116,6 +118,7 @@ function toPayrollSourceRow(raw, index, { preserveSign = false } = {}) {
  * @param {object} [options]
  * @param {object[]} [options.fortesProvisions] — PROV_* já calculados no Fortes (PRD/PRF)
  * @param {object[]} [options.fortesEncargoBases] — bases eSocial (ES_CS_CP_Base / ES_FGTS_SEGURADO)
+ * @param {object[]} [options.fortesExtraPayroll] — férias, rescisão e complementar (linhas com payrollType)
  * @param {object|null} provisionRates — fallback sintético usado só quando fortesProvisions vier vazio
  * @param {object|null} encargoRates — alíquotas DCTF; bases eSocial preferidas quando disponíveis
  */
@@ -125,9 +128,15 @@ export function normalizeFortesQueryRows(rawRows, options = {}, provisionRates =
   const fortesEncargoBases = Array.isArray(options.fortesEncargoBases)
     ? options.fortesEncargoBases
     : [];
+  const fortesExtraPayroll = Array.isArray(options.fortesExtraPayroll)
+    ? options.fortesExtraPayroll
+    : [];
+  // Folha mensal + férias/rescisão/complementar: mesmo tratamento de evento,
+  // mas cada tipo com líquido próprio.
+  const payrollRows = [...rawRows, ...fortesExtraPayroll];
 
-  for (let i = 0; i < rawRows.length; i++) {
-    const raw = rawRows[i];
+  for (let i = 0; i < payrollRows.length; i++) {
+    const raw = payrollRows[i];
 
     if (raw.eventCode === undefined || raw.eventCode === null || String(raw.eventCode).trim() === '') {
       continue;
@@ -136,59 +145,67 @@ export function normalizeFortesQueryRows(rawRows, options = {}, provisionRates =
     normalized.push(toPayrollSourceRow(raw, i, { preserveSign: false }));
   }
 
-  // Sintetizar Líquido da Folha por Lotação
-  const liquidoPerLotacao = {};
-  for (let i = 0; i < rawRows.length; i++) {
-    const raw = rawRows[i];
+  // Líquido por tipo de folha + lotação: férias, rescisão e complementar têm
+  // conta de líquido própria e não podem cair no líquido da folha mensal.
+  const liquidoPorTipoLotacao = new Map();
+  for (const raw of payrollRows) {
     const type = mapFortesRecordType(raw);
     if (type !== 'PROVENTO' && type !== 'DESCONTO') continue;
 
+    const payrollType = resolvePayrollType(raw.payrollType);
     const lotacao = resolveLotacao(raw);
-    const code = lotacao.lotacaoCode;
-    if (!liquidoPerLotacao[code]) {
-      liquidoPerLotacao[code] = {
+    const key = `${payrollType}|${lotacao.lotacaoCode}`;
+    if (!liquidoPorTipoLotacao.has(key)) {
+      liquidoPorTipoLotacao.set(key, {
         amount: 0,
+        payrollType,
+        lotacaoCode: lotacao.lotacaoCode,
+        lotacaoName: lotacao.lotacaoName,
         companyId: raw.companyId,
         competence: raw.competence,
-        lotacaoName: lotacao.lotacaoName,
-      };
+      });
     }
 
+    const data = liquidoPorTipoLotacao.get(key);
     const amt = Math.abs(Number(raw.amountCents) || 0);
-    if (type === 'PROVENTO') liquidoPerLotacao[code].amount += amt;
-    if (type === 'DESCONTO') liquidoPerLotacao[code].amount -= amt;
+    data.amount += type === 'PROVENTO' ? amt : -amt;
   }
 
   // Líquido com sinal: negativo (descontos > proventos) segue para o journal,
   // que bloqueia por NEGATIVE_VALUE_WITHOUT_POLICY em vez de sumir em silêncio.
-  for (const [code, data] of Object.entries(liquidoPerLotacao)) {
-    if (data.amount !== 0) {
-      const comp = normalizeCompetence(data.competence);
-      normalized.push({
-        sourceSystem: 'fortes',
-        sourceAdapter: 'fortes-query',
-        sourceOrigin: 'fortes-query-derived',
-        sourcePayrollId: null,
-        companyId: data.companyId != null ? String(data.companyId) : '',
-        companyName: '',
-        competence: comp || '',
-        lotacaoCode: code,
-        lotacaoName: data.lotacaoName || '',
-        eventCode: 'LIQUIDO_FOLHA',
-        eventName: 'Líquido da Folha a Pagar',
-        sourceEventNature: 'DESCONTO',
-        sourceReference: '',
-        sourceRecordType: 'DESCONTO',
-        amountCents: Math.round(data.amount),
-        employeeId: null,
-        employeeName: null,
-        sourceLineId: `fortes-derived-liquido-${code}`,
-      });
-    }
+  for (const data of liquidoPorTipoLotacao.values()) {
+    if (data.amount === 0) continue;
+    const { liquidEventCode, liquidEventName } = PAYROLL_TYPES[data.payrollType];
+    normalized.push({
+      sourceSystem: 'fortes',
+      sourceAdapter: 'fortes-query',
+      sourceOrigin: 'fortes-query-derived',
+      sourcePayrollId: null,
+      companyId: data.companyId != null ? String(data.companyId) : '',
+      companyName: '',
+      competence: normalizeCompetence(data.competence) || '',
+      payrollType: data.payrollType,
+      lotacaoCode: data.lotacaoCode,
+      lotacaoName: data.lotacaoName || '',
+      eventCode: liquidEventCode,
+      eventName: liquidEventName,
+      sourceEventNature: 'DESCONTO',
+      sourceReference: '',
+      sourceRecordType: 'DESCONTO',
+      amountCents: Math.round(data.amount),
+      employeeId: null,
+      employeeName: null,
+      sourceLineId: `fortes-derived-liquido-${data.payrollType}-${data.lotacaoCode}`,
+    });
   }
 
-  // Fallbacks sintéticos usam a mesma lotação resolvida da folha
-  const rowsWithLotacao = rawRows.map((raw) => ({ ...raw, ...resolveLotacao(raw) }));
+  // Fallbacks sintéticos usam só a folha mensal: férias, rescisão e
+  // complementar já estão nas bases eSocial e nas provisões do Fortes, e
+  // entrar aqui geraria encargo e provisão em dobro.
+  const monthlyRows = rawRows.filter(
+    (raw) => resolvePayrollType(raw.payrollType) === DEFAULT_PAYROLL_TYPE
+  );
+  const rowsWithLotacao = monthlyRows.map((raw) => ({ ...raw, ...resolveLotacao(raw) }));
 
   // Provisões: Fortes manda (PRD/PRF). Mês sem PRD/PRF → fallback sintético
   // (sourceOrigin provision-derived; o motor emite SYNTHETIC_PROVISION).

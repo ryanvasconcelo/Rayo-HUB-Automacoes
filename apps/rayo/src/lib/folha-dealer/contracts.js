@@ -23,6 +23,54 @@ export const INFORMATIVE_EVENT_CODES = new Set([
 /** Conta obrigatória para o evento 100. */
 export const EVENT_100_REQUIRED_ACCOUNT = '2.1.1.03.001';
 
+/**
+ * Tipos de folha do Fortes que o Rayo contabiliza. Cada tipo tem o próprio
+ * líquido (conta própria no de-para) e o próprio histórico no TXT. A ordem é a
+ * do "Resumo Geral do Mês/Período" do Fortes.
+ */
+export const PAYROLL_TYPES = Object.freeze({
+  MENSAL: Object.freeze({
+    label: 'Folha de Pagamento',
+    liquidEventCode: 'LIQUIDO_FOLHA',
+    liquidEventName: 'Líquido da Folha a Pagar',
+    historyLabel: 'FOLHA DE PAGAMENTO',
+  }),
+  FERIAS: Object.freeze({
+    label: 'Férias',
+    liquidEventCode: 'LIQUIDO_FERIAS',
+    liquidEventName: 'Líquido de Férias',
+    historyLabel: 'FERIAS',
+  }),
+  RESCISAO: Object.freeze({
+    label: 'Rescisão',
+    liquidEventCode: 'LIQUIDO_RESCISAO',
+    liquidEventName: 'Líquido de Rescisão a Pagar',
+    historyLabel: 'RESCISAO',
+  }),
+  COMPLEMENTAR: Object.freeze({
+    label: 'Complemento de Folha',
+    liquidEventCode: 'LIQUIDO_COMPLEMENTAR',
+    liquidEventName: 'Líquido da Folha Complementar',
+    historyLabel: 'FOLHA COMPLEMENTAR',
+  }),
+});
+
+export const DEFAULT_PAYROLL_TYPE = 'MENSAL';
+
+/**
+ * Linha sem tipo é folha mensal. Tipo desconhecido é erro: cair na folha
+ * mensal jogaria o líquido na conta errada sem aviso.
+ * @param {string} [payrollType]
+ * @returns {string}
+ */
+export function resolvePayrollType(payrollType) {
+  if (!payrollType) return DEFAULT_PAYROLL_TYPE;
+  if (!PAYROLL_TYPES[payrollType]) {
+    throw new Error(`Tipo de folha desconhecido: "${payrollType}".`);
+  }
+  return payrollType;
+}
+
 // ---------------------------------------------------------------------------
 // Códigos de validação
 // ---------------------------------------------------------------------------
@@ -54,13 +102,16 @@ export const ValidationCodes = Object.freeze({
 // ---------------------------------------------------------------------------
 
 /**
- * Gera o histórico padrão: `FOLHA DE PAGAMENTO REF MM/AAAA`.
+ * Gera o histórico do lançamento: `FOLHA DE PAGAMENTO REF MM/AAAA` na folha
+ * mensal, `FERIAS REF MM/AAAA` etc. nos demais tipos.
  * @param {string} competence — formato `YYYY-MM`.
+ * @param {string} [payrollType]
  * @returns {string}
  */
-export function buildHistory(competence) {
+export function buildHistory(competence, payrollType = DEFAULT_PAYROLL_TYPE) {
   const [year, month] = competence.split('-');
-  return `FOLHA DE PAGAMENTO REF ${month}/${year}`;
+  const { historyLabel } = PAYROLL_TYPES[resolvePayrollType(payrollType)];
+  return `${historyLabel} REF ${month}/${year}`;
 }
 
 /**

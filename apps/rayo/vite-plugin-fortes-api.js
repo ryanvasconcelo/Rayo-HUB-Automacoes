@@ -41,6 +41,7 @@ export function buildFortesExtractResponse(extracted) {
     encargoBases: extracted.encargoBases,
     encargoUnmapped: extracted.encargoUnmapped,
     encargoCoverage: extracted.encargoCoverage,
+    extraPayroll: extracted.extraPayroll || [],
   };
 }
 

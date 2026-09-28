@@ -20,6 +20,7 @@ import {
   EVENT_100_REQUIRED_ACCOUNT,
   ValidationCodes,
   buildHistory,
+  DEFAULT_PAYROLL_TYPE,
   accountRequiresCenter,
 } from './contracts.js';
 import { mapCenter } from './center-mapper.js';
@@ -35,7 +36,6 @@ import { mapAccount } from './account-mapper.js';
 export function buildJournal({ consolidatedItems, config, competence }) {
   const entries = [];
   const issues = [];
-  const history = buildHistory(competence);
 
   for (const item of consolidatedItems) {
     // ------ Zero value → skip + warning ------
@@ -124,6 +124,8 @@ export function buildJournal({ consolidatedItems, config, competence }) {
       });
     }
 
+    const history = buildHistory(competence, item.payrollType);
+
     // ------ Generate entries for each account line ------
     for (const accountLine of accountLines) {
       const requiresCenter = accountRequiresCenter(accountLine.dealerAccountCode);
@@ -163,6 +165,7 @@ export function buildJournal({ consolidatedItems, config, competence }) {
         competence,
         batchType: BATCH_TYPE,
         history,
+        payrollType: item.payrollType || DEFAULT_PAYROLL_TYPE,
         dc: finalDc,
         accountCode: accountLine.dealerAccountCode,
         dealerLotAccountCode: accountLine.dealerLotAccountCode,

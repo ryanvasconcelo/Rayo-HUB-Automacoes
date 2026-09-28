@@ -1,4 +1,5 @@
 const mssql = require('mssql');
+const { EXTRA_PAYROLL_QUERIES, competenceDateRange } = require('./fortes-extra-payroll-queries');
 
 function buildDbConfig() {
   return {
@@ -408,6 +409,7 @@ async function extractFortesPayroll({ companyId = '9274', competence = '2026-04'
   const ano = parseInt(anoStr, 10);
   const mes = parseInt(mesStr, 10);
   const anoMesStr = anoStr + (mesStr ? mesStr.padStart(2, '0') : '');
+  const { dataIni, dataFim } = competenceDateRange(`${anoMesStr.slice(0, 4)}-${anoMesStr.slice(4, 6)}`);
 
   console.log(`[API Fortes] Conectando ao MSSQL... Empresa: ${companyId}, Competência: ${anoMesStr}`);
 
@@ -420,15 +422,18 @@ async function extractFortesPayroll({ companyId = '9274', competence = '2026-04'
         .input('Company', mssql.VarChar(4), companyId)
         .input('AnoParam', mssql.Int, ano)
         .input('MesParam', mssql.Int, mes)
-        .input('AnoMesParam', mssql.VarChar(6), anoMesStr);
+        .input('AnoMesParam', mssql.VarChar(6), anoMesStr)
+        .input('DataIniParam', mssql.VarChar(10), dataIni)
+        .input('DataFimParam', mssql.VarChar(10), dataFim);
 
-    const [payrollResult, prov13Result, provFerResult, encargoBaseResult, encargoTotalsResult] =
+    const [payrollResult, prov13Result, provFerResult, encargoBaseResult, encargoTotalsResult, ...extraResults] =
       await Promise.all([
         request().query(PAYROLL_QUERY),
         request().query(PROV_13_QUERY),
         request().query(PROV_FER_QUERY),
         request().query(ENCARGO_BASE_QUERY),
         request().query(ENCARGO_TOTALS_QUERY),
+        ...EXTRA_PAYROLL_QUERIES.map((q) => request().query(q.sql)),
       ]);
 
     // de-para Braga usa o nome da lotação (LOT.Nome)
@@ -447,6 +452,11 @@ async function extractFortesPayroll({ companyId = '9274', competence = '2026-04'
       provisions.push(...expandProvisionAmounts(row, PROV_FER_DEFS));
     }
 
+    // Férias, rescisão e complementar: mesma chave de lotação (LOT.Nome) da folha mensal
+    const extraPayroll = extraResults.flatMap((result) =>
+      result.recordset.map((row) => (row.lotacaoName ? { ...row, lotacaoCode: row.lotacaoName } : row))
+    );
+
     const encargoBases = encargoBaseResult.recordset.map((row) => {
       const lotacaoName = row.lotacaoName || '';
       return {
@@ -464,12 +474,14 @@ async function extractFortesPayroll({ companyId = '9274', competence = '2026-04'
       `[API Fortes] Folha=${payroll.length} linhas; ` +
         `Provisões Fortes=${provisions.length} (13º+férias); ` +
         `Bases encargo eSocial=${encargoBases.length}; ` +
+        `Férias/rescisão/complementar=${extraPayroll.length} linhas; ` +
         `CPP ${encargoCoverage.bcCpCents.extracted}/${encargoCoverage.bcCpCents.expected}, ` +
         `FGTS ${encargoCoverage.fgtsDepoCents.extracted}/${encargoCoverage.fgtsDepoCents.expected}`
     );
 
     return {
       payroll,
+      extraPayroll,
       provisions,
       encargoBases,
       encargoUnmapped,

@@ -42,6 +42,9 @@ export {
   EVENT_100_REQUIRED_ACCOUNT,
   ValidationCodes,
   buildHistory,
+  PAYROLL_TYPES,
+  DEFAULT_PAYROLL_TYPE,
+  resolvePayrollType,
   accountClass,
   accountRequiresCenter,
 } from './contracts.js';
@@ -54,6 +57,7 @@ export {
 } from './folha-dealer-run-service.js';
 
 export { summarizeValidationIssues } from './validation-summarizer.js';
+export { summarizeByPayrollType } from './payroll-type-summary.js';
 export {
   padCenterCode,
   mergeCenterMappings,

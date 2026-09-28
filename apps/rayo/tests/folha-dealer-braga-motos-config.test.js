@@ -67,13 +67,16 @@ describe('bragaMotosConfig — de-para de contas', () => {
       new Set(mappings.filter((m) => /^\d+$/.test(m.eventCode)).map((m) => `${m.eventCode}:${m.dc}`));
 
     const motos = numeric(bragaMotosConfig.accountMappings);
-    const veiculos = numeric(bragaVeiculosConfig.accountMappings);
 
-    expect(motos.has('093:C')).toBe(false);
-    expect(motos.has('093:D')).toBe(true);
-    // Sobreposição legítima existe (310 INSS, 311 IRRF…), mas não pode ser total.
-    const inherited = [...veiculos].filter((k) => motos.has(k));
-    expect(inherited.length).toBeLessThan(veiculos.size / 2);
+    // Códigos com significado diferente nas duas empresas: a Braga Motos segue
+    // a natureza do próprio evento (tabela EVE da 9277), nunca a da BV.
+    const naturezaMotos = {
+      '093': 'D', '101': 'D', '102': 'D', '975': 'C', '977': 'C', '978': 'C', '979': 'C', '989': 'D',
+    };
+    for (const [code, dc] of Object.entries(naturezaMotos)) {
+      expect(motos.has(`${code}:${dc}`)).toBe(true);
+      expect(motos.has(`${code}:${dc === 'D' ? 'C' : 'D'}`)).toBe(false);
+    }
   });
 
   it('reaproveita os eventos sintéticos do motor', () => {

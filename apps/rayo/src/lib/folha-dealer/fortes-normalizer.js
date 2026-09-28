@@ -22,7 +22,9 @@ import { employeeLotacaoMap } from './employee-lotacao-map.js';
 function shouldPreserveSignedAmount(row) {
   if (row?.sourceOrigin === 'fortes-provision') return true;
   const code = String(row?.eventCode || '');
-  return code.startsWith('PROV_') || code === 'LIQUIDO_FOLHA';
+  // Líquido de qualquer tipo de folha pode ser negativo (ex.: rescisão com
+  // "Líquido Negativo"); o journal bloqueia em vez de o sinal sumir.
+  return code.startsWith('PROV_') || code.startsWith('LIQUIDO_');
 }
 
 /**
