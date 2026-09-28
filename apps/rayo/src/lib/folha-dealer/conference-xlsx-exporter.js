@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { BATCH_TYPE, buildHistory, PAYROLL_TYPES, resolvePayrollType } from './contracts.js';
+import { BATCH_TYPE, buildHistory, DEFAULT_PAYROLL_TYPE, PAYROLL_TYPES, resolvePayrollType } from './contracts.js';
 import { summarizeByPayrollType } from './payroll-type-summary.js';
 
 const payrollTypeLabel = (payrollType) => PAYROLL_TYPES[resolvePayrollType(payrollType)].label;
@@ -86,11 +86,19 @@ export function exportConferenceXlsx(run, config) {
     competence: run.competence,
   });
 
-  // 1. Aba Resumo
+  // 1. Aba Resumo — um histórico por tipo de folha presente no lote
+  const tiposNoLote = new Set((run.sourceRows || []).map((row) => resolvePayrollType(row.payrollType)));
+  if (tiposNoLote.size === 0) tiposNoLote.add(DEFAULT_PAYROLL_TYPE);
+  const historicos = Object.keys(PAYROLL_TYPES)
+    .filter((payrollType) => tiposNoLote.has(payrollType))
+    .map((payrollType) => ({
+      Chave: `Histórico — ${PAYROLL_TYPES[payrollType].label}`,
+      Valor: buildHistory(run.competence, payrollType),
+    }));
   const resumeData = [
     { Chave: 'Empresa', Valor: run.companyId },
     { Chave: 'Competência', Valor: run.competence },
-    { Chave: 'Histórico', Valor: buildHistory(run.competence) },
+    ...historicos,
     { Chave: 'BatchType', Valor: BATCH_TYPE },
     { Chave: 'Status', Valor: run.status },
     { Chave: 'Total Débitos (R$)', Valor: totals.debit },

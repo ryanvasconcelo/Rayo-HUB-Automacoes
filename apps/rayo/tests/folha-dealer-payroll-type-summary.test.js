@@ -20,9 +20,14 @@ const rows = normalizeFortesQueryRows(
 describe('summarizeByPayrollType', () => {
   it('fecha proventos, descontos, líquido e empregados por tipo, como o Resumo Geral do Fortes', () => {
     expect(summarizeByPayrollType(rows)).toEqual([
-      { payrollType: 'MENSAL', label: 'Folha de Pagamento', proventosCents: 300000, descontosCents: 30000, liquidoCents: 270000, empregados: 2 },
+      { payrollType: 'MENSAL', label: 'Folha de Pagamento', proventosCents: 300000, descontosCents: 30000, liquidoCents: 270000, empregados: 1 },
       { payrollType: 'FERIAS', label: 'Férias', proventosCents: 90000, descontosCents: 9000, liquidoCents: 81000, empregados: 1 },
     ]);
+  });
+
+  it('conta só empregados com provento ou desconto (quem só tem base informativa fica de fora)', () => {
+    const mensal = summarizeByPayrollType(rows).find((t) => t.payrollType === 'MENSAL');
+    expect(mensal.empregados).toBe(1);
   });
 
   it('não conta o líquido sintético como desconto', () => {

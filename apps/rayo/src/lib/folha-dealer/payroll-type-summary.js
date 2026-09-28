@@ -9,7 +9,9 @@
 
 import { PAYROLL_TYPES, resolvePayrollType } from './contracts.js';
 
-const COUNTED_NATURES = new Set(['PROVENTO', 'DESCONTO', 'INFORMATIVO']);
+// Só provento e desconto: quem tem apenas base informativa (600/601…) não
+// entra na contagem de empregados.
+const COUNTED_NATURES = new Set(['PROVENTO', 'DESCONTO']);
 
 /**
  * @param {object[]} rows — PayrollSourceRow[] normalizadas.

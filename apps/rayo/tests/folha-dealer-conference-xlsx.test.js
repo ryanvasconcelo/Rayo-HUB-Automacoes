@@ -191,6 +191,21 @@ describe('Folha Dealer - Conference XLSX Exporter', () => {
     ]);
   });
 
+  it('aba Resumo mostra o histórico de cada tipo de folha do lote', () => {
+    const base = { companyId: 'braga-veiculos', competence: '202604', lotacaoCode: 'RECURSOS HUMANOS' };
+    const sourceRows = normalizeFortesQueryRows(
+      [{ ...base, employeeId: '1', eventCode: '011', amountCents: 300000, ProvDesc: 1 }],
+      { fortesExtraPayroll: [{ ...base, payrollType: 'RESCISAO', employeeId: '2', eventCode: '199', amountCents: 100000, ProvDesc: 1 }] }
+    );
+    const { workbook } = generateTestWorkbook({ sourceRows });
+    const resumo = XLSX.utils.sheet_to_json(workbook.Sheets.Resumo);
+    const historicos = resumo.filter((r) => String(r.Chave).startsWith('Histórico')).map((r) => [r.Chave, r.Valor]);
+    expect(historicos).toEqual([
+      ['Histórico — Folha de Pagamento', 'FOLHA DE PAGAMENTO REF 04/2026'],
+      ['Histórico — Rescisão', 'RESCISAO REF 04/2026'],
+    ]);
+  });
+
   it('lançamentos informam o tipo de folha', () => {
     const { workbook } = generateTestWorkbook();
     const rows = XLSX.utils.sheet_to_json(workbook.Sheets['Lançamentos']);
