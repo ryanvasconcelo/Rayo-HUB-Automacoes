@@ -11,6 +11,7 @@
 // Re-exports públicos
 export { bragaVeiculosConfig } from './braga-veiculos.config.js';
 export { bragaMotosConfig } from './braga-motos.config.js';
+export { motoReyConfig } from './moto-rey.config.js';
 export {
   FOLHA_DEALER_COMPANIES,
   DEFAULT_COMPANY_ID,

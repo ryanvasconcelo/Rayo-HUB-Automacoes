@@ -3,6 +3,12 @@ import { motoReyConfig } from '../src/lib/folha-dealer/moto-rey.config.js';
 import { bragaVeiculosConfig } from '../src/lib/folha-dealer/braga-veiculos.config.js';
 import { bragaMotosConfig } from '../src/lib/folha-dealer/braga-motos.config.js';
 import { EVENT_100_REQUIRED_ACCOUNT } from '../src/lib/folha-dealer/contracts.js';
+import { readFileSync } from 'node:fs';
+import {
+  FOLHA_DEALER_COMPANIES,
+  getCompanyConfig,
+  getCompanyConfigByFortesCode,
+} from '../src/lib/folha-dealer/company-configs.js';
 
 // Eventos com valor na Moto Rey em 2026 (Folhas 2, 4, 10, 11, 17), levantamento
 // de 28/09/2026. P = provento (debita), D = desconto (credita).
@@ -120,5 +126,31 @@ describe('motoReyConfig — contas', () => {
     const keys = motoReyConfig.accountMappings.map((m) => `${m.eventCode}:${m.dc}`);
     expect(keys.length).toBe(new Set(keys).size);
     for (const m of motoReyConfig.accountMappings) expect(m.companyId).toBe('moto-rey');
+  });
+});
+
+describe('Moto Rey no sistema', () => {
+  it('registro resolve por companyId e por código Fortes', () => {
+    expect(getCompanyConfig('moto-rey')).toBe(motoReyConfig);
+    expect(getCompanyConfigByFortesCode('9275')).toBe(motoReyConfig);
+  });
+
+  it('aparece no seletor da tela com empresa/filial Dealer 06/006', () => {
+    expect(FOLHA_DEALER_COMPANIES.find((c) => c.companyId === 'moto-rey')).toEqual({
+      companyId: 'moto-rey',
+      companyName: 'BRAGA MOTO REY LTDA',
+      fortesCompanyCode: '9275',
+      dealerCompanyField: '06',
+      dealerBranch: '006',
+    });
+  });
+
+  it('seed do servidor reflete o catálogo de centros e o de-para do config', () => {
+    const seed = JSON.parse(
+      readFileSync(new URL('../../rayo-server/folha-dealer-centers-seed-moto-rey.json', import.meta.url), 'utf8')
+    );
+    expect(seed.companyId).toBe('moto-rey');
+    expect(seed.centers).toEqual(motoReyConfig.dealerCenters);
+    expect(seed.lotacaoMappings).toHaveLength(motoReyConfig.centerMappings.length);
   });
 });

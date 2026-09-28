@@ -13,6 +13,7 @@ const DEFAULT_COMPANY_ID = 'braga-veiculos';
 const SEED_FILES = {
   'braga-veiculos': path.join(__dirname, 'folha-dealer-centers-seed-braga.json'),
   'braga-motos': path.join(__dirname, 'folha-dealer-centers-seed-braga-motos.json'),
+  'moto-rey': path.join(__dirname, 'folha-dealer-centers-seed-moto-rey.json'),
 };
 
 function getDataDir() {
