@@ -266,6 +266,16 @@ const accountMappings = [
   { companyId: company.companyId, eventCode: 'PROV_FGTS_FER', dealerAccountCode: '2.1.1.03.003', dealerLotAccountCode: null, dc: 'C', description: 'Provisão FGTS Férias a Pagar', active: true },
   { companyId: company.companyId, eventCode: 'PROV_FGTS_13',  dealerAccountCode: '2.1.1.03.006', dealerLotAccountCode: null, dc: 'C', description: 'Provisão FGTS 13º a Pagar', active: true },
 
+  // ---- BAIXA DA PROVISÃO DE FÉRIAS (férias gozadas ou pagas na rescisão) ----
+  // O pagamento vai para despesa (6.1.1.03.001); a baixa zera a provisão do
+  // empregado, debitando o passivo e creditando a despesa (contador, 28/09/2026).
+  { companyId: company.companyId, eventCode: 'PROV_BAIXA_FERIAS',   dealerAccountCode: '2.1.1.03.001', dealerLotAccountCode: null, dc: 'D', description: 'Baixa Provisão Férias a Pagar', active: true },
+  { companyId: company.companyId, eventCode: 'PROV_BAIXA_FERIAS',   dealerAccountCode: '6.1.1.03.001', dealerLotAccountCode: null, dc: 'C', description: 'Baixa Provisão Férias (despesa)', active: true },
+  { companyId: company.companyId, eventCode: 'PROV_BAIXA_INSS_FER', dealerAccountCode: '2.1.1.03.002', dealerLotAccountCode: null, dc: 'D', description: 'Baixa Provisão INSS Férias a Pagar', active: true },
+  { companyId: company.companyId, eventCode: 'PROV_BAIXA_INSS_FER', dealerAccountCode: '6.1.1.03.003', dealerLotAccountCode: null, dc: 'C', description: 'Baixa Provisão INSS s/ Férias (despesa)', active: true },
+  { companyId: company.companyId, eventCode: 'PROV_BAIXA_FGTS_FER', dealerAccountCode: '2.1.1.03.003', dealerLotAccountCode: null, dc: 'D', description: 'Baixa Provisão FGTS Férias a Pagar', active: true },
+  { companyId: company.companyId, eventCode: 'PROV_BAIXA_FGTS_FER', dealerAccountCode: '6.1.1.03.005', dealerLotAccountCode: null, dc: 'C', description: 'Baixa Provisão FGTS s/ Férias (despesa)', active: true },
+
   // ---- ENCARGOS PATRONAIS (DCTFWeb / FGTS mensal) — D despesa + C passivo ----
   // INSS patronal, GILRAT e Terceiros → mesma conta INSS (exceto 1082-01 / evento 310)
   { companyId: company.companyId, eventCode: 'ENCARGO_INSS_PATRONAL', dealerAccountCode: '6.1.1.02.001', dealerLotAccountCode: null, dc: 'D', description: 'INSS Patronal (1138-01)', active: true },

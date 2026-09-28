@@ -219,6 +219,34 @@ for (const empresa of EMPRESAS) {
       });
     });
 
+    it('férias zeram a provisão: complemento do mês + baixa deixam 2.1.1.03.001 sem saldo do empregado', () => {
+      const companyId = config.company.companyId;
+      const lotacaoCode = config.centerMappings.find((m) => m.active && m.allocationMode === 'direct').lotacaoCode;
+      const prov = (eventCode, amountCents) => ({
+        companyId, competence: '202604', employeeId: '263', lotacaoCode, eventCode, amountCents,
+        ProvDesc: 'PROVISAO', TipoRegistro: 'PROVISAO', sourceOrigin: 'fortes-provision',
+      });
+      const sourceRows = normalizeFortesQueryRows(
+        [{ companyId, competence: '202604', lotacaoCode, employeeId: '9', eventCode: '011', amountCents: 100000, ProvDesc: 1, TipoRegistro: 'PROVENTO' }],
+        {
+          fortesProvisions: [prov('PROV_FERIAS', 320491), prov('PROV_BAIXA_FERIAS', 540491)],
+          fortesExtraPayroll: [
+            { companyId, competence: '202604', payrollType: 'FERIAS', lotacaoCode, employeeId: '263', eventCode: '110', amountCents: 540491, ProvDesc: 1, TipoRegistro: 'PROVENTO' },
+          ],
+        }
+      ).map((row) => ({ ...row, companyId }));
+      const run = runFolhaDealerEngine({ config, sourceRows, competence: '2026-04' });
+      const saldo = (conta) =>
+        run.entries.filter((e) => e.accountCode === conta).reduce((s, e) => s + (e.dc === 'C' ? e.amountCents : -e.amountCents), 0);
+      // Saldo anterior 2.200,00 + complemento 3.204,91 = baixa 5.404,91 (= férias pagas):
+      // o movimento do mês tira exatamente o saldo anterior e a provisão do empregado zera.
+      expect(saldo('2.1.1.03.001')).toBe(-220000);
+      // Despesa de férias do mês = pagamento + complemento − baixa = só o complemento;
+      // os 2.200,00 já tinham ido para despesa nos meses anteriores.
+      expect(-saldo('6.1.1.03.001')).toBe(320491);
+      expect(run.issues.filter((i) => i.severity === 'blocker')).toEqual([]);
+    });
+
     it('multa de 40% do FGTS vai para o Dealer (D despesa FGTS / C FGTS a recolher) sem mexer no líquido da rescisão', () => {
       const companyId = config.company.companyId;
       const lotacaoCode = config.centerMappings.find((m) => m.active && m.allocationMode === 'direct').lotacaoCode;
@@ -286,6 +314,45 @@ describe.skipIf(!process.env.FORTES_LIVE)('Fortes ao vivo × Resumo Geral do con
         // "Total de Empregados" do relatório de 04/2026
         expect(empregados.FERIAS.size).toBe(6);
         expect(empregados.RESCISAO.size).toBe(15);
+      }
+    }, 600_000);
+
+    it(`${config.company.companyName}: provisão de férias no lote acompanha o saldo do Fortes (constituição − baixa)`, async () => {
+      const mssql = require('mssql');
+      const { extractFortesPayroll, buildDbConfig } = require('../../rayo-server/fortes-extractor.js');
+      const pool = await mssql.connect(buildDbConfig());
+      // Saldo em centavos arredondados linha a linha, como o Rayo lança cada provisão.
+      const saldoFortes = async (anoMes, coluna) => {
+        const [r] = (await pool.request().query(`
+          SELECT ISNULL(SUM(CAST(ROUND(PRF.${coluna}Acumulada * 100, 0) AS BIGINT) + CAST(ROUND(PRF.${coluna}Provisao * 100, 0) AS BIGINT)), 0) AS saldo
+          FROM PRF JOIN PRV ON PRV.EMP_Codigo = PRF.EMP_Codigo AND PRV.FOL_Seq = PRF.EFO_FOL_Seq
+          JOIN FOL ON FOL.EMP_Codigo = PRV.EMP_Codigo AND FOL.Seq = PRV.FOL_Seq AND FOL.Folha = 15
+          WHERE PRF.EMP_Codigo = '${resumo.fortesCompany}' AND PRV.AnoMes = '${anoMes}'`)).recordset;
+        return Number(r.saldo);
+      };
+      const passivos = [['', '2.1.1.03.001'], ['INSS', '2.1.1.03.002'], ['FGTS', '2.1.1.03.003']];
+      try {
+        for (const competence of competencias('2026-04', '2026-08')) {
+          const ex = await extractFortesPayroll({ companyId: resumo.fortesCompany, competence });
+          const sourceRows = normalizeFortesQueryRows(
+            ex.payroll,
+            { fortesProvisions: ex.provisions, fortesEncargoBases: ex.encargoBases, fortesExtraPayroll: ex.extraPayroll },
+            config.provisionRates,
+            config.encargoRates
+          ).map((row) => ({ ...row, companyId: config.company.companyId }));
+          const run = runFolhaDealerEngine({ config, sourceRows, competence });
+          const [ano, mes] = competence.split('-').map(Number);
+          const anterior = mes === 1 ? `${ano - 1}12` : `${ano}${String(mes - 1).padStart(2, '0')}`;
+          for (const [coluna, conta] of passivos) {
+            const movimentoLote = run.entries
+              .filter((e) => e.accountCode === conta)
+              .reduce((s, e) => s + (e.dc === 'C' ? e.amountCents : -e.amountCents), 0);
+            const variacaoFortes = (await saldoFortes(competence.replace('-', ''), coluna)) - (await saldoFortes(anterior, coluna));
+            expect([competence, conta, movimentoLote]).toEqual([competence, conta, variacaoFortes]);
+          }
+        }
+      } finally {
+        await pool.close();
       }
     }, 600_000);
   }

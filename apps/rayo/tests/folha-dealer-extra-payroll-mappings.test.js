@@ -44,6 +44,14 @@ for (const config of [bragaVeiculosConfig, bragaMotosConfig]) {
       }
     });
 
+    it('baixa da provisão de férias: débito na provisão, crédito na despesa', () => {
+      const contas = (code) =>
+        config.accountMappings.filter((m) => m.eventCode === code).map((m) => `${m.dc} ${m.dealerAccountCode}`).sort();
+      expect(contas('PROV_BAIXA_FERIAS')).toEqual(['C 6.1.1.03.001', 'D 2.1.1.03.001']);
+      expect(contas('PROV_BAIXA_INSS_FER')).toEqual(['C 6.1.1.03.003', 'D 2.1.1.03.002']);
+      expect(contas('PROV_BAIXA_FGTS_FER')).toEqual(['C 6.1.1.03.005', 'D 2.1.1.03.003']);
+    });
+
     it('multa FGTS (900) não é informativa e tem débito e crédito', () => {
       expect(config.informativeEventCodes).not.toContain('900');
       expect(dcsDoEvento('900').sort()).toEqual(['C', 'D']);
