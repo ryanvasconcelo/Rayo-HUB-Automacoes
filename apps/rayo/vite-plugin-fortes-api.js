@@ -71,6 +71,9 @@ function handleCentersApi(req, res) {
             companyId,
             centers: body.centers,
             lotacaoMappings: body.lotacaoMappings,
+            ...(Array.isArray(body.accountMappings)
+              ? { accountMappings: body.accountMappings }
+              : {}),
           })
         );
       }

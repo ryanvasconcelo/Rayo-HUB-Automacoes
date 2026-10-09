@@ -106,15 +106,34 @@ function loadCentersConfig(companyId = DEFAULT_COMPANY_ID) {
 }
 
 /**
- * Salva payload completo (centers + lotacaoMappings).
+ * Salva payload completo (centers + lotacaoMappings + accountMappings).
+ * Se accountMappings for omitido, preserva o que já está no arquivo
+ * (evita apagar o de-para evento→conta ao salvar só centros/lotações).
  * @param {string} companyId
  * @param {object} payload
  */
 function saveCentersConfig(companyId, payload) {
   ensureDataDir();
-  const normalized = normalizePayload(payload, companyId);
+  const filePath = filePathFor(companyId);
+  let previous = null;
+  if (fs.existsSync(filePath)) {
+    try {
+      previous = normalizePayload(JSON.parse(fs.readFileSync(filePath, 'utf8')), companyId);
+    } catch {
+      previous = null;
+    }
+  }
+
+  const mergedPayload = {
+    ...payload,
+    accountMappings: Array.isArray(payload?.accountMappings)
+      ? payload.accountMappings
+      : (previous?.accountMappings || []),
+  };
+
+  const normalized = normalizePayload(mergedPayload, companyId);
   normalized.updatedAt = new Date().toISOString();
-  fs.writeFileSync(filePathFor(companyId), JSON.stringify(normalized, null, 2), 'utf8');
+  fs.writeFileSync(filePath, JSON.stringify(normalized, null, 2), 'utf8');
   return normalized;
 }
 

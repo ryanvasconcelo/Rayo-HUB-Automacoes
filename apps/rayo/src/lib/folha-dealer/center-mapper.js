@@ -15,7 +15,10 @@
  */
 export function mapCenter(lotacaoCode, companyId, centerMappings) {
   const mapping = centerMappings.find(
-    (m) => m.active && m.companyId === companyId && m.lotacaoCode === lotacaoCode
+    (m) =>
+      m.active !== false &&
+      m.companyId === companyId &&
+      m.lotacaoCode === lotacaoCode
   );
 
   if (!mapping) return null;

@@ -55,6 +55,61 @@ describe('folha-dealer-centers-store', () => {
     expect(mapping.dealerCenterCode).toBe('000999');
     expect(saved.centers.some((c) => c.code === '000999')).toBe(true);
   });
+
+  it('persiste accountMappings e preserva active=false', () => {
+    store.loadCentersConfig('braga-veiculos');
+    const saved = store.saveCentersConfig('braga-veiculos', {
+      companyId: 'braga-veiculos',
+      centers: [{ code: '000600', name: 'Admin', active: true }],
+      lotacaoMappings: [
+        { lotacaoCode: 'FINANCEIRO', dealerCenterCode: '000600', allocationMode: 'direct', active: true },
+      ],
+      accountMappings: [
+        {
+          eventCode: '011',
+          dealerAccountCode: '6.1.1.01.002',
+          dc: 'D',
+          description: 'Salário',
+          active: true,
+        },
+        {
+          eventCode: '999',
+          dealerAccountCode: '6.1.1.99.999',
+          dc: 'D',
+          description: 'Teste off',
+          active: false,
+        },
+      ],
+    });
+    expect(saved.accountMappings).toHaveLength(2);
+    expect(saved.accountMappings.find((m) => m.eventCode === '999')?.active).toBe(false);
+
+    const reloaded = store.loadCentersConfig('braga-veiculos');
+    expect(reloaded.accountMappings.find((m) => m.eventCode === '011')?.dealerAccountCode).toBe(
+      '6.1.1.01.002'
+    );
+    expect(reloaded.accountMappings.find((m) => m.eventCode === '999')?.active).toBe(false);
+  });
+
+  it('salvar sem accountMappings não apaga contas já gravadas', () => {
+    store.saveCentersConfig('braga-veiculos', {
+      companyId: 'braga-veiculos',
+      centers: [{ code: '000600', name: 'Admin', active: true }],
+      lotacaoMappings: [],
+      accountMappings: [
+        { eventCode: '011', dealerAccountCode: '6.1.1.01.002', dc: 'D', description: 'Salário', active: true },
+      ],
+    });
+    const saved = store.saveCentersConfig('braga-veiculos', {
+      companyId: 'braga-veiculos',
+      centers: [{ code: '000600', name: 'Admin', active: false }],
+      lotacaoMappings: [],
+      // accountMappings omitido de propósito (bug antigo do PUT)
+    });
+    expect(saved.centers[0].active).toBe(false);
+    expect(saved.accountMappings).toHaveLength(1);
+    expect(saved.accountMappings[0].eventCode).toBe('011');
+  });
 });
 
 describe('engine smoke — GERAL→000999 remove MISSING_CENTER_MAPPING', () => {

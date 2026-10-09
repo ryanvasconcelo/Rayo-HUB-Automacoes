@@ -23,13 +23,18 @@ export async function fetchCentersConfig(companyId = 'braga-veiculos') {
 
 /**
  * @param {string} companyId
- * @param {{ centers: object[], lotacaoMappings: object[] }} payload
+ * @param {{ centers: object[], lotacaoMappings: object[], accountMappings?: object[] }} payload
  */
 export async function saveCentersConfig(companyId, payload) {
   const response = await fetch(BASE, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ companyId, ...payload }),
+    body: JSON.stringify({
+      companyId,
+      centers: payload.centers,
+      lotacaoMappings: payload.lotacaoMappings,
+      accountMappings: Array.isArray(payload.accountMappings) ? payload.accountMappings : [],
+    }),
   });
   return parseJson(response);
 }

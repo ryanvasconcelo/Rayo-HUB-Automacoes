@@ -136,6 +136,10 @@ export function mergeCenterMappings(seedMappings = [], stored = null, companyId 
     normalized.centers.map((c) => [c.code, c.name])
   );
 
+  const inactiveCenters = new Set(
+    normalized.centers.filter((c) => c.active === false).map((c) => c.code)
+  );
+
   for (const m of normalized.lotacaoMappings) {
     const code = m.dealerCenterCode;
     byLotacao.set(m.lotacaoCode, {
@@ -144,7 +148,8 @@ export function mergeCenterMappings(seedMappings = [], stored = null, companyId 
       dealerCenterCode: code,
       dealerCenterName: centerNameByCode.get(code) || null,
       allocationMode: m.allocationMode,
-      active: m.active !== false,
+      // Centro inativo desliga o de-para no motor (mesmo com mapping.active)
+      active: m.active !== false && !inactiveCenters.has(code),
     });
   }
 

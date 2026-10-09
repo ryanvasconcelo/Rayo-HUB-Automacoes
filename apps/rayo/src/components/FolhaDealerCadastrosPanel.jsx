@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Check, Plus, Save, Trash2, AlertTriangle, BookOpen } from 'lucide-react';
 import { useFolhaDealerCenters } from '../hooks/useFolhaDealerCenters';
 import { padCenterCode } from '../lib/folha-dealer/merge-center-config';
 
 /**
- * Aba Cadastros — centros Dealer + de-para lotação Fortes → centro.
+ * Aba Cadastros — centros Dealer + de-para lotação + evento → conta.
  */
 export default function FolhaDealerCadastrosPanel({ companyId = 'braga-veiculos' }) {
   const {
@@ -14,11 +14,14 @@ export default function FolhaDealerCadastrosPanel({ companyId = 'braga-veiculos'
     saving,
     error,
     apiAvailable,
+    accountsHydratedFromSeed,
     saveAll,
     removeLotacao,
   } = useFolhaDealerCenters(companyId);
 
   const [feedback, setFeedback] = useState(null);
+  const [accountFilter, setAccountFilter] = useState('');
+  const [showInactiveAccounts, setShowInactiveAccounts] = useState(true);
   const [newCenter, setNewCenter] = useState({ code: '', name: '' });
   const [newMapping, setNewMapping] = useState({
     lotacaoCode: '',
@@ -36,6 +39,26 @@ export default function FolhaDealerCadastrosPanel({ companyId = 'braga-veiculos'
   const lotacaoMappings = stored?.lotacaoMappings || [];
   const accountMappings = stored?.accountMappings || [];
   const activeCenters = centers.filter((c) => c.active !== false);
+
+  const visibleAccounts = useMemo(() => {
+    const q = accountFilter.trim().toLowerCase();
+    return accountMappings
+      .map((m, idx) => ({ m, idx }))
+      .filter(({ m }) => {
+        if (!showInactiveAccounts && m.active === false) return false;
+        if (!q) return true;
+        return (
+          String(m.eventCode).toLowerCase().includes(q) ||
+          String(m.dealerAccountCode).toLowerCase().includes(q) ||
+          String(m.description || '').toLowerCase().includes(q)
+        );
+      });
+  }, [accountMappings, accountFilter, showInactiveAccounts]);
+
+  const accountStats = useMemo(() => {
+    const active = accountMappings.filter((m) => m.active !== false).length;
+    return { total: accountMappings.length, active, inactive: accountMappings.length - active };
+  }, [accountMappings]);
 
   const updateCenters = (updater) => {
     setStored((prev) => {
@@ -64,8 +87,12 @@ export default function FolhaDealerCadastrosPanel({ companyId = 'braga-veiculos'
   const handleSave = async () => {
     setFeedback(null);
     try {
-      await saveAll({ centers, lotacaoMappings, accountMappings });
-      setFeedback({ type: 'ok', text: 'Cadastros salvos no servidor.' });
+      const saved = await saveAll({ centers, lotacaoMappings, accountMappings });
+      const accN = saved?.accountMappings?.length ?? accountMappings.length;
+      setFeedback({
+        type: 'ok',
+        text: `Cadastros salvos (${centers.length} centros, ${lotacaoMappings.length} lotações, ${accN} contas).`,
+      });
     } catch (err) {
       setFeedback({ type: 'err', text: err.message });
     }
@@ -121,20 +148,53 @@ export default function FolhaDealerCadastrosPanel({ companyId = 'braga-veiculos'
       setFeedback({ type: 'err', text: 'Natureza deve ser D (Débito) ou C (Crédito).' });
       return;
     }
+    const dup = accountMappings.some(
+      (m) => String(m.eventCode) === eventCode && String(m.dc).toUpperCase() === dc
+    );
+    if (dup) {
+      setFeedback({
+        type: 'err',
+        text: `Já existe mapeamento ${eventCode} / ${dc}. Edite a linha ou desative-a.`,
+      });
+      return;
+    }
     updateAccounts((prev) => [
       ...prev,
       { eventCode, dealerAccountCode, dealerLotAccountCode: null, dc, description, active: true },
     ]);
     setNewAccount({ eventCode: '', dealerAccountCode: '', dc: 'D', description: '' });
-    setFeedback(null);
+    setFeedback({ type: 'ok', text: 'Conta adicionada — clique em Salvar para persistir.' });
   };
 
+  /** Soft-delete: desativa. Hard-delete só se já estiver inativo (e remove da lista). */
   const deleteAccount = (idx) => {
-    updateAccounts((prev) => prev.filter((_, i) => i !== idx));
-    setFeedback({ type: 'ok', text: 'Conta removida — salve para persistir.' });
+    updateAccounts((prev) => {
+      const row = prev[idx];
+      if (!row) return prev;
+      if (row.active === false) {
+        return prev.filter((_, i) => i !== idx);
+      }
+      return prev.map((r, i) => (i === idx ? { ...r, active: false } : r));
+    });
+    setFeedback({
+      type: 'ok',
+      text: 'Conta desativada (o seed não “ressuscita” enquanto active=false). Salve para persistir. Clique de novo no lixo para remover da lista.',
+    });
   };
 
   const handleDeleteMapping = async (lotacaoCode) => {
+    // Soft-delete na UI: desativa para o merge do seed não reativar no motor
+    const row = lotacaoMappings.find((m) => m.lotacaoCode === lotacaoCode);
+    if (row && row.active !== false) {
+      updateMappings((prev) =>
+        prev.map((m) => (m.lotacaoCode === lotacaoCode ? { ...m, active: false } : m))
+      );
+      setFeedback({
+        type: 'ok',
+        text: `De-para "${lotacaoCode}" desativado — Salve para persistir.`,
+      });
+      return;
+    }
     updateMappings((prev) => prev.filter((m) => m.lotacaoCode !== lotacaoCode));
     try {
       await removeLotacao(lotacaoCode);
@@ -159,7 +219,7 @@ export default function FolhaDealerCadastrosPanel({ companyId = 'braga-veiculos'
           <div>
             <h2 className="text-lg font-bold text-slate-900">Cadastros — Centros e De-para</h2>
             <p className="text-sm text-slate-500 mt-1">
-              Centros Dealer e mapeamento Lotação Fortes → Centro. Persistido no servidor (compartilhado).
+              Centros, lotação→centro e evento→conta. Salve para gravar no servidor (compartilhado entre usuários).
             </p>
           </div>
           <button
@@ -179,6 +239,16 @@ export default function FolhaDealerCadastrosPanel({ companyId = 'braga-veiculos'
             <p>
               API indisponível — exibindo seed local. Inicie o rayo-server (ou o Vite com plugin) para gravar.
               {error ? ` (${error})` : ''}
+            </p>
+          </div>
+        )}
+
+        {apiAvailable && accountsHydratedFromSeed && (
+          <div className="flex items-start gap-3 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+            <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+            <p>
+              De-para evento→conta foi recarregado do seed (o arquivo no servidor estava vazio).
+              Clique em <strong>Salvar</strong> para gravar de forma permanente.
             </p>
           </div>
         )}
@@ -402,13 +472,38 @@ export default function FolhaDealerCadastrosPanel({ companyId = 'braga-veiculos'
 
         {/* ── Seção 3: De-para Evento → Conta Contábil ── */}
         <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div className="px-6 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <BookOpen size={16} className="text-slate-500" />
               <h3 className="font-semibold text-slate-900">De-para Evento → Conta Contábil</h3>
             </div>
-            <span className="text-xs text-slate-400 font-mono">{accountMappings.length}</span>
+            <div className="flex items-center gap-3 text-xs text-slate-500 font-mono">
+              <span>{accountStats.active} ativos</span>
+              <span>{accountStats.inactive} inativos</span>
+              <span>{accountStats.total} total</span>
+            </div>
           </div>
+          <div className="px-6 py-3 border-b border-slate-100 bg-slate-50/40 flex flex-wrap items-center gap-3">
+            <input
+              className="flex-1 min-w-[180px] bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
+              placeholder="Filtrar por evento, conta ou descrição…"
+              value={accountFilter}
+              onChange={(e) => setAccountFilter(e.target.value)}
+            />
+            <label className="inline-flex items-center gap-2 text-sm text-slate-600 cursor-pointer whitespace-nowrap">
+              <input
+                type="checkbox"
+                checked={showInactiveAccounts}
+                onChange={(e) => setShowInactiveAccounts(e.target.checked)}
+              />
+              Mostrar inativos
+            </label>
+          </div>
+          {accountMappings.length === 0 && (
+            <div className="px-6 py-4 text-sm text-amber-800 bg-amber-50 border-b border-amber-100">
+              Nenhum de-para de conta carregado. Verifique a empresa selecionada e se o seed da config existe.
+            </div>
+          )}
           <div className="overflow-x-auto max-h-[420px]">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-slate-50 z-10">
@@ -422,8 +517,11 @@ export default function FolhaDealerCadastrosPanel({ companyId = 'braga-veiculos'
                 </tr>
               </thead>
               <tbody>
-                {accountMappings.map((m, idx) => (
-                  <tr key={`${m.eventCode}-${m.dc}-${idx}`} className="border-t border-slate-100">
+                {visibleAccounts.map(({ m, idx }) => (
+                  <tr
+                    key={`${m.eventCode}-${m.dc}-${idx}`}
+                    className={`border-t border-slate-100 ${m.active === false ? 'opacity-50 bg-slate-50/80' : ''}`}
+                  >
                     <td className="px-6 py-2.5 font-mono text-slate-800">{m.eventCode}</td>
                     <td className="px-6 py-2.5">
                       <input
@@ -479,7 +577,7 @@ export default function FolhaDealerCadastrosPanel({ companyId = 'braga-veiculos'
                     <td className="px-6 py-2.5">
                       <button
                         type="button"
-                        title="Remover"
+                        title={m.active === false ? 'Remover da lista' : 'Desativar'}
                         onClick={() => deleteAccount(idx)}
                         className="text-slate-400 hover:text-rose-600 p-1"
                       >

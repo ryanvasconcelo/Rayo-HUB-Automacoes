@@ -131,4 +131,43 @@ describe('mergeAccountMappings', () => {
     expect(provFeriasD?.dealerAccountCode).toBe('6.1.1.99.999');
     expect(provFeriasC?.dealerAccountCode).toBe('2.1.1.03.001');
   });
+
+  it('active=false no servidor sobrescreve seed ativo', () => {
+    const stored = {
+      accountMappings: [
+        { eventCode: '011', dealerAccountCode: '6.1.1.01.002', dc: 'D', active: false },
+      ],
+    };
+    const merged = mergeAccountMappings(seedAccounts, stored, 'braga-veiculos');
+    const row = merged.find((m) => m.eventCode === '011' && m.dc === 'D');
+    expect(row?.active).toBe(false);
+  });
+});
+
+describe('mergeCenterMappings — centro inativo', () => {
+  it('desliga de-para quando o centro Dealer está inativo', () => {
+    const seed = [
+      {
+        companyId: 'braga-veiculos',
+        lotacaoCode: 'FINANCEIRO',
+        dealerCenterCode: '000600',
+        dealerCenterName: 'Admin',
+        allocationMode: 'direct',
+        active: true,
+      },
+    ];
+    const stored = {
+      centers: [{ code: '000600', name: 'Admin', active: false }],
+      lotacaoMappings: [
+        {
+          lotacaoCode: 'FINANCEIRO',
+          dealerCenterCode: '000600',
+          allocationMode: 'direct',
+          active: true,
+        },
+      ],
+    };
+    const merged = mergeCenterMappings(seed, stored, 'braga-veiculos');
+    expect(merged.find((m) => m.lotacaoCode === 'FINANCEIRO')?.active).toBe(false);
+  });
 });

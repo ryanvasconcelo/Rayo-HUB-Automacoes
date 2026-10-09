@@ -6,7 +6,7 @@
  *   GET  /api/health              → { status: 'ok', version }
  *   GET  /api/queue-status        → { queueLength, processing }
  *   POST /api/scrape-eauditoria   → { ncms, uf, atividade, regime, regimeEspecial } → { rules }
- *   GET/PUT /api/folha-dealer/centers — cadastro centros + de-para lotação
+ *   GET/PUT /api/folha-dealer/centers — centros + lotação + evento→conta
  *   POST/DELETE /api/folha-dealer/centers/lotacao — upsert/remove de-para
  *
  * Módulos estáticos (build de produção):
@@ -224,13 +224,18 @@ app.get('/api/folha-dealer/centers', (req, res) => {
 app.put('/api/folha-dealer/centers', (req, res) => {
     try {
         const companyId = req.body?.companyId || 'braga-veiculos';
-        const { centers, lotacaoMappings } = req.body || {};
+        const { centers, lotacaoMappings, accountMappings } = req.body || {};
         if (!Array.isArray(centers) || !Array.isArray(lotacaoMappings)) {
             return res.status(400).json({
                 error: 'Body deve incluir arrays "centers" e "lotacaoMappings".',
             });
         }
-        const saved = saveCentersConfig(companyId, { companyId, centers, lotacaoMappings });
+        const saved = saveCentersConfig(companyId, {
+            companyId,
+            centers,
+            lotacaoMappings,
+            ...(Array.isArray(accountMappings) ? { accountMappings } : {}),
+        });
         res.json(saved);
     } catch (err) {
         console.error('[/api/folha-dealer/centers] PUT ❌', err);

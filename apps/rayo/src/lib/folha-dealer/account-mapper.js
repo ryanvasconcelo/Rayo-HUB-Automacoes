@@ -15,6 +15,9 @@
  */
 export function mapAccount(eventCode, companyId, accountMappings) {
   return accountMappings.filter(
-    (m) => m.active && m.companyId === companyId && m.eventCode === eventCode
+    (m) =>
+      m.active !== false &&
+      m.companyId === companyId &&
+      String(m.eventCode) === String(eventCode)
   );
 }
