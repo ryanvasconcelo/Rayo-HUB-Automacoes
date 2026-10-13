@@ -34,10 +34,17 @@ export default function FolhaDealerCadastrosPanel({ companyId = 'braga-veiculos'
     dc: 'D',
     description: '',
   });
+  const [newCenterAccount, setNewCenterAccount] = useState({
+    dealerCenterCode: '',
+    fromAccountCode: '',
+    toAccountCode: '',
+    dc: 'D',
+  });
 
   const centers = stored?.centers || [];
   const lotacaoMappings = stored?.lotacaoMappings || [];
   const accountMappings = stored?.accountMappings || [];
+  const centerAccountRules = stored?.centerAccountRules || [];
   const activeCenters = centers.filter((c) => c.active !== false);
 
   const visibleAccounts = useMemo(() => {
@@ -62,7 +69,7 @@ export default function FolhaDealerCadastrosPanel({ companyId = 'braga-veiculos'
 
   const updateCenters = (updater) => {
     setStored((prev) => {
-      const base = prev || { companyId, centers: [], lotacaoMappings: [], accountMappings: [] };
+      const base = prev || { companyId, centers: [], lotacaoMappings: [], accountMappings: [], centerAccountRules: [] };
       const nextCenters = typeof updater === 'function' ? updater(base.centers) : updater;
       return { ...base, centers: nextCenters };
     });
@@ -70,7 +77,7 @@ export default function FolhaDealerCadastrosPanel({ companyId = 'braga-veiculos'
 
   const updateMappings = (updater) => {
     setStored((prev) => {
-      const base = prev || { companyId, centers: [], lotacaoMappings: [], accountMappings: [] };
+      const base = prev || { companyId, centers: [], lotacaoMappings: [], accountMappings: [], centerAccountRules: [] };
       const next = typeof updater === 'function' ? updater(base.lotacaoMappings) : updater;
       return { ...base, lotacaoMappings: next };
     });
@@ -78,20 +85,29 @@ export default function FolhaDealerCadastrosPanel({ companyId = 'braga-veiculos'
 
   const updateAccounts = (updater) => {
     setStored((prev) => {
-      const base = prev || { companyId, centers: [], lotacaoMappings: [], accountMappings: [] };
+      const base = prev || { companyId, centers: [], lotacaoMappings: [], accountMappings: [], centerAccountRules: [] };
       const next = typeof updater === 'function' ? updater(base.accountMappings || []) : updater;
       return { ...base, accountMappings: next };
+    });
+  };
+
+  const updateCenterAccounts = (updater) => {
+    setStored((prev) => {
+      const base = prev || { companyId, centers: [], lotacaoMappings: [], accountMappings: [], centerAccountRules: [] };
+      const next = typeof updater === 'function' ? updater(base.centerAccountRules || []) : updater;
+      return { ...base, centerAccountRules: next };
     });
   };
 
   const handleSave = async () => {
     setFeedback(null);
     try {
-      const saved = await saveAll({ centers, lotacaoMappings, accountMappings });
+      const saved = await saveAll({ centers, lotacaoMappings, accountMappings, centerAccountRules });
       const accN = saved?.accountMappings?.length ?? accountMappings.length;
+      const ruleN = saved?.centerAccountRules?.length ?? centerAccountRules.length;
       setFeedback({
         type: 'ok',
-        text: `Cadastros salvos (${centers.length} centros, ${lotacaoMappings.length} lotações, ${accN} contas).`,
+        text: `Cadastros salvos nesta empresa (${centers.length} centros, ${lotacaoMappings.length} lotações, ${accN} contas, ${ruleN} contas por centro).`,
       });
     } catch (err) {
       setFeedback({ type: 'err', text: err.message });
@@ -166,6 +182,33 @@ export default function FolhaDealerCadastrosPanel({ companyId = 'braga-veiculos'
     setFeedback({ type: 'ok', text: 'Conta adicionada — clique em Salvar para persistir.' });
   };
 
+  const addCenterAccount = () => {
+    const dealerCenterCode = padCenterCode(newCenterAccount.dealerCenterCode);
+    const toAccountCode = newCenterAccount.toAccountCode.trim();
+    const fromAccountCode = newCenterAccount.fromAccountCode.trim();
+    const dc = (newCenterAccount.dc || 'D').toUpperCase() === 'C' ? 'C' : 'D';
+    if (!dealerCenterCode || !toAccountCode) {
+      setFeedback({ type: 'err', text: 'Informe o centro e a conta destino.' });
+      return;
+    }
+    const dup = centerAccountRules.some(
+      (r) =>
+        r.dealerCenterCode === dealerCenterCode &&
+        r.dc === dc &&
+        String(r.fromAccountCode || '') === fromAccountCode
+    );
+    if (dup) {
+      setFeedback({ type: 'err', text: 'Já existe essa regra para o centro. Edite a linha.' });
+      return;
+    }
+    updateCenterAccounts((prev) => [
+      ...prev,
+      { dealerCenterCode, fromAccountCode, toAccountCode, dc, active: true },
+    ]);
+    setNewCenterAccount({ dealerCenterCode: '', fromAccountCode: '', toAccountCode: '', dc: 'D' });
+    setFeedback({ type: 'ok', text: 'Regra de conta por centro adicionada — clique em Salvar.' });
+  };
+
   /** Soft-delete: desativa. Hard-delete só se já estiver inativo (e remove da lista). */
   const deleteAccount = (idx) => {
     updateAccounts((prev) => {
@@ -219,7 +262,7 @@ export default function FolhaDealerCadastrosPanel({ companyId = 'braga-veiculos'
           <div>
             <h2 className="text-lg font-bold text-slate-900">Cadastros — Centros e De-para</h2>
             <p className="text-sm text-slate-500 mt-1">
-              Centros, lotação→centro e evento→conta. Salve para gravar no servidor (compartilhado entre usuários).
+              Centros, lotação→centro, conta por centro e evento→conta. O que você salvar vale só para a empresa selecionada.
             </p>
           </div>
           <button
@@ -463,6 +506,169 @@ export default function FolhaDealerCadastrosPanel({ companyId = 'braga-veiculos'
             <button
               type="button"
               onClick={addMapping}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <Plus size={14} /> Adicionar
+            </button>
+          </div>
+        </section>
+
+        </section>
+
+        <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100">
+            <h3 className="font-semibold text-slate-900">Conta por centro de custo</h3>
+            <p className="text-sm text-slate-500 mt-1">
+              Quando o lançamento cair neste centro, a conta do evento é trocada.
+              Origem vazia vale para todas as contas da natureza (D ou C) nesse centro — por exemplo 000300 Mecânica indo para a conta de custo.
+              Só afeta a empresa aberta nesta tela.
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
+                  <th className="px-6 py-3 font-semibold">Centro</th>
+                  <th className="px-6 py-3 font-semibold">Conta origem</th>
+                  <th className="px-6 py-3 font-semibold">Conta destino</th>
+                  <th className="px-6 py-3 font-semibold w-20">D/C</th>
+                  <th className="px-6 py-3 font-semibold w-20">Ativo</th>
+                  <th className="px-6 py-3 font-semibold w-16" />
+                </tr>
+              </thead>
+              <tbody>
+                {centerAccountRules.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-4 text-sm text-slate-400">
+                      Nenhuma regra. Sem isso, a conta continua sendo só a do evento.
+                    </td>
+                  </tr>
+                )}
+                {centerAccountRules.map((r, idx) => (
+                  <tr key={`${r.dealerCenterCode}-${r.dc}-${r.fromAccountCode}-${idx}`} className={`border-t border-slate-100 ${r.active === false ? 'opacity-50' : ''}`}>
+                    <td className="px-6 py-2.5 font-mono text-slate-800">{r.dealerCenterCode}</td>
+                    <td className="px-6 py-2.5">
+                      <input
+                        className="w-full bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 rounded-lg px-2 py-1.5 font-mono focus:outline-none"
+                        placeholder="todas"
+                        value={r.fromAccountCode || ''}
+                        onChange={(e) => {
+                          const fromAccountCode = e.target.value;
+                          updateCenterAccounts((prev) =>
+                            prev.map((row, i) => (i === idx ? { ...row, fromAccountCode } : row))
+                          );
+                        }}
+                      />
+                    </td>
+                    <td className="px-6 py-2.5">
+                      <input
+                        className="w-full bg-transparent border border-transparent hover:border-slate-200 focus:border-slate-400 rounded-lg px-2 py-1.5 font-mono focus:outline-none"
+                        value={r.toAccountCode}
+                        onChange={(e) => {
+                          const toAccountCode = e.target.value;
+                          updateCenterAccounts((prev) =>
+                            prev.map((row, i) => (i === idx ? { ...row, toAccountCode } : row))
+                          );
+                        }}
+                      />
+                    </td>
+                    <td className="px-6 py-2.5">
+                      <select
+                        className="bg-transparent border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-slate-400"
+                        value={r.dc}
+                        onChange={(e) => {
+                          const dc = e.target.value;
+                          updateCenterAccounts((prev) =>
+                            prev.map((row, i) => (i === idx ? { ...row, dc } : row))
+                          );
+                        }}
+                      >
+                        <option value="D">D</option>
+                        <option value="C">C</option>
+                      </select>
+                    </td>
+                    <td className="px-6 py-2.5">
+                      <input
+                        type="checkbox"
+                        checked={r.active !== false}
+                        onChange={(e) => {
+                          const active = e.target.checked;
+                          updateCenterAccounts((prev) =>
+                            prev.map((row, i) => (i === idx ? { ...row, active } : row))
+                          );
+                        }}
+                      />
+                    </td>
+                    <td className="px-6 py-2.5">
+                      <button
+                        type="button"
+                        title="Remover"
+                        onClick={() => {
+                          updateCenterAccounts((prev) => {
+                            const row = prev[idx];
+                            if (!row) return prev;
+                            if (row.active === false) return prev.filter((_, i) => i !== idx);
+                            return prev.map((item, i) => (i === idx ? { ...item, active: false } : item));
+                          });
+                        }}
+                        className="text-slate-400 hover:text-rose-600 p-1"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-wrap items-end gap-3">
+            <div className="min-w-[200px]">
+              <label className="text-[10px] uppercase tracking-wider text-slate-500 block mb-1">Centro</label>
+              <select
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
+                value={newCenterAccount.dealerCenterCode}
+                onChange={(e) => setNewCenterAccount((p) => ({ ...p, dealerCenterCode: e.target.value }))}
+              >
+                <option value="">Selecione…</option>
+                {activeCenters.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.code} — {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="w-40">
+              <label className="text-[10px] uppercase tracking-wider text-slate-500 block mb-1">Origem (opcional)</label>
+              <input
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 font-mono text-sm focus:outline-none focus:border-slate-400"
+                placeholder="6.1.1.01.002"
+                value={newCenterAccount.fromAccountCode}
+                onChange={(e) => setNewCenterAccount((p) => ({ ...p, fromAccountCode: e.target.value }))}
+              />
+            </div>
+            <div className="w-40">
+              <label className="text-[10px] uppercase tracking-wider text-slate-500 block mb-1">Destino</label>
+              <input
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 font-mono text-sm focus:outline-none focus:border-slate-400"
+                placeholder="4.1.1.01.001"
+                value={newCenterAccount.toAccountCode}
+                onChange={(e) => setNewCenterAccount((p) => ({ ...p, toAccountCode: e.target.value }))}
+              />
+            </div>
+            <div className="w-20">
+              <label className="text-[10px] uppercase tracking-wider text-slate-500 block mb-1">D/C</label>
+              <select
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
+                value={newCenterAccount.dc}
+                onChange={(e) => setNewCenterAccount((p) => ({ ...p, dc: e.target.value }))}
+              >
+                <option value="D">D</option>
+                <option value="C">C</option>
+              </select>
+            </div>
+            <button
+              type="button"
+              onClick={addCenterAccount}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
               <Plus size={14} /> Adicionar

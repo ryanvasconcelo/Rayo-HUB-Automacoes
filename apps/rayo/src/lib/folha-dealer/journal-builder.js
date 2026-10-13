@@ -25,6 +25,7 @@ import {
 } from './contracts.js';
 import { mapCenter } from './center-mapper.js';
 import { mapAccount } from './account-mapper.js';
+import { resolveCenterAccount } from './merge-center-config.js';
 
 /**
  * @param {object} params
@@ -160,6 +161,17 @@ export function buildJournal({ consolidatedItems, config, competence }) {
 
       const dc = accountLine.dc.toUpperCase();
       const finalDc = invertDc ? (dc === 'D' ? 'C' : 'D') : dc;
+      // Regra por centro troca a conta de resultado (classe 3+) da empresa.
+      // A natureza usada na regra é a do de-para, antes de inverter estorno.
+      let accountCode = resolveCenterAccount({
+        accountCode: accountLine.dealerAccountCode,
+        dc,
+        centerCode,
+        rules: config.centerAccountRules || [],
+      });
+      if (!accountRequiresCenter(accountCode)) {
+        centerCode = undefined;
+      }
       entries.push({
         companyId: item.companyId,
         competence,
@@ -167,7 +179,7 @@ export function buildJournal({ consolidatedItems, config, competence }) {
         history,
         payrollType: item.payrollType || DEFAULT_PAYROLL_TYPE,
         dc: finalDc,
-        accountCode: accountLine.dealerAccountCode,
+        accountCode,
         dealerLotAccountCode: accountLine.dealerLotAccountCode,
         centerCode,
         amountCents: signedAmount,

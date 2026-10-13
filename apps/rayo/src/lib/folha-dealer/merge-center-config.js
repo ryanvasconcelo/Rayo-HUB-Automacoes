@@ -63,7 +63,48 @@ export function seedPayloadFromCenterMappings(companyId, centerMappings = [], ac
     centers: [...centersMap.values()],
     lotacaoMappings: [...lotacaoMap.values()],
     accountMappings: [...accountMap.values()],
+    centerAccountRules: [],
   };
+}
+
+/**
+ * Normaliza regras "centro Dealer → outra conta".
+ * fromAccountCode vazio = toda linha daquela natureza (D/C) naquele centro.
+ * @param {object[]} rules
+ * @returns {object[]}
+ */
+export function normalizeCenterAccountRules(rules = []) {
+  return (rules || [])
+    .map((r) => ({
+      dealerCenterCode: padCenterCode(r.dealerCenterCode),
+      fromAccountCode: String(r.fromAccountCode || '').trim(),
+      toAccountCode: String(r.toAccountCode || '').trim(),
+      dc: String(r.dc || 'D').toUpperCase() === 'C' ? 'C' : 'D',
+      active: r.active !== false,
+    }))
+    .filter((r) => r.dealerCenterCode && r.toAccountCode);
+}
+
+/**
+ * Troca a conta do lançamento quando o centro Dealer tem regra ativa.
+ * Regra com conta de origem ganha da regra genérica do mesmo centro.
+ * @param {{ accountCode: string, dc?: string, centerCode?: string, rules?: object[] }} params
+ * @returns {string}
+ */
+export function resolveCenterAccount({ accountCode, dc, centerCode, rules = [] }) {
+  if (!centerCode || !accountCode) return accountCode;
+  const center = padCenterCode(centerCode);
+  const nature = String(dc || 'D').toUpperCase() === 'C' ? 'C' : 'D';
+  const candidates = normalizeCenterAccountRules(rules).filter((r) => {
+    if (r.active === false) return false;
+    if (r.dealerCenterCode !== center) return false;
+    if (r.dc !== nature) return false;
+    if (r.fromAccountCode && r.fromAccountCode !== accountCode) return false;
+    return true;
+  });
+  if (candidates.length === 0) return accountCode;
+  candidates.sort((a, b) => (b.fromAccountCode ? 1 : 0) - (a.fromAccountCode ? 1 : 0));
+  return candidates[0].toAccountCode;
 }
 
 /**
@@ -95,11 +136,14 @@ export function normalizeCentersPayload(payload, companyId) {
     active: m.active !== false,
   })).filter(m => m.eventCode && m.dealerAccountCode);
 
+  const centerAccountRules = normalizeCenterAccountRules(payload?.centerAccountRules);
+
   return {
     companyId: payload?.companyId || companyId || 'braga-veiculos',
     centers,
     lotacaoMappings,
     accountMappings,
+    centerAccountRules,
     ...(payload?.updatedAt ? { updatedAt: payload.updatedAt } : {}),
   };
 }

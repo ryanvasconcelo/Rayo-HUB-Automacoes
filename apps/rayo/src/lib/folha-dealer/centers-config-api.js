@@ -34,6 +34,9 @@ export async function saveCentersConfig(companyId, payload) {
       centers: payload.centers,
       lotacaoMappings: payload.lotacaoMappings,
       accountMappings: Array.isArray(payload.accountMappings) ? payload.accountMappings : [],
+      ...(Array.isArray(payload.centerAccountRules)
+        ? { centerAccountRules: payload.centerAccountRules }
+        : {}),
     }),
   });
   return parseJson(response);

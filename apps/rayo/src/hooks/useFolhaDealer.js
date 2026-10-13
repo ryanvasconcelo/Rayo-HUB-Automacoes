@@ -14,7 +14,7 @@ import {
 import { normalizeFortesQueryRows } from '../lib/folha-dealer/fortes-query-adapter';
 import { parseFortesCsv } from '../lib/folha-dealer/fortes-csv-parser';
 import { fetchCentersConfig } from '../lib/folha-dealer/centers-config-api';
-import { mergeCenterMappings, mergeAccountMappings } from '../lib/folha-dealer/merge-center-config';
+import { mergeCenterMappings, mergeAccountMappings, normalizeCentersPayload } from '../lib/folha-dealer/merge-center-config';
 
 
 const formatCents = (cents) =>
@@ -67,8 +67,12 @@ async function resolveRuntimeConfig(baseConfig) {
     companyId
   );
 
+  const centerAccountRules = stored
+    ? normalizeCentersPayload(stored, companyId).centerAccountRules
+    : [];
+
   return {
-    config: { ...baseConfig, centerMappings, accountMappings },
+    config: { ...baseConfig, centerMappings, accountMappings, centerAccountRules },
     centersWarning,
   };
 }

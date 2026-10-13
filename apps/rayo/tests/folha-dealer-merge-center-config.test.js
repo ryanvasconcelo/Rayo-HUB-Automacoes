@@ -5,6 +5,7 @@ import {
   mergeAccountMappings,
   seedPayloadFromCenterMappings,
   normalizeCentersPayload,
+  resolveCenterAccount,
 } from '../src/lib/folha-dealer/merge-center-config.js';
 
 describe('padCenterCode', () => {
@@ -169,5 +170,41 @@ describe('mergeCenterMappings — centro inativo', () => {
     };
     const merged = mergeCenterMappings(seed, stored, 'braga-veiculos');
     expect(merged.find((m) => m.lotacaoCode === 'FINANCEIRO')?.active).toBe(false);
+  });
+});
+
+describe('resolveCenterAccount', () => {
+  it('troca a conta só do centro informado e prefere a origem específica', () => {
+    const rules = [
+      { dealerCenterCode: '300', fromAccountCode: '', toAccountCode: '4.1.1.01.001', dc: 'D', active: true },
+      { dealerCenterCode: '000300', fromAccountCode: '6.1.1.01.002', toAccountCode: '4.1.1.01.010', dc: 'D', active: true },
+    ];
+    expect(resolveCenterAccount({
+      accountCode: '6.1.1.01.002',
+      dc: 'D',
+      centerCode: '000300',
+      rules,
+    })).toBe('4.1.1.01.010');
+    expect(resolveCenterAccount({
+      accountCode: '6.1.1.02.001',
+      dc: 'D',
+      centerCode: '000300',
+      rules,
+    })).toBe('4.1.1.01.001');
+    expect(resolveCenterAccount({
+      accountCode: '6.1.1.01.002',
+      dc: 'D',
+      centerCode: '000600',
+      rules,
+    })).toBe('6.1.1.01.002');
+  });
+
+  it('regra inativa não troca a conta', () => {
+    expect(resolveCenterAccount({
+      accountCode: '6.1.1.01.002',
+      dc: 'D',
+      centerCode: '000300',
+      rules: [{ dealerCenterCode: '000300', toAccountCode: '4.1.1.01.010', dc: 'D', active: false }],
+    })).toBe('6.1.1.01.002');
   });
 });

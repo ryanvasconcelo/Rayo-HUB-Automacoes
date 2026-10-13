@@ -74,6 +74,9 @@ function handleCentersApi(req, res) {
             ...(Array.isArray(body.accountMappings)
               ? { accountMappings: body.accountMappings }
               : {}),
+            ...(Array.isArray(body.centerAccountRules)
+              ? { centerAccountRules: body.centerAccountRules }
+              : {}),
           })
         );
       }

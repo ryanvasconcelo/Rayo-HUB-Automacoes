@@ -102,6 +102,9 @@ export function useFolhaDealerCenters(companyId = DEFAULT_COMPANY_ID) {
         centers: payload.centers,
         lotacaoMappings: payload.lotacaoMappings,
         accountMappings: payload.accountMappings || [],
+        centerAccountRules: Array.isArray(payload.centerAccountRules)
+          ? payload.centerAccountRules
+          : [],
       });
       const normalized = normalizeCentersPayload(saved, companyId);
       setStored(normalized);

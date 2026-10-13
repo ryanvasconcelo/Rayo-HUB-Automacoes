@@ -64,11 +64,22 @@ function normalizePayload(payload, companyId) {
     active: m.active !== false,
   })).filter(m => m.eventCode && m.dealerAccountCode);
 
+  const centerAccountRules = (payload?.centerAccountRules || [])
+    .map((r) => ({
+      dealerCenterCode: padCenterCode(r.dealerCenterCode),
+      fromAccountCode: String(r.fromAccountCode || '').trim(),
+      toAccountCode: String(r.toAccountCode || '').trim(),
+      dc: String(r.dc || 'D').toUpperCase() === 'C' ? 'C' : 'D',
+      active: r.active !== false,
+    }))
+    .filter((r) => r.dealerCenterCode && r.toAccountCode);
+
   return {
     companyId: payload?.companyId || companyId || DEFAULT_COMPANY_ID,
     centers,
     lotacaoMappings,
     accountMappings,
+    centerAccountRules,
     updatedAt: payload?.updatedAt || new Date().toISOString(),
   };
 }
@@ -129,6 +140,9 @@ function saveCentersConfig(companyId, payload) {
     accountMappings: Array.isArray(payload?.accountMappings)
       ? payload.accountMappings
       : (previous?.accountMappings || []),
+    centerAccountRules: Array.isArray(payload?.centerAccountRules)
+      ? payload.centerAccountRules
+      : (previous?.centerAccountRules || []),
   };
 
   const normalized = normalizePayload(mergedPayload, companyId);

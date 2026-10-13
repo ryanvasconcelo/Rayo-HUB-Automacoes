@@ -110,6 +110,41 @@ describe('folha-dealer-centers-store', () => {
     expect(saved.accountMappings).toHaveLength(1);
     expect(saved.accountMappings[0].eventCode).toBe('011');
   });
+
+  it('regra de conta por centro fica só no arquivo da empresa', () => {
+    store.saveCentersConfig('braga-veiculos', {
+      companyId: 'braga-veiculos',
+      centers: [{ code: '000300', name: 'Mecânica', active: true }],
+      lotacaoMappings: [],
+      accountMappings: [],
+      centerAccountRules: [{
+        dealerCenterCode: '000300',
+        fromAccountCode: '6.1.1.01.002',
+        toAccountCode: '4.1.1.01.010',
+        dc: 'D',
+        active: true,
+      }],
+    });
+    store.saveCentersConfig('braga-motos', {
+      companyId: 'braga-motos',
+      centers: [{ code: '000300', name: 'Mecânica', active: true }],
+      lotacaoMappings: [],
+      accountMappings: [],
+    });
+
+    const veiculos = store.loadCentersConfig('braga-veiculos');
+    const motos = store.loadCentersConfig('braga-motos');
+    expect(veiculos.centerAccountRules).toHaveLength(1);
+    expect(veiculos.centerAccountRules[0].toAccountCode).toBe('4.1.1.01.010');
+    expect(motos.centerAccountRules).toHaveLength(0);
+
+    const preserved = store.saveCentersConfig('braga-veiculos', {
+      companyId: 'braga-veiculos',
+      centers: veiculos.centers,
+      lotacaoMappings: [],
+    });
+    expect(preserved.centerAccountRules).toHaveLength(1);
+  });
 });
 
 describe('engine smoke — GERAL→000999 remove MISSING_CENTER_MAPPING', () => {

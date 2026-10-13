@@ -224,7 +224,7 @@ app.get('/api/folha-dealer/centers', (req, res) => {
 app.put('/api/folha-dealer/centers', (req, res) => {
     try {
         const companyId = req.body?.companyId || 'braga-veiculos';
-        const { centers, lotacaoMappings, accountMappings } = req.body || {};
+        const { centers, lotacaoMappings, accountMappings, centerAccountRules } = req.body || {};
         if (!Array.isArray(centers) || !Array.isArray(lotacaoMappings)) {
             return res.status(400).json({
                 error: 'Body deve incluir arrays "centers" e "lotacaoMappings".',
@@ -235,6 +235,7 @@ app.put('/api/folha-dealer/centers', (req, res) => {
             centers,
             lotacaoMappings,
             ...(Array.isArray(accountMappings) ? { accountMappings } : {}),
+            ...(Array.isArray(centerAccountRules) ? { centerAccountRules } : {}),
         });
         res.json(saved);
     } catch (err) {

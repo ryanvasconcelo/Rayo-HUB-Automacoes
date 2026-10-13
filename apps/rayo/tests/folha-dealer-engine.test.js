@@ -204,6 +204,44 @@ describe('Folha Dealer engine', () => {
         expect(passivo.amountCents).toBe(220000);
     });
 
+    it('centro 000300 troca a conta de despesa; outro centro da mesma empresa não', async () => {
+        const { buildJournal } = await import('../src/lib/folha-dealer/journal-builder.js');
+        const { entries } = buildJournal({
+            competence: '2026-04',
+            config: {
+                ...bragaVeiculosConfig,
+                centerAccountRules: [{
+                    dealerCenterCode: '000300',
+                    fromAccountCode: '6.1.1.01.002',
+                    toAccountCode: '4.1.1.01.010',
+                    dc: 'D',
+                    active: true,
+                }],
+            },
+            consolidatedItems: [
+                {
+                    companyId: 'braga-veiculos',
+                    lotacaoCode: 'AGENDAMENTOS',
+                    eventCode: '011',
+                    amountCents: 10000,
+                },
+                {
+                    companyId: 'braga-veiculos',
+                    lotacaoCode: 'FINANCEIRO',
+                    eventCode: '011',
+                    amountCents: 5000,
+                },
+            ],
+        });
+
+        const mecanica = entries.find((e) => e.lotacaoCode === 'AGENDAMENTOS' && e.dc === 'D');
+        const admin = entries.find((e) => e.lotacaoCode === 'FINANCEIRO' && e.dc === 'D');
+        expect(mecanica.accountCode).toBe('4.1.1.01.010');
+        expect(mecanica.centerCode).toBe('000300');
+        expect(admin.accountCode).toBe('6.1.1.01.002');
+        expect(admin.centerCode).toBe('000600');
+    });
+
     it('consolida duas linhas iguais em um item', () => {
         const rows = normalizePayrollRows([
             ...baseRows(),
