@@ -513,8 +513,6 @@ export default function FolhaDealerCadastrosPanel({ companyId = 'braga-veiculos'
           </div>
         </section>
 
-        </section>
-
         <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100">
             <h3 className="font-semibold text-slate-900">Conta por centro de custo</h3>
