@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { bragaVeiculosConfig } from '../src/lib/folha-dealer/braga-veiculos.config.js';
 import { bragaMotosConfig } from '../src/lib/folha-dealer/braga-motos.config.js';
+import { motoReyConfig } from '../src/lib/folha-dealer/moto-rey.config.js';
+import { runFolhaDealerEngine } from '../src/lib/folha-dealer/index.js';
 
 // Eventos com valor em férias/rescisão no Fortes, 01–09/2026 (levantamento de
 // 25/09/2026). P = provento (tem que debitar), D = desconto (tem que creditar).
@@ -18,6 +20,42 @@ const OBSERVADOS = {
 // Bases de cálculo da rescisão (ProvDesc = 0): nunca geram lançamento. A multa
 // FGTS (900) também é ProvDesc = 0, mas gera lançamento próprio (D/C).
 const INFORMATIVOS_RESCISAO = ['610', '613', '902', '904'];
+
+// 612 FGTS B. de Cálculo - Acidente (ProvDesc = 0): base do FGTS de quem está
+// afastado por acidente de trabalho. O FGTS já entra pelos encargos
+// (ES_FGTS_SEGURADO), então a base não gera lançamento nem bloqueia o lote.
+describe('612 FGTS B. de Cálculo - Acidente', () => {
+  for (const config of [bragaVeiculosConfig, bragaMotosConfig, motoReyConfig]) {
+    it(`${config.company.companyId}: é informativo e não bloqueia o lote`, () => {
+      expect(config.informativeEventCodes).toContain('612');
+
+      const row = (overrides) => ({
+        companyId: config.company.companyId,
+        competence: '2026-10',
+        sourcePayrollId: '1',
+        lotacaoCode: config.centerMappings[0].lotacaoCode,
+        lotacaoName: config.centerMappings[0].lotacaoCode,
+        employeeId: '1',
+        eventName: '',
+        amountCents: 0,
+        ...overrides,
+      });
+      const run = runFolhaDealerEngine({
+        config,
+        competence: '2026-10',
+        sourceRows: [
+          row({ sourceLineId: 'l1', eventCode: '612', eventName: 'FGTS B. de Cálculo - Acidente', amountCents: 176000 }),
+        ],
+      });
+
+      expect(run.entries).toEqual([]);
+      expect(run.issues.find((i) => i.code === 'MISSING_ACCOUNT_MAPPING')).toBeUndefined();
+      expect(run.issues).toEqual(expect.arrayContaining([
+        expect.objectContaining({ code: 'INFORMATIVE_EVENT_IGNORED', context: expect.objectContaining({ eventCode: '612' }) }),
+      ]));
+    });
+  }
+});
 
 for (const config of [bragaVeiculosConfig, bragaMotosConfig]) {
   const { companyId } = config.company;
