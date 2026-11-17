@@ -317,8 +317,10 @@ const provisionRates = {
 
 // 610/613/902/904: bases de cálculo da rescisão (ProvDesc = 0). A multa FGTS
 // (900) também é ProvDesc = 0 no Fortes, mas é lançada (ver RESCISÃO).
+// 612 FGTS B. de Cálculo - Acidente: base do FGTS do afastado por acidente de
+// trabalho; o FGTS já entra pelos encargos (ES_FGTS_SEGURADO).
 const informativeEventCodes = [
-  '600', '601', '602', '603', '604', '605', '610', '613', '902', '904', '937', '938',
+  '600', '601', '602', '603', '604', '605', '610', '612', '613', '902', '904', '937', '938',
 ];
 
 // ---------------------------------------------------------------------------
